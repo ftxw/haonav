@@ -1,0 +1,23 @@
+{
+  "$schema": "https://registry.tencent.cloud/schema/edgeone-pages.json",
+  "version": 1,
+  "name": "HaoNav",
+  "framework": "vite",
+  "build": {
+    "command": "npm run build",
+    "output": "dist"
+  },
+  "routes": [
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "dev": {
+    "command": "npm run dev",
+    "port": 5173
+  }
+}
