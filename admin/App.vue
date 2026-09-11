@@ -99,28 +99,39 @@ onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', onBeforeUnload);
 });
 
-/** 左侧导航项：选中蓝底蓝字 + 右侧小圆点（对齐前台侧栏风格） */
+/** 左侧导航项：选中 emerald 底色 + 右侧小圆点（与前台同款观感） */
 const navCls = (active: boolean): string =>
   'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all ' +
   (active
-    ? 'bg-blue-50 font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-    : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white');
+    ? 'bg-emerald-50 font-medium text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
+    : 'text-slate-600 hover:bg-white/60 dark:text-slate-300 dark:hover:bg-slate-700/60 dark:hover:text-white');
 </script>
 
+<!-- 背景层：与前台同款渐变 + 光斑（登录页与主界面共用） -->
 <template>
+  <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-gray-100 dark:bg-[#0f172a]">
+    <div class="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-[#0f172a] dark:to-[#1e293b]"></div>
+    <div
+      class="animate-blob absolute left-[-10%] top-[-10%] h-[800px] w-[800px] rounded-full bg-emerald-200/30 blur-[150px] mix-blend-multiply dark:bg-indigo-900/20 dark:mix-blend-screen"
+    ></div>
+    <div
+      class="animate-blob-slow absolute bottom-[-15%] right-[-10%] h-[700px] w-[700px] rounded-full bg-teal-200/30 blur-[150px] mix-blend-multiply dark:bg-emerald-900/20 dark:mix-blend-screen"
+    ></div>
+  </div>
+
   <!-- ═════════ 登录 ═════════ -->
   <div v-if="state.checking" class="flex min-h-screen items-center justify-center text-sm text-slate-400">
     正在检查登录状态…
   </div>
 
-  <div v-else-if="!state.authed" class="flex min-h-screen items-center justify-center bg-slate-50 p-6 dark:bg-slate-900">
+  <div v-else-if="!state.authed" class="flex min-h-screen items-center justify-center p-6">
     <form
-      class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+      class="w-full max-w-sm rounded-2xl border border-slate-200/60 bg-white/80 p-8 shadow-sm backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-800/80"
       @submit.prevent="doLogin"
     >
       <div class="flex items-center gap-3">
         <div
-          class="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-lg font-bold text-white shadow-lg shadow-blue-500/30"
+          class="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-lg font-bold text-white shadow-lg shadow-emerald-500/30"
         >
           H
         </div>
@@ -132,12 +143,12 @@ const navCls = (active: boolean): string =>
         type="password"
         placeholder="管理密码"
         autocomplete="current-password"
-        class="mt-5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+        class="mt-5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
       />
       <p v-if="state.error" class="mt-2 text-xs text-red-500">{{ state.error }}</p>
       <button
         type="submit"
-        class="mt-4 w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+        class="mt-4 w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
         :disabled="loggingIn || !password"
       >
         {{ loggingIn ? '登录中…' : '登录' }}
@@ -147,11 +158,13 @@ const navCls = (active: boolean): string =>
 
   <!-- ═════════ 主界面：左侧固定导航 + 右侧内容区 ═════════ -->
   <div v-else class="flex h-screen overflow-hidden">
-    <!-- 左侧导航（w-60 ≈ 15rem） -->
-    <aside class="flex w-60 shrink-0 flex-col border-r border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
-      <div class="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 px-5 dark:border-slate-700">
+    <!-- 左侧导航（w-60 ≈ 15rem）：毛玻璃，与前台侧栏同款 -->
+    <aside
+      class="flex w-60 shrink-0 flex-col border-r border-slate-200/40 bg-white/60 backdrop-blur-xl dark:border-slate-700/40 dark:bg-[#0f172a]/60"
+    >
+      <div class="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200/40 px-5 dark:border-slate-700/40">
         <div
-          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-base font-bold text-white shadow-lg shadow-blue-500/30"
+          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-600 text-base font-bold text-white shadow-lg shadow-emerald-500/30"
         >
           {{ brandChar }}
         </div>
@@ -171,11 +184,11 @@ const navCls = (active: boolean): string =>
         >
           <AdminIcon :name="p.icon" :size="16" />
           <span class="flex-1 truncate text-left">{{ p.label }}</span>
-          <span v-if="state.panel === p.id" class="h-1.5 w-1.5 rounded-full bg-blue-500"></span>
+          <span v-if="state.panel === p.id" class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
         </button>
       </nav>
 
-      <div class="shrink-0 space-y-1 border-t border-slate-100 p-3 dark:border-slate-700">
+      <div class="shrink-0 space-y-1 border-t border-slate-200/40 p-3 dark:border-slate-700/40">
         <a
           href="/"
           target="_blank"
@@ -196,7 +209,7 @@ const navCls = (active: boolean): string =>
     <!-- 右侧：顶栏 + 独立滚动的内容区 -->
     <div class="flex min-w-0 flex-1 flex-col">
       <header
-        class="flex h-14 shrink-0 flex-wrap items-center gap-3 border-b border-slate-200 bg-white/80 px-4 backdrop-blur-md lg:px-6 dark:border-slate-700 dark:bg-slate-800/80"
+        class="flex h-14 shrink-0 flex-wrap items-center gap-3 border-b border-slate-200/40 bg-white/60 px-4 backdrop-blur-xl lg:px-6 dark:border-slate-700/40 dark:bg-[#0f172a]/60"
       >
         <h1 class="text-sm font-bold text-slate-800 dark:text-slate-100">{{ currentPanel.label }}</h1>
         <span class="text-xs text-slate-400">rev {{ state.doc?.rev ?? '—' }}</span>
@@ -216,7 +229,7 @@ const navCls = (active: boolean): string =>
           </button>
           <button
             type="button"
-            class="rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+            class="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
             :disabled="!state.dirty || state.saving"
             title="Ctrl/Cmd+S"
             @click="doSave"
@@ -258,7 +271,7 @@ const navCls = (active: boolean): string =>
         <div class="flex flex-col gap-2 pt-1">
           <button
             type="button"
-            class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
             @click="conflictDiscard"
           >
             放弃我的改动并刷新（推荐）

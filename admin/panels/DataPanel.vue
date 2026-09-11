@@ -277,7 +277,7 @@ function removeDead(): void {
 const btnCls =
   'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 const inputCls =
-  'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
+  'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-emerald-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
 const cardCls = 'rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800';
 const titleCls = 'text-sm font-bold text-slate-800 dark:text-slate-100';
 const descCls = 'mt-0.5 text-xs text-slate-500 dark:text-slate-400';
@@ -291,7 +291,7 @@ const descCls = 'mt-0.5 text-xs text-slate-500 dark:text-slate-400';
       <p :class="descCls">支持浏览器导出的 Netscape HTML 书签文件（Web Worker 解析，不卡界面），或本工具导出的 JSON 备份（整体还原）。</p>
       <div class="mt-3 flex flex-wrap items-center gap-2">
         <input ref="fileInput" type="file" accept=".html,.htm,.json" class="hidden" @change="onFile" />
-        <button type="button" :class="btnCls + ' bg-blue-600 text-white hover:bg-blue-700'" :disabled="phase !== 'idle'" @click="fileInput?.click()">
+        <button type="button" :class="btnCls + ' bg-emerald-600 text-white hover:bg-emerald-700'" :disabled="phase !== 'idle'" @click="fileInput?.click()">
           选择文件…
         </button>
         <label class="flex items-center gap-1.5 text-xs text-slate-500">
@@ -301,7 +301,7 @@ const descCls = 'mt-0.5 text-xs text-slate-500 dark:text-slate-400';
             <option v-for="c in state.doc?.categories ?? []" :key="c.id" :value="c.id">{{ c.name }}</option>
           </select>
         </label>
-        <span v-if="phase === 'parsing' || phase === 'diffing' || phase === 'applying'" class="text-xs text-blue-600 dark:text-blue-400">{{ progressText }}</span>
+        <span v-if="phase === 'parsing' || phase === 'diffing' || phase === 'applying'" class="text-xs text-emerald-600 dark:text-emerald-400">{{ progressText }}</span>
       </div>
       <p v-if="importError" class="mt-2 text-xs text-red-500">{{ importError }}</p>
     </div>
@@ -340,7 +340,7 @@ const descCls = 'mt-0.5 text-xs text-slate-500 dark:text-slate-400';
           <option value="all">全部链接</option>
           <option value="nodesc">仅无描述的链接</option>
         </select>
-        <button type="button" :class="btnCls + ' bg-blue-600 text-white hover:bg-blue-700'" :disabled="deadRunning" @click="runDeadCheck">
+        <button type="button" :class="btnCls + ' bg-emerald-600 text-white hover:bg-emerald-700'" :disabled="deadRunning" @click="runDeadCheck">
           {{ deadRunning ? '检测中…' : '开始检测' }}
         </button>
         <span v-if="deadTotal" class="text-xs text-slate-500">{{ deadDone }}/{{ deadTotal }}</span>
@@ -402,7 +402,7 @@ const descCls = 'mt-0.5 text-xs text-slate-500 dark:text-slate-400';
 
         <div class="flex justify-end gap-2 pt-1">
           <button type="button" :class="btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200'" :disabled="phase === 'applying'" @click="cancelImport">取消</button>
-          <button type="button" :class="btnCls + ' bg-blue-600 text-white hover:bg-blue-700'" :disabled="phase === 'applying' || (!added.length && (conflictChoice !== 'new' || !conflicts.length))" @click="confirmImport">
+          <button type="button" :class="btnCls + ' bg-emerald-600 text-white hover:bg-emerald-700'" :disabled="phase === 'applying' || (!added.length && (conflictChoice !== 'new' || !conflicts.length))" @click="confirmImport">
             {{ phase === 'applying' ? '导入中…' : `确认导入（新增 ${added.length} 条）` }}
           </button>
         </div>

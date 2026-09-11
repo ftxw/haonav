@@ -34,16 +34,20 @@ export function paletteColor(seed: string): string {
   return LETTER_PALETTE[hashSeed(seed) % LETTER_PALETTE.length];
 }
 
-/* ── 复用类名组合（对齐 legacy 卡片/胶囊样式） ── */
+/* ── 复用类名组合（对齐 nav.lts.cc 参考站） ── */
 
-/** 卡片外壳：legacy renderLinkCard 的边框/阴影/悬停抬升 */
+/** 卡片外壳：半透明 + emerald 柔光阴影 + 悬停抬升（规格④） */
 export const CARD_FRAME =
-  'rounded-xl border border-slate-100 bg-white shadow-sm transition-all duration-200 ' +
-  'hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:shadow-lg ' +
-  'dark:border-slate-700/50 dark:bg-slate-800 dark:hover:border-slate-600 dark:hover:bg-slate-700/40';
+  'rounded-xl border border-slate-200/50 bg-white/50 transition-all duration-300 ' +
+  'hover:-translate-y-0.5 hover:border-slate-300/60 hover:bg-white hover:shadow-md hover:shadow-emerald-500/10 ' +
+  'dark:border-transparent dark:bg-transparent dark:hover:border-slate-700/60 dark:hover:bg-slate-800';
 
-/** 悬停标题变蓝（配合外层 group） */
-export const TITLE_HOVER = 'transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-400';
+/** 悬停标题变色（配合外层 group） */
+export const TITLE_HOVER = 'transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-400';
 
-/** 分段控件（站内/站外胶囊、卡片视图切换）选中态 */
-export const SEG_ACTIVE = 'bg-white text-blue-600 shadow-sm dark:bg-slate-600 dark:text-blue-400';
+/** 分段控件（设置弹层内：主题三态 / 视图三选）选中态 —— 主色走 --accent，后台可改色 */
+export const SEG_ACTIVE = 'bg-white text-accent shadow-sm dark:bg-slate-700 dark:text-emerald-400';
+
+/** 毛玻璃顶栏 / 弹层（规格③） */
+export const GLASS =
+  'bg-gray-100/60 dark:bg-[#0f172a]/60 backdrop-blur-xl border-slate-200/40 dark:border-slate-700/40';

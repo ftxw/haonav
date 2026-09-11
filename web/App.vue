@@ -162,6 +162,17 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="app-shell">
+    <!-- 背景层：渐变 + 两个漂移光斑（对齐 nav.lts.cc，纯 CSS 装饰） -->
+    <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-gray-100 dark:bg-[#0f172a]">
+      <div class="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-[#0f172a] dark:to-[#1e293b]"></div>
+      <div
+        class="animate-blob absolute left-[-10%] top-[-10%] h-[800px] w-[800px] rounded-full bg-emerald-200/30 blur-[150px] mix-blend-multiply dark:bg-indigo-900/20 dark:mix-blend-screen"
+      ></div>
+      <div
+        class="animate-blob-slow absolute bottom-[-15%] right-[-10%] h-[700px] w-[700px] rounded-full bg-teal-200/30 blur-[150px] mix-blend-multiply dark:bg-emerald-900/20 dark:mix-blend-screen"
+      ></div>
+    </div>
+
     <SidebarNav
       :class="{ 'is-open': state.drawerOpen }"
       :settings="state.settings"

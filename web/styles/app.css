@@ -10,8 +10,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* 主色走 CSS 变量，改主色纯运行时（inline script / theme.ts 写 --accent） */
-  --color-accent: var(--accent, #3b82f6);
+  /* 主色走 CSS 变量，改主色纯运行时（inline script / theme.ts 写 --accent）；默认 emerald-500 */
+  --color-accent: var(--accent, #10b981);
 }
 
 /* Tailwind v4 默认 grid-cols 只到 12，纯图标档需要 14 列 —— 用自定义 utility 补齐 */
@@ -103,6 +103,26 @@
   display: none;
 }
 
+/* ── 背景光斑（对齐 nav.lts.cc）：两个大 blur 圆缓慢漂移，纯装饰 ── */
+@keyframes hn-blob {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(80px, -60px) scale(1.12);
+  }
+  66% {
+    transform: translate(-60px, 50px) scale(0.92);
+  }
+}
+.animate-blob {
+  animation: hn-blob 12s ease-in-out infinite;
+}
+.animate-blob-slow {
+  animation: hn-blob 16s ease-in-out infinite reverse;
+}
+
 /* ── 浮层动效（仅 opacity/transform） ── */
 @keyframes hn-slide-down {
   from {
@@ -134,6 +154,8 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-slide-down,
   .animate-zoom-in,
+  .animate-blob,
+  .animate-blob-slow,
   .sidebar {
     animation: none;
     transition: none;

@@ -85,7 +85,7 @@ const ghostBtn = btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:
         <span class="text-xs text-slate-400">{{ snaps.length }} 份</span>
         <button
           type="button"
-          :class="btnCls + ' ml-auto bg-blue-600 text-white hover:bg-blue-700'"
+          :class="btnCls + ' ml-auto bg-emerald-600 text-white hover:bg-emerald-700'"
           :disabled="snapshotBusy"
           @click="takeSnapshot"
         >
@@ -106,7 +106,7 @@ const ghostBtn = btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:
         >
           <span class="text-slate-600 dark:text-slate-300">{{ formatTime(s.at) }}</span>
           <span class="text-slate-400">{{ formatBytes(s.size) }}</span>
-          <button type="button" class="ml-auto text-blue-600 hover:underline dark:text-blue-400" @click="restoreSnapshot(s.key)">
+          <button type="button" class="ml-auto text-emerald-600 hover:underline dark:text-emerald-400" @click="restoreSnapshot(s.key)">
             恢复
           </button>
         </li>

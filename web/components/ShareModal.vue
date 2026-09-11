@@ -41,7 +41,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
     >
       <div class="animate-zoom-in flex w-full max-w-xs flex-col items-center gap-4 rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-800">
         <div class="flex w-full items-center gap-2">
-          <AppIcon name="qrcode" :size="18" class="text-blue-600" />
+          <AppIcon name="qrcode" :size="18" class="text-accent" />
           <span class="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{{ link.title }}</span>
           <button
             type="button"

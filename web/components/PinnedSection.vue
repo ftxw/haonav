@@ -19,7 +19,7 @@ const emit = defineEmits<{ context: [payload: { link: IndexedLink; x: number; y:
   <!-- 对齐 legacy：无外框，Pin 图标 + 大写间距标题 -->
   <section>
     <div class="mb-4 flex items-center gap-2">
-      <AppIcon name="pin" :size="16" class="fill-current text-blue-500" />
+      <AppIcon name="pin" :size="16" class="fill-current text-accent" />
       <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">置顶 / 常用</h2>
       <span class="ml-auto text-xs text-slate-400 dark:text-slate-500">{{ links.length }}</span>
     </div>

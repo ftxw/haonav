@@ -160,7 +160,7 @@ function confirmMerge(): void {
 }
 
 const inputCls =
-  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
+  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-emerald-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
 const btnCls =
   'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 </script>
@@ -169,7 +169,7 @@ const btnCls =
   <div class="space-y-4">
     <div class="flex items-center gap-2">
       <span class="text-xs text-slate-500">拖拽行可排序；删除分类时其下链接可指定去向，不会丢失。</span>
-      <button type="button" :class="btnCls + ' ml-auto bg-blue-600 text-white hover:bg-blue-700'" @click="openAdd">＋ 新建分类</button>
+      <button type="button" :class="btnCls + ' ml-auto bg-emerald-600 text-white hover:bg-emerald-700'" @click="openAdd">＋ 新建分类</button>
       <button type="button" :class="btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200'" @click="merging = true">合并分类</button>
     </div>
 
@@ -189,7 +189,7 @@ const btnCls =
             v-for="c in cats"
             :key="c.id"
             class="border-t border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/40"
-            :class="{ 'opacity-50': dragId === c.id, 'ring-2 ring-blue-400 ring-inset': dragOverId === c.id }"
+            :class="{ 'opacity-50': dragId === c.id, 'ring-2 ring-emerald-400 ring-inset': dragOverId === c.id }"
             draggable="true"
             @dragstart="dragId = c.id"
             @dragover.prevent="dragOverId = c.id"
@@ -207,7 +207,7 @@ const btnCls =
             <td class="px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200">{{ c.name }}</td>
             <td class="px-3 py-2 text-sm text-slate-500">{{ counts[c.id] ?? 0 }}</td>
             <td class="whitespace-nowrap px-3 py-2">
-              <button type="button" class="text-xs text-blue-600 hover:underline dark:text-blue-400" @click="openEdit(c)">编辑</button>
+              <button type="button" class="text-xs text-emerald-600 hover:underline dark:text-emerald-400" @click="openEdit(c)">编辑</button>
               <button type="button" class="ml-2 text-xs text-red-500 hover:underline" @click="openDelete(c)">删除</button>
             </td>
           </tr>
@@ -244,7 +244,7 @@ const btnCls =
         <p v-if="formError" class="text-xs text-red-500">{{ formError }}</p>
         <div class="flex justify-end gap-2 pt-1">
           <button type="button" :class="btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200'" @click="closeForm">取消</button>
-          <button type="button" :class="btnCls + ' bg-blue-600 text-white hover:bg-blue-700'" @click="submitForm">保存</button>
+          <button type="button" :class="btnCls + ' bg-emerald-600 text-white hover:bg-emerald-700'" @click="submitForm">保存</button>
         </div>
       </div>
     </Modal>
@@ -286,7 +286,7 @@ const btnCls =
         </label>
         <div class="flex justify-end gap-2 pt-1">
           <button type="button" :class="btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200'" @click="merging = false">取消</button>
-          <button type="button" :class="btnCls + ' bg-blue-600 text-white hover:bg-blue-700'" :disabled="!mergeFrom || !mergeTo || mergeFrom === mergeTo" @click="confirmMerge">合并</button>
+          <button type="button" :class="btnCls + ' bg-emerald-600 text-white hover:bg-emerald-700'" :disabled="!mergeFrom || !mergeTo || mergeFrom === mergeTo" @click="confirmMerge">合并</button>
         </div>
       </div>
     </Modal>

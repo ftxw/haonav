@@ -15,7 +15,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ select: [id: string]; close: [] }>();
 
-/** 品牌：image 用图片；letter/emoji 用 legacy 渐变色块（from-blue-500 to-purple-600） */
+/** 品牌：image 用图片；letter/emoji 用参考站渐变色块（emerald→teal，规格⑤） */
 const brandImage = computed(() =>
   props.settings.icon.type === 'image' && props.settings.icon.value ? props.settings.icon.value : '',
 );
@@ -30,44 +30,45 @@ const catIcons = computed<Record<string, string>>(() => {
   return m;
 });
 
-/** 对齐 legacy：分类选中 bg-blue-100，「全部链接」选中更淡的 bg-blue-50、行更高 */
+/** 选中态主色走 --accent（后台改色实时生效）；「全部链接」底色更淡 */
 function itemClass(active: boolean, opts?: { pale?: boolean; tall?: boolean }): string {
   const activeCls = opts?.pale
-    ? 'bg-blue-50 font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-    : 'bg-blue-100 font-medium text-blue-600 dark:bg-blue-900/40 dark:text-blue-400';
+    ? 'bg-accent/10 font-medium text-accent dark:bg-accent/20'
+    : 'bg-accent/15 font-medium text-accent dark:bg-accent/25';
   return (
     'flex w-full items-center gap-3 rounded-xl px-4 transition-all ' +
     (opts?.tall ? 'py-3 ' : 'py-2.5 ') +
-    (active ? activeCls : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700')
+    (active ? activeCls : 'text-slate-600 hover:bg-white/60 dark:text-slate-400 dark:hover:bg-slate-700/60')
   );
 }
 </script>
 
 <template>
-  <aside class="sidebar flex h-full w-64 flex-col border-r border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
-    <!-- 品牌区：渐变 logo + 渐变站名（legacy） -->
-    <div class="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 px-6 dark:border-slate-700">
+  <aside
+    class="sidebar flex h-full w-64 flex-col border-r border-slate-200/40 bg-white/60 backdrop-blur-xl dark:border-slate-700/40 dark:bg-[#0f172a]/60"
+  >
+    <!-- 品牌区：emerald→teal 渐变 logo（hover 缩放微旋转）+ 常规站名 -->
+    <div class="group flex h-16 shrink-0 items-center gap-3 border-b border-slate-200/40 px-6 dark:border-slate-700/40">
       <img
         v-if="brandImage"
         :src="brandImage"
         width="32"
         height="32"
         alt=""
-        class="h-8 w-8 shrink-0 rounded-lg"
+        class="h-8 w-8 shrink-0 rounded-lg transition-transform duration-300 group-hover:rotate-3 group-hover:scale-110"
       />
       <div
         v-else
-        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-base font-bold text-white shadow-lg shadow-blue-500/30"
+        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-600 text-base font-bold text-white shadow-lg shadow-emerald-500/30 transition-transform duration-300 group-hover:rotate-3 group-hover:scale-110"
       >
         {{ brandChar }}
       </div>
-      <span
-        class="min-w-0 truncate bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-lg font-bold text-transparent dark:from-blue-400 dark:to-purple-400"
-        >{{ settings.name }}</span
-      >
+      <span class="min-w-0 truncate text-lg font-bold tracking-wide text-slate-700 dark:text-slate-100">{{
+        settings.name
+      }}</span>
       <button
         type="button"
-        class="ml-auto rounded-full p-2 text-slate-500 hover:bg-slate-100 lg:hidden dark:text-slate-400 dark:hover:bg-slate-700"
+        class="ml-auto rounded-full p-2 text-slate-500 hover:bg-slate-200/60 lg:hidden dark:text-slate-400 dark:hover:bg-slate-700/60"
         aria-label="关闭目录"
         @click="emit('close')"
       >
@@ -84,7 +85,7 @@ function itemClass(active: boolean, opts?: { pale?: boolean; tall?: boolean }): 
       >
         <AppIcon name="grid" :size="16" />
         <span class="flex-1 truncate text-left text-sm">全部链接</span>
-        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-slate-700 dark:text-slate-300">{{
+        <span class="rounded-full bg-slate-200/70 px-2 py-0.5 text-xs text-slate-500 dark:bg-slate-700/70 dark:text-slate-300">{{
           totalCount
         }}</span>
       </button>
@@ -101,28 +102,28 @@ function itemClass(active: boolean, opts?: { pale?: boolean; tall?: boolean }): 
         <span
           :class="[
             'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors',
-            activeCat === c.id ? 'bg-blue-100 dark:bg-blue-800' : 'bg-slate-100 dark:bg-slate-800',
+            activeCat === c.id ? 'bg-accent/25 dark:bg-accent/30' : 'bg-slate-200/70 dark:bg-slate-800',
           ]"
         >
           <img :src="catIcons[c.id]" width="16" height="16" alt="" class="h-4 w-4 rounded" />
         </span>
         <span class="flex-1 truncate text-left text-sm">{{ c.name }}</span>
-        <span v-if="activeCat === c.id" class="h-1.5 w-1.5 rounded-full bg-blue-500"></span>
-        <span v-else class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-slate-700 dark:text-slate-300">{{
+        <span v-if="activeCat === c.id" class="h-1.5 w-1.5 rounded-full bg-accent"></span>
+        <span v-else class="rounded-full bg-slate-200/70 px-2 py-0.5 text-xs text-slate-500 dark:bg-slate-700/70 dark:text-slate-300">{{
           counts[c.id] ?? 0
         }}</span>
       </button>
     </nav>
 
     <!-- 页脚外链（来自 settings.footerLinks，零硬编码） -->
-    <div v-if="footers.length" class="shrink-0 border-t border-slate-100 p-3 dark:border-slate-700">
+    <div v-if="footers.length" class="shrink-0 border-t border-slate-200/40 p-3 dark:border-slate-700/40">
       <a
         v-for="f in footers"
         :key="f.url"
         :href="f.url"
         target="_blank"
         rel="noopener noreferrer"
-        class="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-700/60"
+        class="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-slate-500 transition-colors hover:bg-white/60 hover:text-accent dark:text-slate-400 dark:hover:bg-slate-700/60"
       >
         <AppIcon name="external" :size="13" />
         <span class="truncate">{{ f.label }}</span>

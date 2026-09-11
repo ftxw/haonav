@@ -43,7 +43,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
 <template>
   <div class="flex min-w-0 flex-1 items-center gap-2">
     <!-- 站内 / 站外 胶囊切换 -->
-    <div class="flex shrink-0 rounded-full bg-slate-100 p-0.5 dark:bg-slate-700">
+    <div class="flex shrink-0 rounded-full bg-slate-200/60 p-0.5 dark:bg-slate-700/60">
       <button type="button" :class="pillClass(state.mode === 'local')" @click="setMode('local')">站内</button>
       <button type="button" :class="pillClass(state.mode === 'web')" @click="setMode('web')">站外</button>
     </div>
@@ -57,7 +57,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
         type="text"
         autocomplete="off"
         spellcheck="false"
-        class="w-full rounded-full border border-transparent bg-slate-100 py-2 pl-9 pr-9 text-sm text-slate-800 outline-none transition-all placeholder-slate-400 hover:bg-white focus:bg-white focus:ring-2 focus:ring-blue-500/50 dark:bg-slate-700/50 dark:text-white dark:hover:bg-slate-700 dark:focus:bg-slate-700"
+        class="w-full rounded-full border border-transparent bg-white/50 py-2 pl-9 pr-9 text-sm text-slate-800 outline-none transition-all placeholder-slate-400 hover:bg-white focus:bg-white focus:ring-2 focus:ring-accent/50 dark:bg-slate-800/60 dark:text-white dark:hover:bg-slate-800 dark:focus:bg-slate-800"
         @input="setQuery(($event.target as HTMLInputElement).value)"
       />
       <button
@@ -76,7 +76,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
       <select
         :value="state.engineId"
         aria-label="搜索引擎"
-        class="appearance-none rounded-full border border-slate-200 bg-white py-2 pl-3 pr-7 text-sm text-slate-700 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+        class="appearance-none rounded-full border border-slate-200/60 bg-white/50 py-2 pl-3 pr-7 text-sm text-slate-700 outline-none focus:border-accent dark:border-slate-700/60 dark:bg-slate-800/60 dark:text-slate-200"
         @change="setEngine(($event.target as HTMLSelectElement).value)"
       >
         <option v-for="e in engines" :key="e.id" :value="e.id">{{ e.name }}</option>
