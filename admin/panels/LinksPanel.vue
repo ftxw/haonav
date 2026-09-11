@@ -1,0 +1,374 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue';
+import Modal from '../components/Modal.vue';
+import { between, appendOrder, orderForIndex } from '../lib/order';
+import { newId, hostOf, maxOrderOf } from '../lib/util';
+import { mutate, state, toast } from '../lib/adminStore';
+import type { Category, LinkItem } from '../../shared/types';
+
+/* ───────── 筛选 ───────── */
+const fCat = ref<string>('all'); // all | none | <catId>
+const fQuery = ref('');
+const fPinned = ref<'all' | 'pinned' | 'unpinned'>('all');
+const fDesc = ref<'all' | 'with' | 'without'>('all');
+
+const catName = computed<Record<string, string>>(() => {
+  const m: Record<string, string> = { '': '（未分类）' };
+  for (const c of state.doc?.categories ?? []) m[c.id] = c.name;
+  return m;
+});
+
+const rows = computed<(LinkItem & { host: string })[]>(() => {
+  const d = state.doc;
+  if (!d) return [];
+  const catOrder = new Map<string, string>(d.categories.map((c) => [c.id, c.order]));
+  const q = fQuery.value.trim().toLowerCase();
+  const list = d.links.filter((l) => {
+    if (fCat.value === 'none' ? l.cat !== '' : fCat.value !== 'all' && l.cat !== fCat.value) return false;
+    if (fPinned.value === 'pinned' && !l.pinned) return false;
+    if (fPinned.value === 'unpinned' && l.pinned) return false;
+    if (fDesc.value === 'with' && !l.desc) return false;
+    if (fDesc.value === 'without' && l.desc) return false;
+    if (q && !(l.title.toLowerCase().includes(q) || l.url.toLowerCase().includes(q))) return false;
+    return true;
+  });
+  list.sort((a, b) => {
+    const ca = catOrder.get(a.cat) ?? '\uffff';
+    const cb = catOrder.get(b.cat) ?? '\uffff';
+    if (ca !== cb) return ca < cb ? -1 : 1;
+    return a.order < b.order ? -1 : a.order > b.order ? 1 : 0;
+  });
+  return list.map((l) => ({ ...l, host: hostOf(l.url) }));
+});
+
+/* ───────── 多选 ───────── */
+const selected = ref<Set<string>>(new Set());
+const allChecked = computed(() => rows.value.length > 0 && rows.value.every((r) => selected.value.has(r.id)));
+
+function toggleAll(): void {
+  if (allChecked.value) selected.value = new Set();
+  else selected.value = new Set(rows.value.map((r) => r.id));
+}
+function toggle(id: string): void {
+  const s = new Set(selected.value);
+  if (s.has(id)) s.delete(id);
+  else s.add(id);
+  selected.value = s;
+}
+function clearSel(): void {
+  selected.value = new Set();
+}
+
+const batchCat = ref<string>('');
+const applyBatchCat = (): void => {
+  const ids = selected.value;
+  if (!ids.size || !batchCat.value) return;
+  const target = batchCat.value === '__none__' ? '' : batchCat.value;
+  mutate((d) => {
+    // 追加到目标分类末尾，避免与现有 order 冲突
+    let last = maxOrderOf(d.links.filter((l) => l.cat === target).map((l) => l.order));
+    for (const l of d.links) {
+      if (!ids.has(l.id) || l.cat === target) continue;
+      last = appendOrder(last);
+      l.cat = target;
+      l.order = last;
+    }
+  });
+  toast(`已移动 ${ids.size} 条`);
+  clearSel();
+};
+
+const batchPin = (pinned: boolean): void => {
+  const ids = selected.value;
+  if (!ids.size) return;
+  mutate((d) => {
+    for (const l of d.links) if (ids.has(l.id)) l.pinned = pinned || undefined;
+  });
+  toast(pinned ? `已置顶 ${ids.size} 条` : `已取消置顶 ${ids.size} 条`);
+  clearSel();
+};
+
+const batchDelete = (): void => {
+  const ids = selected.value;
+  if (!ids.size) return;
+  if (!window.confirm(`确定删除选中的 ${ids.size} 条链接？此操作可撤销（Ctrl+Z）。`)) return;
+  mutate((d) => {
+    d.links = d.links.filter((l) => !ids.has(l.id));
+  });
+  toast(`已删除 ${ids.size} 条`);
+  clearSel();
+};
+
+/* ───────── 拖拽排序（只写被拖动那一条；插不进时该分类整体重排） ───────── */
+const dragId = ref<string | null>(null);
+const dragOverId = ref<string | null>(null);
+
+function onDragStart(id: string, e: DragEvent): void {
+  dragId.value = id;
+  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+}
+function onDragOver(id: string, e: DragEvent): void {
+  e.preventDefault();
+  dragOverId.value = id;
+}
+function onDragLeave(id: string): void {
+  if (dragOverId.value === id) dragOverId.value = null;
+}
+function onDrop(targetId: string, e: DragEvent): void {
+  e.preventDefault();
+  const id = dragId.value;
+  dragId.value = null;
+  dragOverId.value = null;
+  if (!id || id === targetId) return;
+  moveLink(id, targetId);
+}
+
+function moveLink(id: string, targetId: string): void {
+  const list = rows.value;
+  const from = list.findIndex((r) => r.id === id);
+  const to = list.findIndex((r) => r.id === targetId);
+  if (from < 0 || to < 0) return;
+  const targetCat = list[to].cat;
+
+  const ordered = list.slice();
+  const [moved] = ordered.splice(from, 1);
+  const tIndex = ordered.findIndex((r) => r.id === targetId);
+  ordered.splice(from < to ? tIndex + 1 : tIndex, 0, moved);
+
+  const idx = ordered.findIndex((r) => r.id === id);
+  const prevEl = ordered[idx - 1];
+  const nextEl = ordered[idx + 1];
+  const prev = prevEl && prevEl.cat === targetCat ? prevEl.order : null;
+  const next = nextEl && nextEl.cat === targetCat ? nextEl.order : null;
+  const newOrder = between(prev, next);
+
+  mutate((d) => {
+    const l = d.links.find((x) => x.id === id);
+    if (!l) return;
+    l.cat = targetCat;
+    l.order = newOrder;
+    // base-62 中点耗尽的极端情况：该分类内整体重排（仍是 1 次 KV 写）
+    if ((prev && l.order <= prev) || (next && l.order >= next)) reflowCategory(d, targetCat);
+  });
+}
+
+function reflowCategory(d: import('../../shared/types').Doc, catId: string): void {
+  const bucket = d.links.filter((l) => l.cat === catId).sort((a, b) => (a.order < b.order ? -1 : 1));
+  bucket.forEach((l, i) => (l.order = orderForIndex(i)));
+}
+
+/* ───────── 新增 / 编辑 ───────── */
+const editing = ref<LinkItem | null>(null);
+const isAdd = ref(false);
+const form = ref({ title: '', url: '', desc: '', cat: '', pinned: false });
+const formError = ref('');
+
+function openAdd(): void {
+  isAdd.value = true;
+  form.value = { title: '', url: '', desc: '', cat: state.doc?.categories[0]?.id ?? '', pinned: false };
+  formError.value = '';
+  editing.value = {} as LinkItem;
+}
+function openEdit(l: LinkItem): void {
+  isAdd.value = false;
+  form.value = { title: l.title, url: l.url, desc: l.desc ?? '', cat: l.cat, pinned: !!l.pinned };
+  formError.value = '';
+  editing.value = l;
+}
+function closeForm(): void {
+  editing.value = null;
+}
+
+function submitForm(): void {
+  const f = form.value;
+  const url = f.url.trim();
+  if (!url || !/^https?:\/\//i.test(url)) {
+    formError.value = '请填写以 http:// 或 https:// 开头的网址';
+    return;
+  }
+  if (!f.title.trim()) {
+    formError.value = '请填写标题';
+    return;
+  }
+  if (isAdd.value) {
+    mutate((d) => {
+      const last = maxOrderOf(d.links.filter((l) => l.cat === f.cat).map((l) => l.order));
+      d.links.push({
+        id: newId(),
+        title: f.title.trim(),
+        url,
+        urlKey: url,
+        desc: f.desc.trim() || undefined,
+        cat: f.cat,
+        order: appendOrder(last),
+        pinned: f.pinned || undefined,
+        createdAt: Date.now(),
+      });
+    });
+    toast('已添加');
+  } else if (editing.value) {
+    const id = editing.value.id;
+    mutate((d) => {
+      const l = d.links.find((x) => x.id === id);
+      if (!l) return;
+      l.title = f.title.trim();
+      l.url = url;
+      l.desc = f.desc.trim() || undefined;
+      if (l.cat !== f.cat) {
+        const last = maxOrderOf(d.links.filter((x) => x.id !== id && x.cat === f.cat).map((x) => x.order));
+        l.cat = f.cat;
+        l.order = appendOrder(last);
+      }
+      l.pinned = f.pinned || undefined;
+    });
+    toast('已修改');
+  }
+  closeForm();
+}
+
+function removeOne(l: LinkItem): void {
+  if (!window.confirm(`删除「${l.title}」？`)) return;
+  mutate((d) => {
+    d.links = d.links.filter((x) => x.id !== l.id);
+  });
+  toast('已删除');
+}
+
+const inputCls =
+  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
+const btnCls =
+  'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+const thCls = 'px-3 py-2 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap';
+const tdCls = 'px-3 py-2 text-sm text-slate-700 dark:text-slate-200';
+</script>
+
+<template>
+  <div class="space-y-4">
+    <!-- 筛选栏 -->
+    <div class="flex flex-wrap items-center gap-2">
+      <select v-model="fCat" :class="inputCls + ' w-44'">
+        <option value="all">全部分类</option>
+        <option value="none">（未分类）</option>
+        <option v-for="c in state.doc?.categories ?? []" :key="c.id" :value="c.id">{{ c.name }}</option>
+      </select>
+      <input v-model="fQuery" type="search" placeholder="搜标题 / 网址" :class="inputCls + ' w-52'" />
+      <select v-model="fPinned" :class="inputCls + ' w-32'">
+        <option value="all">置顶：全部</option>
+        <option value="pinned">仅置顶</option>
+        <option value="unpinned">仅未置顶</option>
+      </select>
+      <select v-model="fDesc" :class="inputCls + ' w-36'">
+        <option value="all">描述：全部</option>
+        <option value="with">有描述</option>
+        <option value="without">无描述</option>
+      </select>
+      <span class="ml-auto text-xs text-slate-500">{{ rows.length }} 条</span>
+      <button type="button" :class="btnCls + ' bg-blue-600 text-white hover:bg-blue-700'" @click="openAdd">＋ 添加链接</button>
+    </div>
+
+    <!-- 批量操作栏 -->
+    <div
+      v-if="selected.size"
+      class="flex flex-wrap items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 dark:border-blue-900 dark:bg-blue-950/40"
+    >
+      <span class="text-xs font-medium text-blue-700 dark:text-blue-300">已选 {{ selected.size }} 条</span>
+      <select v-model="batchCat" :class="inputCls + ' w-40 !py-1.5'">
+        <option value="" disabled>移动到分类…</option>
+        <option value="__none__">（未分类）</option>
+        <option v-for="c in state.doc?.categories ?? []" :key="c.id" :value="c.id">{{ c.name }}</option>
+      </select>
+      <button type="button" :class="btnCls + ' bg-blue-600 text-white hover:bg-blue-700'" :disabled="!batchCat" @click="applyBatchCat">应用</button>
+      <button type="button" :class="btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200'" @click="batchPin(true)">置顶</button>
+      <button type="button" :class="btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200'" @click="batchPin(false)">取消置顶</button>
+      <button type="button" :class="btnCls + ' bg-red-500 text-white hover:bg-red-600'" @click="batchDelete">删除</button>
+      <button type="button" class="ml-auto text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300" @click="clearSel">取消选择</button>
+    </div>
+
+    <!-- 表格 -->
+    <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+      <table class="w-full min-w-[720px] border-collapse">
+        <thead class="bg-slate-50 dark:bg-slate-800/60">
+          <tr>
+            <th :class="thCls + ' w-10'">
+              <input type="checkbox" :checked="allChecked" @change="toggleAll" aria-label="全选" />
+            </th>
+            <th :class="thCls + ' w-8'"></th>
+            <th :class="thCls">标题</th>
+            <th :class="thCls">网址</th>
+            <th :class="thCls + ' w-32'">分类</th>
+            <th :class="thCls + ' w-16'">置顶</th>
+            <th :class="thCls + ' w-24'">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="r in rows"
+            :key="r.id"
+            class="border-t border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/40"
+            :class="{ 'opacity-50': dragId === r.id, 'ring-2 ring-blue-400 ring-inset': dragOverId === r.id }"
+            draggable="true"
+            @dragstart="onDragStart(r.id, $event)"
+            @dragover="onDragOver(r.id, $event)"
+            @dragleave="onDragLeave(r.id)"
+            @drop="onDrop(r.id, $event)"
+          >
+            <td :class="tdCls"><input type="checkbox" :checked="selected.has(r.id)" @change="toggle(r.id)" :aria-label="'选中 ' + r.title" /></td>
+            <td :class="tdCls + ' cursor-grab text-slate-300 active:cursor-grabbing'" title="拖拽排序">⠿</td>
+            <td :class="tdCls">
+              <span class="font-medium">{{ r.title }}</span>
+              <span v-if="r.desc" class="block text-xs text-slate-400">{{ r.desc }}</span>
+            </td>
+            <td :class="tdCls + ' max-w-[220px]'"><span class="block truncate text-xs text-slate-500">{{ r.url }}</span></td>
+            <td :class="tdCls + ' text-xs'">{{ catName[r.cat] || r.cat || '（未分类）' }}</td>
+            <td :class="tdCls">
+              <button type="button" :aria-label="r.pinned ? '取消置顶' : '置顶'" @click="mutate((d) => { const x = d.links.find((y) => y.id === r.id); if (x) x.pinned = r.pinned ? undefined : true; })">
+                <span :class="r.pinned ? 'text-amber-500' : 'text-slate-300 hover:text-slate-500'">★</span>
+              </button>
+            </td>
+            <td :class="tdCls + ' whitespace-nowrap'">
+              <button type="button" class="text-xs text-blue-600 hover:underline dark:text-blue-400" @click="openEdit(r)">编辑</button>
+              <button type="button" class="ml-2 text-xs text-red-500 hover:underline" @click="removeOne(r)">删除</button>
+            </td>
+          </tr>
+          <tr v-if="!rows.length">
+            <td :class="tdCls + ' text-center text-slate-400'" colspan="7">没有符合筛选条件的链接</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <Modal v-if="editing" :title="isAdd ? '添加链接' : '编辑链接'" @close="closeForm">
+      <div class="space-y-3">
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">网址</span>
+          <input v-model="form.url" type="url" placeholder="https://" :class="inputCls" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">标题</span>
+          <input v-model="form.title" type="text" :class="inputCls" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">描述（可选）</span>
+          <textarea v-model="form.desc" rows="2" :class="inputCls"></textarea>
+        </label>
+        <div class="flex items-center gap-3">
+          <label class="block flex-1">
+            <span class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">分类</span>
+            <select v-model="form.cat" :class="inputCls">
+              <option value="">（未分类）</option>
+              <option v-for="c in state.doc?.categories ?? []" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </select>
+          </label>
+          <label class="mt-5 flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+            <input v-model="form.pinned" type="checkbox" /> 置顶
+          </label>
+        </div>
+        <p v-if="formError" class="text-xs text-red-500">{{ formError }}</p>
+        <div class="flex justify-end gap-2 pt-1">
+          <button type="button" :class="btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200'" @click="closeForm">取消</button>
+          <button type="button" :class="btnCls + ' bg-blue-600 text-white hover:bg-blue-700'" @click="submitForm">保存</button>
+        </div>
+      </div>
+    </Modal>
+  </div>
+</template>

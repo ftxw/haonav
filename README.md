@@ -1,197 +1,118 @@
 
-# HaoNav - 智能私有导航站
+# HaoNav v2 - 智能私有导航站
 
-<div align="center">
-
-![React](https://img.shields.io/badge/React-18-blue?style=flat-square&logo=react)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.0-38bdf8?style=flat-square&logo=tailwindcss)
-![Cloudflare Pages](https://img.shields.io/badge/Cloudflare-Pages-orange?style=flat-square&logo=cloudflare)
-![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
-
-<br/>
-
-<!-- 请将下方的链接替换为您实际部署后的 Cloudflare Pages 域名 -->
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-View%20Online-7c3aed?style=for-the-badge&logo=sparkles)](https://demo.newai.netlib.re)
-
-<br/>
-
-**一个现代化、基于 AI 辅助的全栈个人导航站。**
-**无需购买服务器，依托 EdgeOne 或 Cloudflare 免费托管，实现多端数据实时同步。**
-
-[在线演示](https://demo.newai.netlib.re) • [功能特性](#-核心功能) • [项目展示](#-项目展示) • [部署教程](#-部署教程-免费) • [使用指南](#-使用指南)
-
-</div>
+一个现代化的个人书签导航站。**前台纯浏览（零管理功能、首屏约 35 KB brotli），后台全功能编辑**，数据存边缘 KV，一份代码可部署到 EdgeOne Makers 或 Cloudflare（免费套餐）。
 
 ---
 
-## ✨ 核心功能
+## 架构
 
-### 🧠 AI 深度集成
-*   **多模型支持**: 完美支持 **Google Gemini**、**OpenAI**、**DeepSeek**、**Claude** 等任何兼容 OpenAI 接口的模型。
-*   **一键智能补全**: 在设置面板一键扫描，自动为成百上千个书签生成精准的中文简介。
-*   **智能分类**: 添加链接时，AI 自动分析网页内容并推荐最合适的分类目录。
+| 层 | 技术 |
+|---|---|
+| 前台 | Vue 3 + Vite + Tailwind v4（`web/`，严格只读：浏览 / 搜索 / 复制 / 二维码） |
+| 后台 | Vue 3（`admin/`，独立入口，访客不下载）：链接 / 分类 / 搜索 / 数据 / 备份 / 设置 六个面板 |
+| API | Hono（`api/core.ts` 零平台依赖，平台差异收在 `api/adapters/`） |
+| 存储 | 边缘 KV 单文档（`nav:v1`）+ 图标缓存 + 每日快照（index-aside 枚举） |
 
-### ☁️ 数据同步与安全
-*   **KV 存储同步**: 利用边缘存储技术，公司、家里、手机三端数据秒级同步。
-*   **WebDAV 双重备份**: 支持坚果云、Nextcloud 等 WebDAV 网盘备份，数据自主掌控。
-*   **隐私加密体系**:
-    *   **全局锁**: 部署时设置访问密码，防止他人查看。
-    *   **目录锁**: 支持对"私有资源"等特定分类单独设置密码，隐藏敏感内容。
-
-### 🎨 极致体验
-*   **Chrome 扩展插件 (Pro)**: 
-    *   **一键保存**: 点击浏览器图标即可弹出侧边栏，快速将当前网页保存到指定分类。
-    *   **侧边栏导航**: 按下快捷键 (如 Ctrl+Shift+E) 呼出侧边栏，在任意网页直接浏览、搜索和管理您的书签，无需离开当前页面。
-*   **置顶专区**: 常用网站一键置顶，在首页顶部常驻显示。
-*   **无缝迁移**: 支持导入 Chrome/Edge 书签 HTML 文件（智能去重）。
-
-> 💡 部分功能创意参考自 [CloudNav-abcd](https://github.com/aabacada/CloudNav-abcd)，该分支的导航项目同样优秀，特此致谢。
+**前台严格只读**：所有编辑、配置、导入导出都在 `/admin`。站点设置（站名、品牌图标、主色、卡片视图、搜索引擎等 9 项 + 备份 3 项）全部在后台修改，**秒级生效，无需重新构建**。
 
 ---
 
-## 📸 项目展示
+## 本地开发
 
-> 以下为 CloudNav 的实际运行界面预览。
+```bash
+npm install        # 本仓库已配置 .npmrc 指向 npmmirror
+npm run dev        # http://127.0.0.1:5173   后台在 /admin
+```
 
-### 🖥️ 桌面端概览
-| 浅色模式 (Light Mode) | 深色模式 (Dark Mode) |
-| :---: | :---: |
-| ![Light Mode](screenshots/overview-light.svg) | ![Dark Mode](screenshots/overview-dark.svg) |
-| *清爽明亮的日间视图* | *护眼沉浸的夜间视图* |
+- 未配置密码时，dev 环境使用默认密码 `haonav-dev`（控制台会有醒目告警，仅限本地）
+- 首次打开是空的：进 `/admin` → 登录 → 「数据」面板 → 导入浏览器书签 HTML，或在「链接」面板手动添加
+- 本地数据存放在 `.data/`（已 gitignore），删除即回到全新空态
 
-### 🛠️ 核心功能演示
-| AI 智能设置 | 分类加密锁 | 移动端适配 |
-| :---: | :---: | :---: |
-| ![AI Settings](screenshots/overview-light.svg) | ![Security](screenshots/overview-dark.svg) | ![Mobile](screenshots/mobile-view.svg) |
-| *一键批量生成描述* | *私密目录密码保护* | *完美适配手机浏览器* |
-
-*(注：上方使用了项目生成的 SVG 矢量预览图，代表实际 UI 布局)*
-
----
-
-## 🚀 部署教程 (免费)
-
-本应用支持两种部署方式：**EdgeOne Pages** 或 **Cloudflare Pages**，无需服务器，永久免费。
-
-> **📥 [点击下载完整图文教程 (.docx)](图文教程.docx)**
-
-### 方式一：EdgeOne Pages 部署
-
-#### 📋 简明部署步骤 (适合有经验用户)
-
-1.  **Fork 项目**: 点击右上角 Fork 按钮，将本项目克隆到您的 GitHub 账号。
-2.  **创建 Pages 应用**: 登录 EdgeOne 控制台 -> Pages -> 创建应用 -> 连接到 Git -> 选择 `HaoNav`。
-3.  **配置构建**:
-    *   框架预设: **Vite**
-    *   构建命令: `npm run build`
-    *   输出目录: `dist`
-4.  **创建数据库**: 在 EdgeOne KV 存储页面创建一个新的命名空间，命名为 `HaoNav_DB`。
-5.  **绑定变量**:
-    *   进入 Pages 项目设置 -> KV 绑定 -> 变量名填 `HaoNav_KV`，选择 `HaoNav_DB` 命名空间。
-6.  **部署**: 部署项目即可，首次访问时设置登录密码。
-
-#### 📖 保姆级图文教程 (适合新手)
-
-> 如果您是第一次使用 EdgeOne，请严格按照以下步骤操作。
+```bash
+npm run typecheck  # tsc --noEmit
+npm test           # vitest
+npm run build      # 产出 dist/（前台 + 后台两个入口）
+```
 
 ---
 
-### 方式二：Cloudflare Pages 部署
+## 部署
 
-#### 📋 简明部署步骤
+### 需要配置的东西（共 1 个绑定 + 2 个 Secret）
 
-1.  **Fork 项目**: 点击右上角 Fork 按钮，将本项目克隆到您的 GitHub 账号。
-2.  **创建 Pages 应用**: 登录 Cloudflare Dashboard -> Workers & Pages -> 创建应用程序 -> Pages -> 连接到 Git -> 选择 `HaoNav`。
-3.  **配置构建**:
-    *   框架预设: **无 (None)**
-    *   构建命令: `npm run build`
-    *   输出目录: `dist`
-4.  **创建数据库**: 在 Workers & Pages -> KV 中创建一个新的命名空间，命名为 `HaoNav_DB`。
-5.  **绑定变量**:
-    *   进入 Pages 项目设置 -> 绑定 (Bindings) -> 添加 KV 命名空间 -> 变量名填 `HaoNav_KV`，值选择刚才创建的 `HaoNav_DB`。
-    *   进入 环境变量 (Environment variables) -> 添加变量 `PASSWORD`，值为您的访问密码。
-6.  **部署**: 重新部署项目即可。
+| 位置 | 名称 | 值 |
+|---|---|---|
+| 「绑定 / Bindings」（**不是**环境变量区） | `HAONAV_KV` | 你的 KV 命名空间 |
+| 「环境变量 / Secrets」 | `HAONAV_ADMIN_PASSWORD` | **你自己定的后台登录密码** |
+| 「环境变量 / Secrets」 | `HAONAV_SESSION_SECRET` | 32 字节随机串，见下方生成命令 |
 
-#### 📖 保姆级图文教程 (适合新手)
+```bash
+# 生成会话签名密钥（任选其一）
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+openssl rand -hex 32
+```
 
-> 如果您是第一次使用 Cloudflare，请严格按照以下步骤操作。
+> ⚠️ `HAONAV_SESSION_SECRET` **必须用密码学随机数生成，不能随便填** —— 它是会话 cookie 的签名密钥，被猜出就能伪造登录态。它不需要你记住，也不需要备份：换了它只需重新登录一次。
+>
+> ⚠️ 密码只能放在平台 Secret 里，**不要**写进 `site.config.json`（那个文件会提交进仓库）。
 
-#### 第一步：点击创建应用程序
-![第一步](1.png)
+### 方式一：EdgeOne Makers
 
-#### 第二步：点击右下角 Get started
-![第二步](2.png)
+1. 控制台 → Pages → 创建应用 → 连接 Git 仓库
+2. 构建命令 `npm run build`，输出目录 `dist`
+3. 「存储 - KV」创建命名空间 → 在项目里**绑定**，变量名 `HAONAV_KV`
+4. 项目「环境变量」添加上面两个 Secret
+5. 重新部署。Edge Functions 入口为 `api/adapters/edgeone.ts`
 
-#### 第三步：导入现有你已经 fork 的仓库
-![第三步](3.png)
+### 方式二：Cloudflare Pages / Workers
 
-#### 第四步：这里选你自己 fork 的仓库名称
-![第四步](4.png)
+1. Workers & Pages → 创建 → 连接 Git 仓库，构建命令 `npm run build`，输出目录 `dist`
+2. Workers & Pages → KV → 创建命名空间 → 在项目 Bindings 里添加，变量名 `HAONAV_KV`
+3. 项目设置 → 环境变量（加密）添加两个 Secret
+4. 重新部署。入口为 `api/adapters/cloudflare.ts`（`export default { fetch }`）
 
-#### 第五步：按图中填写，其他默认
-![第五步](5.png)
+### 首次使用
 
-#### 第六步：左侧找到 KV 存储点击右侧新建
-![第六步](6.png)
+1. 打开站点（前台是空的，这是正常的 —— **不带任何预置示例数据**）
+2. 打开 `/admin` → 输入你设定的密码
+3. 「分类」面板建几个分类 → 「数据」面板导入浏览器书签 HTML（在浏览器里解析，不会卡）
+4. 「设置」面板改站名 / 主色 / 卡片视图等，保存后前台刷新即生效
 
-#### 第七步：空间名称填写 `HaoNav_DB`（建议复制）
-![第七步](7.png)
+### 日常使用
 
-#### 第八步：绑定 KV 数据库
-回到刚才的 Pages 设置页面找到 绑定(Bindings)-右侧下滑找到 KV 命名空间，变量名称填写 `HaoNav_KV`（建议复制）
-![第八步](8.png)
+| 操作 | 位置 |
+|---|---|
+| 加 / 改 / 删 / 置顶 / 排序链接 | 后台「链接」 |
+| 分类管理 | 后台「分类」 |
+| 搜索引擎管理 | 后台「搜索」 |
+| 导入书签 / 重复检测 / 死链检测 | 后台「数据」 |
+| 备份（快照 + 下载 JSON/HTML） | 后台「备份」 |
+| 改站名 / 主色 / 卡片视图默认值 | 后台「设置」 |
+| 切换白天黑夜 / 卡片视图 | **前台**顶栏（个人偏好，只影响本机） |
 
-#### 第九步：设置访问密码
-设置中找到 变量和机密-填入 `PASSWORD`（建议复制）下面的值填入你自己要设置的密码，这一步是你登录导航页需要的登录密码
-![第九步](9.png)
+### 改密码 / 忘记密码
 
-#### 第十步：添加自定义域名（可选项）
-![第十步](10.png)
-
-**🎉 所有设置结束后，请务必到部署页面点击"重新部署" (Create New Deployment)，项目即可正常使用！**
-
----
-
-## ⚙️ 使用指南
-
-### 1. Chrome 扩展程序 (推荐)
-点击侧边栏左下角的 **"设置"** -> **"扩展工具"**。
-系统会自动根据您的域名生成 3 个文件代码 (`manifest.json`, `popup.html`, `popup.js`)。
-1. 在电脑新建文件夹，保存这 3 个文件。
-2. 打开 Chrome 扩展管理页 (`chrome://extensions`)。
-3. 开启右上角 **"开发者模式"**。
-4. 点击 **"加载已解压的扩展程序"**，选择刚才的文件夹。
-5. 以后浏览网页时，点击插件图标即可弹出窗口，**选择分类并保存**。
-
-### 2. 配置 AI 服务
-点击侧边栏底部的 **"设置"** -> **"AI 设置"**：
-*   **提供商**: Google Gemini 或 OpenAI 兼容 (DeepSeek等)。
-*   **Key & Model**: 输入 API Key 和模型名称。
-*   **一键补全**: 点击底部的 **"一键补全所有描述"**，AI 将自动扫描所有无描述的链接并后台生成。
-
-### 3. WebDAV 备份
-点击侧边栏的 **"备份"** 图标，配置 WebDAV 信息 (如坚果云)，即可一键上传备份到云端。
-
-### 4. 本地数据导出 (Local Data Export)
-点击侧边栏的 **"备份"** 图标 -> **"导出 HTML"**。
-*   生成的 HTML 文件完全兼容 **Chrome**、**Edge**、**Firefox** 等主流浏览器的导入格式。
-*   完整保留您在 HaoNav 中整理的分类目录结构。
-
-**如何导入到浏览器 (以 Chrome 为例):**
-1. 打开 Chrome 浏览器，点击右上角菜单 -> **书签与清单** -> **书签管理器**。
-2. 点击页面右上角的三个点图标 -> **导入书签**。
-3. 选择刚才从 HaoNav 下载的 HTML 文件即可恢复所有书签。
+密码不存在任何存储里，**只能重设不能找回**：在平台控制台把 `HAONAV_ADMIN_PASSWORD` 改成新值即可，数据不受影响。
 
 ---
 
-<div align="center">
+## 从 v1 旧版迁移
 
-**如果您觉得项目不错，希望给本项目点一个免费的 Star ⭐️，感谢您的关注！**
+旧版数据分散在两个 KV key（网页端写 `haonav_*`、扩展写 `app_data`）。
 
-**如果有 Bug 或改进的地方，请在 Issue 中提交您的建议。**
+```bash
+npx tsx migrate/v0-to-v1.ts --dry-run   # 默认干跑：输出迁移前后对比报告，不写库
+npx tsx migrate/v0-to-v1.ts --commit    # 确认无误后写入新 key nav:v1（旧 key 保留不动）
+```
 
-<br/>
+脚本会合并两个来源、按规范化 URL 去重（字段级合并 desc/icon/pinned）、重新分配重复 ID、并**移除旧版的分类密码锁**（报告里会列出）。执行前建议先在旧版导出一份 HTML 书签作为兜底。
 
-Made with ❤️ by HaoNav Team
-</div>
+---
+
+## 说明
+
+- 备份支持**自动**（可在后台配置频率与保留份数，默认每天 / 保留 7 份）与**手动**两种模式
+- 快照枚举使用 index-aside（索引存单个 key），不消耗平台的 List 请求额度
+- 前台不含任何编辑功能与登录界面；所有写操作由后台会话（HttpOnly cookie，30 天）保护
+- 架构与实施细节见 [`HaoNav-改造方案.md`](./HaoNav-改造方案.md)

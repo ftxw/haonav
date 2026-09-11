@@ -1,0 +1,16 @@
+{
+  "name": "我的导航",
+  "icon": { "type": "letter", "value": "" },
+  "accent": "#3b82f6",
+  "themeDefault": "system",
+  "cardStyle": "card",
+  "openInNewTab": true,
+  "searchEngines": [
+    { "id": "baidu", "name": "百度", "url": "https://www.baidu.com/s?wd=" },
+    { "id": "bing", "name": "必应", "url": "https://www.bing.com/search?q=" },
+    { "id": "google", "name": "Google", "url": "https://www.google.com/search?q=" }
+  ],
+  "iconStrategy": "letter",
+  "footerLinks": [],
+  "backup": { "mode": "auto", "frequency": "daily", "retention": 7 }
+}

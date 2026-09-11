@@ -1,23 +1,103 @@
-import path from 'path';
-import { defineConfig, loadEnv } from 'vite';
-import react from '@vitejs/plugin-react';
+import path from 'node:path';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { defineConfig, type Plugin, type ViteDevServer } from 'vite';
+import vue from '@vitejs/plugin-vue';
+import tailwindcss from '@tailwindcss/vite';
 
-export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', '');
-    return {
-      server: {
-        port: 3000,
-        host: '0.0.0.0',
+const root = path.dirname(fileURLToPath(import.meta.url));
+
+type Loose = Record<string, any>;
+
+function readSiteConfig(): Loose {
+  try {
+    return JSON.parse(readFileSync(path.join(root, 'site.config.json'), 'utf8')) as Loose;
+  } catch {
+    return {};
+  }
+}
+
+function escapeXml(s: string): string {
+  return s.replace(/[<>&'"]/g, (c) =>
+    c === '<' ? '&lt;' : c === '>' ? '&gt;' : c === '&' ? '&amp;' : c === "'" ? '&apos;' : '&quot;',
+  );
+}
+
+/** 品牌图形 → favicon：letter/emoji 本地生成 SVG data URI，image 直接用 URL */
+function resolveFavicon(icon: Loose | undefined, name: string, accent: string): string {
+  if (icon && icon.type === 'image' && typeof icon.value === 'string' && icon.value) return icon.value;
+  const raw = icon && typeof icon.value === 'string' && icon.value ? icon.value : name;
+  const char = Array.from(String(raw).trim())[0] || 'N';
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${accent}"/>` +
+    `<text x="32" y="33" font-family="system-ui,-apple-system,'Segoe UI',sans-serif" font-size="34" font-weight="600" fill="#ffffff" text-anchor="middle" dominant-baseline="central">${escapeXml(char)}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+/** 构建期把 site.config.json 注入 HTML 的 %SITE_NAME% / %SITE_ICON% / %SITE_ACCENT% */
+function siteConfigPlugin(): Plugin {
+  const cfg = readSiteConfig();
+  const name = String(cfg.name || 'HaoNav');
+  const accent = String(cfg.accent || '#3b82f6');
+  const icon = resolveFavicon(cfg.icon, name, accent);
+  return {
+    name: 'haonav-site-config',
+    // order: 'pre' —— 必须在 vite:build-html 生成内联 <style>/<script> 的 html-proxy 之前完成替换，
+    // 否则构建报 "No matching HTML proxy module found"（Vite 6 的索引错位问题）
+    transformIndexHtml: {
+      order: 'pre',
+      handler(html: string) {
+        return html
+          .replaceAll('%SITE_NAME%', escapeXml(name))
+          .replaceAll('%SITE_ACCENT%', accent)
+          .replaceAll('%SITE_ICON%', icon);
       },
-      plugins: [react()],
-      define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+    },
+  };
+}
+
+export default defineConfig(async () => {
+  // 容错的 dev API 中间件接入：后端 (api/adapters/dev.ts) 未就绪时静默跳过
+  let apiMiddleware: ((req: any, res: any, next: (err?: unknown) => void) => void) | null = null;
+  try {
+    const mod: Loose = await import('./api/adapters/dev');
+    if (typeof mod?.createDevMiddleware === 'function') apiMiddleware = mod.createDevMiddleware();
+  } catch {
+    /* backend not ready yet — dev API silently disabled */
+  }
+
+  return {
+    server: {
+      host: '127.0.0.1',
+      port: 5173,
+    },
+    preview: {
+      host: '127.0.0.1',
+      port: 4173,
+    },
+    plugins: [
+      vue(),
+      tailwindcss(),
+      siteConfigPlugin(),
+      {
+        name: 'haonav-dev-api',
+        configureServer(server: ViteDevServer) {
+          if (apiMiddleware) server.middlewares.use(apiMiddleware);
+        },
       },
-      resolve: {
-        alias: {
-          '@': path.resolve(__dirname, '.'),
-        }
-      }
-    };
+    ],
+    resolve: {
+      alias: { '@': root },
+    },
+    build: {
+      target: 'es2020',
+      cssCodeSplit: true,
+      rollupOptions: {
+        input: {
+          main: path.resolve(root, 'index.html'),
+          admin: path.resolve(root, 'admin.html'),
+        },
+      },
+    },
+  };
 });

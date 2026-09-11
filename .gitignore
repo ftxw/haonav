@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# dev 期本地文件存储（api/adapters/dev.ts）
+.data/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

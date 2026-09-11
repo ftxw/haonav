@@ -1,0 +1,141 @@
+/* source(none) 关闭自动全仓扫描：否则遗留的 React 文件（App.tsx / components/*.tsx）里的类名
+   会被一并生成，污染构建产物。只显式声明新架构的源码范围。 */
+@import "tailwindcss" source(none);
+
+@source "../../index.html";
+@source "../../admin.html";
+@source "../**/*.{vue,ts}";
+
+/* 暗色模式：由 <html class="dark"> 驱动（零 JS 参与渲染） */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* 主色走 CSS 变量，改主色纯运行时（inline script / theme.ts 写 --accent） */
+  --color-accent: var(--accent, #3b82f6);
+}
+
+/* Tailwind v4 默认 grid-cols 只到 12，纯图标档需要 14 列 —— 用自定义 utility 补齐 */
+@utility grid-cols-14 {
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+  /* 防白闪（原 admin.html 内联样式，构建期内联 <style> 与 html-proxy 冲突后移到这里） */
+  html {
+    background: #f8fafc;
+  }
+  html.dark {
+    background: #0f172a;
+  }
+  body {
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* ── 布局：零 JavaScript（不测尺寸、不用 ResizeObserver） ── */
+.app-shell {
+  display: grid;
+  grid-template-columns: 16rem 1fr;
+  grid-template-rows: 1fr;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* ── 侧栏（桌面常驻 / 移动端抽屉：transform 走 GPU 合成，不触发重排） ── */
+.sidebar {
+  transition: transform 0.25s ease;
+  will-change: transform;
+}
+
+@media (max-width: 1023.98px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 50;
+    transform: translateX(-100%);
+  }
+  .sidebar.is-open {
+    transform: translateX(0);
+  }
+}
+
+/* ── 跳过视口外渲染：1000 链接时实际参与渲染的节点从 ~12k 降到 <1.5k ── */
+.cat-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 640px;
+  scroll-margin-top: 4rem;
+}
+/* 跳转前临时强制渲染，规避 content-visibility 造成的落点不准 */
+.cat-section.force-render {
+  content-visibility: visible;
+}
+
+/* ── 卡片内部隔离，布局/绘制互不影响 ── */
+.hn-card {
+  contain: layout style paint;
+}
+/* 纯图标档的悬停标题要溢出卡片，故不启用 paint containment */
+.hn-card-lite {
+  contain: layout style;
+}
+
+/* ── 滚动条 ── */
+.hn-scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── 浮层动效（仅 opacity/transform） ── */
+@keyframes hn-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes hn-zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-slide-down {
+  animation: hn-slide-down 0.22s ease-out both;
+}
+.animate-zoom-in {
+  animation: hn-zoom-in 0.16s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-down,
+  .animate-zoom-in,
+  .sidebar {
+    animation: none;
+    transition: none;
+  }
+}

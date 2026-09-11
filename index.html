@@ -1,186 +1,76 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="https://lucide.dev/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HaoNav</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="%SITE_ACCENT%" />
+    <title>%SITE_NAME%</title>
+    <link rel="icon" href="%SITE_ICON%" />
     <script>
-      // 初始配置 - 与 App.tsx 中的 INITIAL_SITE_CONFIG 保持一致
-      const INITIAL_SITE_CONFIG = {
-        title: 'HaoNav',
-        favicon: ''
-      };
-
-      // 快速应用标题和图标（优先 localStorage，其次初始配置）
-      (function() {
+      /* 二次访问零闪烁：首帧前用 localStorage 缓存覆盖 title / favicon / --accent / 暗色 */
+      (function () {
         try {
-          const stored = localStorage.getItem('cloudnav_data_cache');
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            if (parsed && parsed.settings) {
-              // 使用云端缓存的设置
-              if (parsed.settings.title) {
-                document.title = parsed.settings.title;
-              }
-              if (parsed.settings.favicon) {
-                const link = document.querySelector("link[rel~='icon']");
-                if (link) {
-                  link.href = parsed.settings.favicon;
-                }
-              }
-              return;
-            }
-          }
-        } catch (e) {}
-
-        // localStorage 没有数据，使用初始配置
-        if (INITIAL_SITE_CONFIG.title) {
-          document.title = INITIAL_SITE_CONFIG.title;
-        }
-        if (INITIAL_SITE_CONFIG.favicon) {
-          const link = document.querySelector("link[rel~='icon']");
-          if (link) {
-            link.href = INITIAL_SITE_CONFIG.favicon;
-          }
-        }
+          var m = document.querySelector('meta[name="theme-color"]');
+          var accent = m ? m.content : '#3b82f6';
+          var name = document.title;
+          var raw = localStorage.getItem('haonav.v1.doc');
+          var entry = raw ? JSON.parse(raw) : null;
+          var doc = entry && entry.doc ? entry.doc : entry;
+          var s = (doc && doc.settings) || {};
+          if (s.name) { name = s.name; document.title = s.name; }
+          if (s.accent) accent = s.accent;
+          document.documentElement.style.setProperty('--accent', accent);
+          var ic = s.icon;
+          var ch = String((ic && ic.value) || name).trim().charAt(0) || 'N';
+          ch = ch.replace(/[<>&]/g, '');
+          var svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='" + accent + "'/><text x='32' y='33' font-family='system-ui,sans-serif' font-size='34' font-weight='600' fill='#fff' text-anchor='middle' dominant-baseline='central'>" + ch + '</text></svg>';
+          var link = document.querySelector('link[rel="icon"]');
+          if (link) link.href = ic && ic.type === 'image' && ic.value ? ic.value : 'data:image/svg+xml,' + encodeURIComponent(svg);
+          var mode = localStorage.getItem('haonav.v1.theme') || s.themeDefault || 'system';
+          var dark = mode === 'dark' || (mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.toggle('dark', dark);
+        } catch (e) { /* 缓存不可用时静默降级 */ }
       })();
     </script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              primary: '#3b82f6',
-              secondary: '#64748b',
-              dark: '#0f172a',
-              card: '#1e293b',
-            }
-          }
-        }
-      }
-    </script>
-    <style>
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      }
-      /* Custom scrollbar for sidebar */
-      .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-      }
-      .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-      }
-      /* Simple CSS-only tooltip transition */
-      .tooltip-custom {
-          transition: opacity 0.2s, visibility 0.2s;
-          pointer-events: none;
-      }
-      /* Slide down animation for toast */
-      @keyframes slideDown {
-        from {
-          opacity: 0;
-          transform: translate(-50%, -20px);
-        }
-        to {
-          opacity: 1;
-          transform: translate(-50%, 0);
-        }
-      }
-    </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
-    "buffer": "https://aistudiocdn.com/buffer@^6.0.3",
-    "jszip": "https://aistudiocdn.com/jszip@^3.10.1"
-  }
-}
-</script>
-</head>
-  <body class="bg-gray-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50 transition-colors duration-300">
-    <!-- 加载遮罩，防止标题和图标闪烁 -->
-    <div id="loading-overlay" style="
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: #f9fafb;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      transition: opacity 0.3s ease;
-    ">
-      <div style="text-align: center;">
-        <div style="
-          width: 40px;
-          height: 40px;
-          border: 3px solid #e5e7eb;
-          border-top-color: #3b82f6;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-          margin: 0 auto 16px;
-        "></div>
-        <div style="color: #6b7280; font-size: 14px;">加载中...</div>
+  </head>
+  <body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-50">
+    <div id="app">
+      <!-- 骨架：HTML + CSS 直出，首帧即可见（有 localStorage 缓存时几乎看不到）。Vue 挂载时会被替换 -->
+      <div class="app-shell" style="pointer-events: none" aria-hidden="true">
+        <aside class="sidebar flex h-full flex-col border-r border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+          <div class="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 px-5 dark:border-slate-700">
+            <div class="h-8 w-8 rounded-lg bg-slate-200 dark:bg-slate-700"></div>
+            <div class="h-4 w-24 rounded bg-slate-200 dark:bg-slate-700"></div>
+          </div>
+          <div class="space-y-2 p-3">
+            <div class="h-9 rounded-xl bg-slate-100 dark:bg-slate-700/60"></div>
+            <div class="h-9 rounded-xl bg-slate-100 dark:bg-slate-700/60"></div>
+            <div class="h-9 rounded-xl bg-slate-100 dark:bg-slate-700/60"></div>
+            <div class="h-9 rounded-xl bg-slate-100 dark:bg-slate-700/60"></div>
+          </div>
+        </aside>
+        <div class="flex min-w-0 flex-col overflow-hidden">
+          <div class="h-16 shrink-0 border-b border-slate-200 bg-white/80 dark:border-slate-700 dark:bg-slate-800/80"></div>
+          <div class="flex-1 p-4 lg:p-8">
+            <div class="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
+              <div class="h-16 rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"></div>
+              <div class="h-16 rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"></div>
+              <div class="h-16 rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"></div>
+              <div class="h-16 rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"></div>
+              <div class="h-16 rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"></div>
+              <div class="h-16 rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"></div>
+              <div class="h-16 rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"></div>
+              <div class="h-16 rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"></div>
+              <div class="h-16 rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"></div>
+              <div class="h-16 rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"></div>
+              <div class="h-16 rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"></div>
+              <div class="h-16 rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-    <style>
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    </style>
-    <div id="root" style="display: none;"></div>
-  <script type="module" src="/index.tsx"></script>
-    <script>
-      // 初始配置 - 与 App.tsx 中的 INITIAL_SITE_CONFIG 保持一致
-      const INITIAL_SITE_CONFIG = {
-        title: 'HaoNav',
-        favicon: ''
-      };
-
-      // 快速应用标题和图标（优先 localStorage，其次初始配置）
-      (function() {
-        try {
-          const stored = localStorage.getItem('cloudnav_data_cache');
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            if (parsed && parsed.settings) {
-              // 使用云端缓存的设置
-              if (parsed.settings.title) {
-                document.title = parsed.settings.title;
-              }
-              if (parsed.settings.favicon) {
-                const link = document.querySelector("link[rel~='icon']");
-                if (link) {
-                  link.href = parsed.settings.favicon;
-                }
-              }
-              return;
-            }
-          }
-        } catch (e) {}
-
-        // localStorage 没有数据，使用初始配置
-        if (INITIAL_SITE_CONFIG.title) {
-          document.title = INITIAL_SITE_CONFIG.title;
-        }
-        if (INITIAL_SITE_CONFIG.favicon) {
-          const link = document.querySelector("link[rel~='icon']");
-          if (link) {
-            link.href = INITIAL_SITE_CONFIG.favicon;
-          }
-        }
-      })();
-    </script>
+    <script type="module" src="/web/main.ts"></script>
   </body>
 </html>
