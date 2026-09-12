@@ -62,6 +62,17 @@
 - **原则：每次请求都要能在 10 ms 内做完。** 凡"遍历全量数据 + 复杂计算"的事，要么挪到客户端，要么拆成多批。
 - **按最紧的平台设计**（CF 的 10 ms 是已知最紧），EdgeOne 上只会更宽裕。
 
+## 视觉设计（已定稿）
+
+- **参考来源**：① `E:\CC\workers.js`（cf-workers-nav，线上 https://nav.lts.cc/）→ 提供 emerald 主色 + 背景光斑 + 毛玻璃基调；② haoblog PoC（EdgeOne 上的 Astro 站，`*.edgeone.cool`）→ 提供**深色玻璃拟态**设计语言。
+- **最终方向**：**黑夜模式 = 深色玻璃拟态 + emerald 绿主色**（不用参考站的青色）；**白天模式 = 同一套语言的浅色版**。
+- **令牌集中在 `web/styles/app.css`**：`@utility glass-surface`（背景色/边框/阴影/背景模糊全走 CSS 变量）+ `:root` / `html.dark` 两套 `--glass-bg` / `--glass-border` / `--glass-shadow` / `--glass-blur`。**改玻璃质感只改这一处。**
+  - 黑夜对齐参考站：`rgba(255,255,255,0.08)` / `rgba(255,255,255,0.18)` / `0 8px 32px rgba(0,0,0,.35)` / blur 24px
+  - 白天浅色版：`rgba(255,255,255,0.72)` / `rgba(255,255,255,0.95)` / `0 8px 32px rgba(15,23,42,.07)` / blur 16px
+- **主色一律走 `--accent`**（默认 emerald `#10b981`，后台可改且即时生效）。全仓只有两处 emerald 硬编码：背景光晕 blob + 品牌 logo 渐变。
+- 设计元素：`SECTION_LABEL`（大写 tracking-widest 微标签）、`PILL_ACTIVE`/`PILL_IDLE`（胶囊导航）、`CHIP`（等宽标签）、`HERO_TITLE`（渐变收束到 accent）、圆角 2xl（卡片）/ 3xl（大面）。
+- **不可破坏的约束**：两档卡片等高正方形 `CARD_H_PX = 104`。
+
 ## ⚠️ 工程教训（必读）
 
 - **`tsc --noEmit` 不检查 `.vue` 的 `<template>`** —— 本项目因此漏过至少 3 个运行时崩溃（未导入的 `categoryIconUri`、`ref`，未声明的 emit）。**已引入 `vue-tsc` 并把 `npm run typecheck` 改为 `vue-tsc --noEmit -p tsconfig.json`。改任何 `.vue` 后必须跑 `npm run typecheck`，只跑 `tsc` 等于没查。**
