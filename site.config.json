@@ -2,7 +2,7 @@
   "name": "我的导航",
   "icon": { "type": "letter", "value": "" },
   "accent": "#10b981",
-  "themeDefault": "light",
+  "themeDefault": "dark",
   "cardStyle": "card",
   "openInNewTab": true,
   "searchEngines": [

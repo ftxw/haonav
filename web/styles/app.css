@@ -41,10 +41,10 @@
     --glass-saturate: 160%;
     --glass-highlight: rgba(255, 255, 255, 0.9);
   }
-  /* 黑夜：对齐参考项目（深色玻璃拟态） */
+  /* 黑夜：对齐参考项目（卡片 bg-white/10 + border-white/20，玻璃阴影 0 8px 32px #00000059） */
   html.dark {
-    --glass-bg: rgba(255, 255, 255, 0.08);
-    --glass-border: rgba(255, 255, 255, 0.18);
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
     --glass-blur: 16px;
     --glass-saturate: 160%;
