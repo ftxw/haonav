@@ -167,12 +167,13 @@ onBeforeUnmount(() => {
     <!-- 背景层：渐变 + 绿色光晕 + 冷色光斑（对齐 nav.lts.cc，纯 CSS 装饰） -->
     <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-gray-100 dark:bg-[#0f172a]">
       <div class="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-[#0f172a] dark:to-[#1e293b]"></div>
-      <!-- 绿色光晕：置于右上角（避开左侧侧栏，光晕在内容区可见） -->
+      <!-- 绿色光晕：右上角。浅色下用正常混合（multiply 会把绿色压成灰绿、几乎看不见），
+           深色下用 screen 混合让光晕浮起来 -->
       <div
-        class="animate-blob absolute right-[-10%] top-[-14%] h-[820px] w-[820px] rounded-full bg-emerald-200/40 blur-[150px] mix-blend-multiply dark:bg-indigo-900/25 dark:mix-blend-screen"
+        class="animate-blob absolute right-[-12%] top-[-16%] h-[760px] w-[760px] rounded-full bg-emerald-300/50 blur-[110px] dark:bg-emerald-500/20 dark:mix-blend-screen"
       ></div>
       <div
-        class="animate-blob-slow absolute bottom-[-15%] right-[-10%] h-[700px] w-[700px] rounded-full bg-teal-200/35 blur-[150px] mix-blend-multiply dark:bg-emerald-900/25 dark:mix-blend-screen"
+        class="animate-blob-slow absolute bottom-[-18%] right-[-8%] h-[640px] w-[640px] rounded-full bg-teal-300/40 blur-[120px] dark:bg-teal-500/15 dark:mix-blend-screen"
       ></div>
     </div>
 
