@@ -28,8 +28,11 @@ function onContext(e: MouseEvent): void {
   emit('context', { link: props.link, x: e.clientX, y: e.clientY });
 }
 
-/** 两档共用的外壳（legacy 卡片边框/阴影/悬停抬升）+ 跳转属性；两档高度一致，切换不跳动 */
-const shell = computed(() => ['hn-card', CARD_FRAME, CARD_MIN_H, 'flex flex-col p-3']);
+/** 两档共用的外壳（legacy 卡片边框/阴影/悬停抬升）+ 跳转属性 */
+const shell = computed(() => ['hn-card', CARD_FRAME, 'flex flex-col p-3']);
+/** 卡片档：最小高度；图标档：正方形（图标撑满内区，距边距 = p-3，与卡片档一致） */
+const shellCard = computed(() => [...shell.value, CARD_MIN_H]);
+const shellIcon = computed(() => [...shell.value, 'group relative aspect-square items-center justify-center']);
 const jump = computed(() => ({
   href: props.link.url,
   target: props.openInNewTab ? '_blank' : '_self',
@@ -39,7 +42,7 @@ const jump = computed(() => ({
 
 <template>
   <!-- ── 详情档（两行：图标+标题 / 描述行） ── -->
-  <a v-if="cardStyle === 'card'" :class="shell" :title="link.title" v-bind="jump" @contextmenu="onContext">
+  <a v-if="cardStyle === 'card'" :class="shellCard" :title="link.title" v-bind="jump" @contextmenu="onContext">
     <span class="mb-1.5 flex items-center gap-3">
       <img
         :src="src"
@@ -61,10 +64,10 @@ const jump = computed(() => ({
     </span>
   </a>
 
-  <!-- ── 纯图标档：与卡片档同高，内部只放居中的大图标，标题悬停显示 ── -->
+  <!-- ── 纯图标档：正方形卡片，图标撑满内区（距边距与卡片档一致），标题悬停显示 ── -->
   <a
     v-else
-    :class="[...shell, 'items-center justify-center']"
+    :class="shellIcon"
     :title="link.title"
     v-bind="jump"
     @contextmenu="onContext"
@@ -73,10 +76,8 @@ const jump = computed(() => ({
       :src="src"
       :loading="loading"
       decoding="async"
-      width="40"
-      height="40"
       alt=""
-      class="h-10 w-10 rounded-lg"
+      class="h-full w-full rounded-lg object-contain"
       @error="failed = true"
     />
     <span

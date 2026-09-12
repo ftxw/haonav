@@ -121,6 +121,12 @@ function setupObserver(): void {
   const visible = new Map<string, number>();
   observer = new IntersectionObserver(
     (entries) => {
+      // 关键：位于顶部时（含刚点完「全部链接」）高亮固定为「全部链接」，
+      // 否则第一个分类会立刻把选中态抢走 —— 联动只在真正向下滚动后生效。
+      if (root.scrollTop <= 8) {
+        spyCat.value = ALL;
+        return;
+      }
       for (const entry of entries) {
         const id = (entry.target as HTMLElement).dataset.cat;
         if (!id) continue;
