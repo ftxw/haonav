@@ -4,57 +4,73 @@ import SearchBox from './SearchBox.vue';
 import { GLASS } from '../lib/ui';
 import { setCardStyle, setDrawer, setTheme, state } from '../stores/nav';
 
-/* ── 两个独立按钮：白天/黑夜、卡片/图标（右对齐） ── */
+/** 视图切换（布局对齐原项目：rounded-lg 分段控件，卡片/图标两档） */
+const VIEWS: { value: 'card' | 'icon'; icon: string; title: string }[] = [
+  { value: 'card', icon: 'list', title: '卡片视图' },
+  { value: 'icon', icon: 'grid', title: '图标视图' },
+];
+
 function toggleTheme(): void {
   setTheme(state.theme === 'dark' ? 'light' : 'dark');
 }
-function toggleCardStyle(): void {
-  setCardStyle(state.cardStyle === 'icon' ? 'card' : 'icon');
+
+/** 分段按钮：选中 = 白底 + 主色字 + shadow（对齐原项目）；未选中 = 灰字 */
+function viewCls(active: boolean): string {
+  return (
+    'rounded p-1.5 transition-all ' +
+    (active
+      ? 'bg-white text-accent shadow-sm dark:bg-slate-600 dark:text-slate-100'
+      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200')
+  );
 }
 </script>
 
 <template>
   <header
     :class="[
-      'relative z-30 flex h-16 shrink-0 items-center justify-center px-4 lg:px-8',
+      'relative z-30 flex h-16 shrink-0 items-center gap-3 border-b px-4 shadow-sm backdrop-blur-xl lg:px-8',
       GLASS,
     ]"
   >
-    <!-- 左：移动端目录开关（绝对定位，不参与居中计算） -->
+    <!-- 左：移动端目录开关（原项目无此元素；仅小屏出现，不参与桌面布局） -->
     <button
       type="button"
       aria-label="打开目录"
-      class="absolute left-3 top-1/2 -translate-y-1/2 rounded-full p-2 text-slate-600 transition-colors hover:bg-white/50 lg:hidden dark:text-slate-300 dark:hover:bg-white/10"
+      class="shrink-0 rounded-full p-2 text-slate-600 transition-colors hover:bg-white/60 lg:hidden dark:text-slate-300 dark:hover:bg-white/10"
       @click="setDrawer(true)"
     >
       <AppIcon name="menu" />
     </button>
 
-    <!-- 中：搜索框居中（移动端左右留出按钮位置） -->
-    <div class="w-full max-w-md px-10 lg:px-0">
+    <!-- 中：搜索组（布局对齐原项目：站内/站外胶囊在搜索框左侧，整体 flex-1） -->
+    <div class="flex min-w-0 flex-1 items-center">
       <SearchBox />
     </div>
 
-    <!-- 右：两个独立切换按钮，右对齐 -->
-    <div class="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1 lg:right-6">
+    <!-- 右：卡片/图标 分段切换 + 白天/黑夜 按钮（布局对齐原项目） -->
+    <div class="ml-auto flex shrink-0 items-center gap-2">
+      <div class="hidden items-center gap-1 rounded-lg bg-slate-200/60 p-1 md:flex dark:bg-white/10">
+        <button
+          v-for="v in VIEWS"
+          :key="v.value"
+          type="button"
+          :title="v.title"
+          :aria-label="v.title"
+          :class="viewCls(state.cardStyle === v.value)"
+          @click="setCardStyle(v.value)"
+        >
+          <AppIcon :name="v.icon" :size="16" />
+        </button>
+      </div>
+
       <button
         type="button"
         :title="state.theme === 'dark' ? '切换为白天' : '切换为黑夜'"
         :aria-label="state.theme === 'dark' ? '切换为白天' : '切换为黑夜'"
-        class="rounded-full p-2 text-slate-600 transition-colors hover:bg-white/50 hover:text-accent dark:text-slate-300 dark:hover:bg-white/10"
+        class="rounded-full p-2 text-slate-600 transition-colors hover:bg-white/60 dark:text-slate-300 dark:hover:bg-white/10"
         @click="toggleTheme"
       >
         <AppIcon :name="state.theme === 'dark' ? 'sun' : 'moon'" :size="19" />
-      </button>
-
-      <button
-        type="button"
-        :title="state.cardStyle === 'icon' ? '切换为卡片视图' : '切换为图标视图'"
-        :aria-label="state.cardStyle === 'icon' ? '切换为卡片视图' : '切换为图标视图'"
-        class="rounded-full p-2 text-slate-600 transition-colors hover:bg-white/50 hover:text-accent dark:text-slate-300 dark:hover:bg-white/10"
-        @click="toggleCardStyle"
-      >
-        <AppIcon :name="state.cardStyle === 'icon' ? 'grid' : 'dots'" :size="19" />
       </button>
     </div>
   </header>

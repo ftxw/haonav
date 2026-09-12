@@ -7,8 +7,10 @@ const inputRef = ref<HTMLInputElement | null>(null);
 const openEngine = ref(false);
 
 const engines = computed(() => state.settings.searchEngines ?? []);
+const isLocal = computed(() => state.mode === 'local');
+
 const placeholder = computed(() =>
-  state.mode === 'web' ? `用 ${engine.value?.name ?? '搜索引擎'} 搜索…` : '搜索站内链接…（/ 聚焦）',
+  state.mode === 'web' ? `在 ${engine.value?.name ?? '搜索引擎'} 搜索...` : '搜索书签...',
 );
 
 /** 下拉把「站内搜索」与各个搜索引擎放在同一处：选站内 = local，选引擎 = web + 该引擎 */
@@ -37,7 +39,7 @@ function onDocMouseDown(e: MouseEvent): void {
   if (openEngine.value && !(e.target as HTMLElement).closest('[data-engine-root]')) openEngine.value = false;
 }
 
-/** 键盘快捷键：/ 聚焦、Esc 清空（约 10 行） */
+/** 键盘快捷键：/ 聚焦、Esc 清空 */
 function onKey(e: KeyboardEvent): void {
   const t = e.target as HTMLElement | null;
   const typing = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
@@ -58,76 +60,31 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey);
   document.removeEventListener('mousedown', onDocMouseDown);
 });
+
+/** 站内/站外 胶囊按钮（原项目：选中白底胶囊 / 未选中灰字） */
+function modeCls(active: boolean): string {
+  return (
+    'px-3 py-1.5 text-sm font-medium rounded-full transition-all ' +
+    (active
+      ? state.mode === 'web'
+        ? 'bg-white text-accent shadow-sm dark:bg-slate-600 dark:text-slate-100'
+        : 'bg-white text-slate-900 shadow-sm dark:bg-slate-600 dark:text-white'
+      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200')
+  );
+}
 </script>
 
 <template>
-  <!-- 外层容器：类名照抄参考站搜索栏，主色走 --accent；按需求去掉所有 hover: 触发的动效 -->
-  <div
-    class="relative flex items-center w-full h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-sm transition-all duration-300 focus-within:ring-2 focus-within:ring-accent/50 focus-within:shadow-lg focus-within:-translate-y-0.5"
-  >
-    <!-- 搜索范围 / 引擎选择（内置在搜索框左侧） -->
-    <div data-engine-root class="relative h-full">
-      <button
-        type="button"
-        class="h-full pl-3 pr-2 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 rounded-l-xl outline-none w-auto md:min-w-[5.5rem]"
-        :title="state.mode === 'web' ? '选择搜索引擎' : '搜索范围：站内'"
-        :aria-expanded="openEngine"
-        @click="openEngine = !openEngine"
-      >
-        <img
-          v-if="state.mode === 'web' && engine && engineIcon(engine)"
-          :src="engineIcon(engine)"
-          width="16"
-          height="16"
-          alt=""
-          class="h-4 w-4 shrink-0 rounded-full object-cover"
-        />
-        <AppIcon v-else name="search" :size="15" />
-        <span class="hidden md:block">{{ state.mode === 'web' ? (engine?.name ?? '搜索引擎') : '站内' }}</span>
-        <AppIcon name="chevron-down" :size="13" />
-      </button>
-
-      <div
-        v-if="openEngine"
-        class="animate-zoom-in absolute left-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-600 dark:bg-slate-800"
-      >
-        <button
-          type="button"
-          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/60"
-          :class="state.mode === 'local' ? 'text-accent' : 'text-slate-600 dark:text-slate-300'"
-          @click="pickEngine('__local__')"
-        >
-          <AppIcon name="search" :size="14" />
-          <span class="flex-1">站内搜索</span>
-          <AppIcon v-if="state.mode === 'local'" name="check" :size="14" />
-        </button>
-        <button
-          v-for="e in engines"
-          :key="e.id"
-          type="button"
-          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/60"
-          :class="state.mode === 'web' && state.engineId === e.id ? 'text-accent' : 'text-slate-600 dark:text-slate-300'"
-          @click="pickEngine(e.id)"
-        >
-          <img
-            v-if="engineIcon(e)"
-            :src="engineIcon(e)"
-            width="16"
-            height="16"
-            alt=""
-            class="h-4 w-4 shrink-0 rounded-full object-cover"
-          />
-          <AppIcon v-else name="search" :size="14" />
-          <span class="flex-1 truncate">{{ e.name }}</span>
-          <AppIcon v-if="state.mode === 'web' && state.engineId === e.id" name="check" :size="14" />
-        </button>
-      </div>
+  <!-- 布局对齐原项目：站内/站外 胶囊在搜索框左侧；材质为当前玻璃风 -->
+  <div class="flex w-full items-center gap-3" data-engine-root>
+    <!-- 搜索模式胶囊 -->
+    <div class="flex shrink-0 items-center rounded-full bg-slate-200/60 p-1 dark:bg-white/10">
+      <button type="button" :class="modeCls(isLocal)" @click="setMode('local')">站内</button>
+      <button type="button" :class="modeCls(state.mode === 'web')" @click="setMode('web')">站外</button>
     </div>
 
-    <!-- 竖分隔线 -->
-    <div class="h-4 w-px bg-slate-200 dark:bg-slate-600 mx-1"></div>
-
-    <form class="flex h-full min-w-0 flex-1 items-center" @submit.prevent="onSubmit">
+    <!-- 搜索框（原项目：rounded-full、图标在左、提交在右；无 hover 动效） -->
+    <form class="relative flex min-w-0 flex-1 items-center" @submit.prevent="onSubmit">
       <input
         ref="inputRef"
         :value="state.query"
@@ -135,25 +92,80 @@ onBeforeUnmount(() => {
         type="text"
         autocomplete="off"
         spellcheck="false"
-        class="flex-1 bg-transparent border-none text-slate-700 dark:text-slate-200 text-sm focus:ring-0 placeholder-slate-400 h-full w-full outline-none px-2"
+        class="w-full rounded-full border border-slate-200/60 bg-white/60 py-2 pl-10 pr-12 text-sm text-slate-700 outline-none backdrop-blur placeholder-slate-400 transition-colors dark:border-white/10 dark:bg-white/10 dark:text-slate-100 dark:placeholder-slate-500 focus:border-accent/50 focus:bg-white focus:ring-2 focus:ring-accent/50 dark:focus:bg-white/10"
         @input="setQuery(($event.target as HTMLInputElement).value)"
       />
-      <button
-        v-if="state.query"
-        type="button"
-        aria-label="清空搜索"
-        class="hidden p-1.5 mr-1 rounded-full text-slate-400 hover:text-red-500 sm:block"
-        @click="clearQuery"
-      >
-        <AppIcon name="close" :size="14" />
-      </button>
+
+      <!-- 左侧：站内 = 放大镜（纯指示）；站外 = 引擎按钮（展开下拉） -->
+      <div class="absolute left-3 flex items-center text-slate-400 dark:text-slate-500">
+        <AppIcon v-if="isLocal" name="search" :size="16" />
+        <button
+          v-else
+          type="button"
+          class="flex items-center text-slate-400 transition-colors hover:text-accent dark:text-slate-500 dark:hover:text-slate-300"
+          :aria-expanded="openEngine"
+          title="选择搜索引擎"
+          @click.stop="openEngine = !openEngine"
+        >
+          <img
+            v-if="engine && engineIcon(engine)"
+            :src="engineIcon(engine)"
+            width="16"
+            height="16"
+            alt=""
+            class="h-4 w-4 rounded-full object-cover"
+          />
+          <AppIcon v-else name="search" :size="16" />
+        </button>
+      </div>
+
+      <!-- 右侧提交（原项目：rounded-full 实底圆钮） -->
       <button
         type="submit"
         aria-label="搜索"
-        class="h-full px-4 rounded-r-xl text-slate-500 dark:text-slate-300 border-l border-transparent dark:border-slate-700/50"
+        class="absolute right-2 flex h-7 w-7 items-center justify-center rounded-full bg-accent/15 text-accent transition-colors hover:bg-accent/25"
       >
-        <AppIcon name="search" :size="16" />
+        <AppIcon name="search" :size="15" />
       </button>
+
+      <!-- 引擎下拉（原项目：left-0 top-full；玻璃材质） -->
+      <div
+        v-if="openEngine && state.mode === 'web'"
+        class="glass-surface absolute left-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl"
+      >
+        <div class="py-2">
+          <button
+            type="button"
+            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-white/50 dark:hover:bg-white/10"
+            :class="isLocal ? 'text-accent' : 'text-slate-600 dark:text-slate-300'"
+            @click="pickEngine('__local__')"
+          >
+            <AppIcon name="search" :size="14" />
+            <span class="flex-1">站内搜索</span>
+            <AppIcon v-if="isLocal" name="check" :size="14" />
+          </button>
+          <button
+            v-for="e in engines"
+            :key="e.id"
+            type="button"
+            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-white/50 dark:hover:bg-white/10"
+            :class="state.mode === 'web' && state.engineId === e.id ? 'text-accent' : 'text-slate-600 dark:text-slate-300'"
+            @click="pickEngine(e.id)"
+          >
+            <img
+              v-if="engineIcon(e)"
+              :src="engineIcon(e)"
+              width="16"
+              height="16"
+              alt=""
+              class="h-4 w-4 shrink-0 rounded-full object-cover"
+            />
+            <AppIcon v-else name="search" :size="14" />
+            <span class="flex-1 truncate">{{ e.name }}</span>
+            <AppIcon v-if="state.mode === 'web' && state.engineId === e.id" name="check" :size="14" />
+          </button>
+        </div>
+      </div>
     </form>
   </div>
 </template>
