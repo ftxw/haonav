@@ -185,7 +185,7 @@ const navCls = (active: boolean): string =>
           <span class="flex-1 truncate text-left">{{ p.label }}</span>
           <span
             v-if="state.panel === p.id"
-            class="h-1.5 w-1.5 rounded-full bg-white"
+            class="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent)]"
           ></span>
         </button>
       </nav>

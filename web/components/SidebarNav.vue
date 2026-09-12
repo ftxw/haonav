@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import AppIcon from './AppIcon.vue';
 import { categoryIconUri, firstChar } from '../lib/brandIcon';
 import type { Category, FooterLink, SiteSettings } from '../lib/models';
-import { CHIP, CHIP_ON_ACCENT, PILL_ACTIVE, PILL_IDLE, SECTION_LABEL } from '../lib/ui';
+import { CHIP, PILL_ACTIVE, PILL_IDLE, SECTION_LABEL } from '../lib/ui';
 import { ALL } from '../stores/nav';
 
 const props = defineProps<{
@@ -84,7 +84,7 @@ function itemClass(active: boolean, opts?: { tall?: boolean }): string {
       >
         <AppIcon name="grid" :size="16" :class="iconHoverCls(activeCat === ALL)" />
         <span class="flex-1 truncate text-left text-sm">全部链接</span>
-        <span :class="activeCat === ALL ? CHIP_ON_ACCENT : CHIP">{{ totalCount }}</span>
+        <span :class="CHIP">{{ totalCount }}</span>
       </button>
 
       <p class="px-4 pb-1 pt-3" :class="SECTION_LABEL">分类目录</p>

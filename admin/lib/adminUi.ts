@@ -33,7 +33,8 @@ export const PAGE_ACTIONS = 'ml-auto flex flex-wrap items-center gap-2';
 /* ═══════════════════════ 侧栏导航 ═══════════════════════ */
 
 /** 导航选中态：实心主色 + 白字 + shadow-md（与前台 PILL_ACTIVE 一致，对齐参考站分类 chip） */
-export const NAV_ACTIVE = 'bg-accent font-medium text-white shadow-md';
+export const NAV_ACTIVE =
+  'border-slate-200/50 bg-white/50 font-medium text-slate-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100';
 
 /** 导航空闲态 */
 export const NAV_IDLE =

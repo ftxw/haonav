@@ -59,15 +59,12 @@ export const GLASS = 'glass-surface';
 /** 区块小标签：全大写、宽字距、低对比（「分类目录」「置顶 / 常用」等 kicker） */
 export const SECTION_LABEL = 'text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500';
 
-/** 导航胶囊：选中态（实心主色 + 白字 + shadow-md，对齐参考站分类 chip）/ 空闲态（悬停玻璃浮起） */
-export const PILL_ACTIVE = 'bg-accent font-medium text-white shadow-md';
+/** 侧栏项选中态：对齐参考站 logo 卡片「正常状态」（白卡 + 中性边框），发光小圆点作选中指示 */
+export const PILL_ACTIVE =
+  'border-slate-200/50 bg-white/50 font-medium text-slate-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100';
 export const PILL_IDLE =
   'text-slate-600 hover:bg-white hover:shadow-md hover:shadow-accent/10 hover:-translate-y-0.5 dark:text-slate-400 dark:hover:bg-slate-800';
 
 /** 等宽小标签（计数 / 技术标签） */
 export const CHIP =
   'inline-flex items-center rounded-md bg-slate-900/[0.06] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-slate-500 dark:bg-white/[0.08] dark:text-slate-400';
-
-/** 选中态胶囊里的计数标签（实心主色底上的白字半透明底） */
-export const CHIP_ON_ACCENT =
-  'inline-flex items-center rounded-md bg-white/25 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-white';
