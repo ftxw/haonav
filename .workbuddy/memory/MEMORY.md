@@ -62,6 +62,13 @@
 - **原则：每次请求都要能在 10 ms 内做完。** 凡"遍历全量数据 + 复杂计算"的事，要么挪到客户端，要么拆成多批。
 - **按最紧的平台设计**（CF 的 10 ms 是已知最紧），EdgeOne 上只会更宽裕。
 
+## ⚠️ 工程教训（必读）
+
+- **`tsc --noEmit` 不检查 `.vue` 的 `<template>`** —— 本项目因此漏过至少 3 个运行时崩溃（未导入的 `categoryIconUri`、`ref`，未声明的 emit）。**已引入 `vue-tsc` 并把 `npm run typecheck` 改为 `vue-tsc --noEmit -p tsconfig.json`。改任何 `.vue` 后必须跑 `npm run typecheck`，只跑 `tsc` 等于没查。**
+- **本机沙箱没有 Chromium**（`agent-browser install` 失败，无头 dump 产出 0 字节）→ **渲染/视觉问题无法自动验证**，只能靠用户刷新浏览器确认。数据链路则改用 Vitest + 纯函数（如 `web/lib/sections.ts`）覆盖。
+- 成员可能回报"完成"却零提交，**核验必须看 `git log` / `git status`**。
+- 设计参考：`E:\CC\workers.js`（cf-workers-nav 源码，2652 行）+ 线上 https://nav.lts.cc/ 。它用 Tailwind **CDN 运行时**（正是本项目消灭的缺陷），只抄其视觉，不抄交付方式。
+
 ## ⚠️ 环境与工具约定
 
 - **npm registry**：本机默认指向已废弃的 `registry.npm.taobao.org`，证书过期会让 install 直接失败。装包必须显式指定 `--registry=https://registry.npmmirror.com`，或先 `export npm_config_registry=https://registry.npmmirror.com`。
