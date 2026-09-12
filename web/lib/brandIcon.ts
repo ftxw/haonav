@@ -30,13 +30,12 @@ function svgToDataUri(svg: string): string {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
-/** 字母色块：方形圆角 + 居中首字 */
+/** 字母色块：直角方形 + 居中首字（直角 —— 圆角交由外层容器/阴影统一控制，避免两层圆角不一致） */
 function letterBlock(char: string, fill: string, fg: string, size = 64): string {
-  const r = Math.round(size * 0.24);
   const fs = Math.round(size * 0.5);
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">` +
-    `<rect width="${size}" height="${size}" rx="${r}" fill="${fill}"/>` +
+    `<rect width="${size}" height="${size}" fill="${fill}"/>` +
     `<text x="${size / 2}" y="${size / 2}" dy=".04em" font-family="system-ui,-apple-system,'Segoe UI',sans-serif" ` +
     `font-size="${fs}" font-weight="600" fill="${fg}" text-anchor="middle" dominant-baseline="central">${esc(char)}</text>` +
     `</svg>`
