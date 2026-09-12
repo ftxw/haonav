@@ -2,25 +2,39 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import AppIcon from './AppIcon.vue';
 import { clearQuery, engine, flushQuery, runEngineSearch, setEngine, setMode, setQuery, state } from '../stores/nav';
-import { SEG_ACTIVE } from '../lib/ui';
 
 const inputRef = ref<HTMLInputElement | null>(null);
+const openEngine = ref(false);
 
 const engines = computed(() => state.settings.searchEngines ?? []);
 const placeholder = computed(() =>
   state.mode === 'web' ? `用 ${engine.value?.name ?? '搜索引擎'} 搜索…` : '搜索站内链接…（/ 聚焦）',
 );
 
-function pillClass(active: boolean): string {
-  return (
-    'rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors sm:px-3 sm:text-xs ' +
-    (active ? SEG_ACTIVE : 'text-slate-500 dark:text-slate-400')
-  );
+/** 下拉把「站内搜索」与各个搜索引擎放在同一处：选站内 = local，选引擎 = web + 该引擎 */
+function pickEngine(id: string): void {
+  openEngine.value = false;
+  if (id === '__local__') {
+    setMode('local');
+    inputRef.value?.focus();
+    return;
+  }
+  setMode('web');
+  setEngine(id);
+  inputRef.value?.focus();
+}
+
+function engineIcon(e: { icon?: string }): string {
+  return e.icon && e.icon.startsWith('http') ? e.icon : '';
 }
 
 function onSubmit(): void {
   if (state.mode === 'web') runEngineSearch(state.query);
   else flushQuery();
+}
+
+function onDocMouseDown(e: MouseEvent): void {
+  if (openEngine.value && !(e.target as HTMLElement).closest('[data-engine-root]')) openEngine.value = false;
 }
 
 /** 键盘快捷键：/ 聚焦、Esc 清空（约 10 行） */
@@ -36,20 +50,84 @@ function onKey(e: KeyboardEvent): void {
   }
 }
 
-onMounted(() => window.addEventListener('keydown', onKey));
-onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
+onMounted(() => {
+  window.addEventListener('keydown', onKey);
+  document.addEventListener('mousedown', onDocMouseDown);
+});
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKey);
+  document.removeEventListener('mousedown', onDocMouseDown);
+});
 </script>
 
 <template>
-  <div class="flex min-w-0 flex-1 items-center gap-2">
-    <!-- 站内 / 站外 胶囊切换 -->
-    <div class="flex shrink-0 rounded-full bg-slate-200/60 p-0.5 dark:bg-slate-700/60">
-      <button type="button" :class="pillClass(state.mode === 'local')" @click="setMode('local')">站内</button>
-      <button type="button" :class="pillClass(state.mode === 'web')" @click="setMode('web')">站外</button>
+  <!-- 外层容器：聚焦整块抬升 + accent 光环（对齐参考站） -->
+  <div
+    class="relative flex h-10 min-w-0 w-full flex-1 items-center rounded-xl border border-slate-200 bg-white/90 shadow-sm backdrop-blur transition-all duration-300 focus-within:-translate-y-0.5 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-accent/50 dark:border-slate-600 dark:bg-slate-800/60"
+  >
+    <!-- 搜索范围 / 引擎选择（内置在搜索框左侧） -->
+    <div data-engine-root class="relative h-full">
+      <button
+        type="button"
+        class="flex h-full items-center gap-2 rounded-l-xl pl-3 pr-2 text-sm text-slate-600 transition-colors hover:bg-slate-50 hover:text-accent dark:text-slate-300 dark:hover:bg-slate-700/50"
+        :title="state.mode === 'web' ? '选择搜索引擎' : '搜索范围：站内'"
+        :aria-expanded="openEngine"
+        @click="openEngine = !openEngine"
+      >
+        <img
+          v-if="state.mode === 'web' && engine && engineIcon(engine)"
+          :src="engineIcon(engine)"
+          width="16"
+          height="16"
+          alt=""
+          class="h-4 w-4 shrink-0 rounded-full object-cover"
+        />
+        <AppIcon v-else name="search" :size="15" />
+        <span class="hidden md:block">{{ state.mode === 'web' ? (engine?.name ?? '搜索引擎') : '站内' }}</span>
+        <AppIcon name="chevron-down" :size="13" />
+      </button>
+
+      <div
+        v-if="openEngine"
+        class="animate-zoom-in absolute left-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-slate-200/60 bg-white/95 py-1 shadow-xl backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-800/95"
+      >
+        <button
+          type="button"
+          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/60"
+          :class="state.mode === 'local' ? 'text-accent' : 'text-slate-600 dark:text-slate-300'"
+          @click="pickEngine('__local__')"
+        >
+          <AppIcon name="search" :size="14" />
+          <span class="flex-1">站内搜索</span>
+          <AppIcon v-if="state.mode === 'local'" name="check" :size="14" />
+        </button>
+        <button
+          v-for="e in engines"
+          :key="e.id"
+          type="button"
+          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/60"
+          :class="state.mode === 'web' && state.engineId === e.id ? 'text-accent' : 'text-slate-600 dark:text-slate-300'"
+          @click="pickEngine(e.id)"
+        >
+          <img
+            v-if="engineIcon(e)"
+            :src="engineIcon(e)"
+            width="16"
+            height="16"
+            alt=""
+            class="h-4 w-4 shrink-0 rounded-full object-cover"
+          />
+          <AppIcon v-else name="search" :size="14" />
+          <span class="flex-1 truncate">{{ e.name }}</span>
+          <AppIcon v-if="state.mode === 'web' && state.engineId === e.id" name="check" :size="14" />
+        </button>
+      </div>
     </div>
 
-    <form class="relative flex min-w-0 flex-1 items-center" @submit.prevent="onSubmit">
-      <AppIcon name="search" :size="16" class="pointer-events-none absolute left-3 text-slate-400" />
+    <!-- 竖分隔线 -->
+    <div class="mx-1 h-4 w-px bg-slate-200 dark:bg-slate-600"></div>
+
+    <form class="flex h-full min-w-0 flex-1 items-center" @submit.prevent="onSubmit">
       <input
         ref="inputRef"
         :value="state.query"
@@ -57,35 +135,25 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
         type="text"
         autocomplete="off"
         spellcheck="false"
-        class="w-full rounded-full border border-transparent bg-white/50 py-2 pl-9 pr-9 text-sm text-slate-800 outline-none transition-all placeholder-slate-400 hover:bg-white focus:bg-white focus:ring-2 focus:ring-accent/50 dark:bg-slate-800/60 dark:text-white dark:hover:bg-slate-800 dark:focus:bg-slate-800"
+        class="h-full w-full flex-1 border-none bg-transparent px-2 text-sm text-slate-800 outline-none placeholder-slate-400 focus:ring-0 dark:text-slate-100"
         @input="setQuery(($event.target as HTMLInputElement).value)"
       />
       <button
         v-if="state.query"
         type="button"
         aria-label="清空搜索"
-        class="absolute right-2 rounded-full p-1 text-slate-400 transition-colors hover:text-slate-600 dark:hover:text-slate-200"
+        class="mr-1 hidden rounded-full p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-red-500 sm:block dark:hover:bg-slate-700"
         @click="clearQuery"
       >
         <AppIcon name="close" :size="14" />
       </button>
-    </form>
-
-    <!-- 站外模式的引擎下拉（引擎来自 settings.searchEngines） -->
-    <div v-if="state.mode === 'web'" class="relative hidden shrink-0 sm:block">
-      <select
-        :value="state.engineId"
-        aria-label="搜索引擎"
-        class="appearance-none rounded-full border border-slate-200/60 bg-white/50 py-2 pl-3 pr-7 text-sm text-slate-700 outline-none focus:border-accent dark:border-slate-700/60 dark:bg-slate-800/60 dark:text-slate-200"
-        @change="setEngine(($event.target as HTMLSelectElement).value)"
+      <button
+        type="submit"
+        aria-label="搜索"
+        class="h-full rounded-r-xl border-l border-transparent px-4 text-slate-500 transition-colors hover:bg-emerald-50 hover:text-accent dark:border-slate-700/50 dark:text-slate-300 dark:hover:bg-slate-700/50"
       >
-        <option v-for="e in engines" :key="e.id" :value="e.id">{{ e.name }}</option>
-      </select>
-      <AppIcon
-        name="chevron-down"
-        :size="14"
-        class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400"
-      />
-    </div>
+        <AppIcon name="search" :size="16" />
+      </button>
+    </form>
   </div>
 </template>

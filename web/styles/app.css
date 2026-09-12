@@ -70,16 +70,15 @@
   }
 }
 
-/* ── 跳过视口外渲染：1000 链接时实际参与渲染的节点从 ~12k 降到 <1.5k ── */
+/* ── 跳过视口外渲染（暂未启用） ──
+   曾经这里用 `content-visibility: auto` 跳过离屏 section 的渲染，但它依赖祖先滚动容器的判定，
+   一旦布局/滚动容器与预期不符会**整页空白**（当前数据量下收益为零、风险为整页不可见），故移除。
+   将来数据量大时改用「仅给首屏之后的 section 加 .is-lazy 修饰类」的**显式**方式加回： */
 .cat-section {
-  content-visibility: auto;
   contain-intrinsic-size: auto 640px;
   scroll-margin-top: 4rem;
 }
-/* 跳转前临时强制渲染，规避 content-visibility 造成的落点不准 */
-.cat-section.force-render {
-  content-visibility: visible;
-}
+/* .cat-section.is-lazy { content-visibility: auto; } —— 未来加回时的挂点 */
 
 /* ── 卡片内部隔离，布局/绘制互不影响 ── */
 .hn-card {

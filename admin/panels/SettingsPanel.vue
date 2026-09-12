@@ -21,9 +21,8 @@ const setThemeDefault = (v: string): void => patch((s) => (s.themeDefault = v as
 const setCardStyle = (v: string): void => patch((s) => (s.cardStyle = v as SiteSettings['cardStyle']));
 const setOpenInNewTab = (v: boolean): void => patch((s) => (s.openInNewTab = v));
 const setIconStrategy = (v: string): void => patch((s) => (s.iconStrategy = v as SiteSettings['iconStrategy']));
-const setBackupMode = (v: string): void => patch((s) => (s.backup = { ...s.backup, mode: v as SiteSettings['backup']['mode'] }));
-const setBackupFreq = (v: string): void => patch((s) => (s.backup = { ...s.backup, frequency: v as SiteSettings['backup']['frequency'] }));
-const setRetention = (v: number): void => patch((s) => (s.backup = { ...s.backup, retention: Math.max(1, Math.min(30, v || 7)) }));
+/* ── 备份策略 → 已拆到 BackupPanel ── */
+
 
 /* ── 搜索引擎管理 → 已拆到 SearchPanel ── */
 
@@ -155,30 +154,7 @@ const miniBtn = 'rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-medium text-sl
       </div>
     </div>
 
-    <!-- 备份 -->
-    <div :class="cardCls">
-      <h3 :class="titleCls">备份</h3>
-      <div :class="rowCls + ' mt-3'">
-        <label class="block">
-          <span :class="labelCls">模式</span>
-          <select :value="settings.backup.mode" :class="inputCls" @change="setBackupMode(($event.target as HTMLSelectElement).value)">
-            <option value="auto">自动</option>
-            <option value="manual">手动</option>
-          </select>
-        </label>
-        <label class="block">
-          <span :class="labelCls">频率</span>
-          <select :value="settings.backup.frequency" :class="inputCls" @change="setBackupFreq(($event.target as HTMLSelectElement).value)">
-            <option value="daily">每天</option>
-            <option value="weekly">每周</option>
-          </select>
-        </label>
-        <label class="block">
-          <span :class="labelCls">保留份数（1–30）</span>
-          <input type="number" min="1" max="30" :value="settings.backup.retention" :class="inputCls" @input="setRetention(Number(($event.target as HTMLInputElement).value))" />
-        </label>
-      </div>
-    </div>
+    <!-- 备份策略 → 见「备份」面板 -->
 
     <div class="flex items-center gap-3">
       <button type="button" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50" :disabled="!state.dirty || state.saving || saving" @click="saveNow">

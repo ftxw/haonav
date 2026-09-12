@@ -485,3 +485,92 @@ describe('api / 死链探测', () => {
     ]);
   });
 });
+
+describe('api / 删除快照', () => {
+  async function seedTwo() {
+    let t = 1_000;
+    const { app, store } = makeApp(undefined, { now: () => t });
+    const cookie = await login(app);
+    const h = { 'content-type': 'application/json', cookie };
+    await app.request('/api/backup/snapshot', { method: 'POST', headers: h });
+    t = 2_000;
+    await app.request('/api/backup/snapshot', { method: 'POST', headers: h });
+    return { app, store, cookie, h };
+  }
+
+  it('无会话 → 401', async () => {
+    const { app } = makeApp();
+    const res = await app.request('/api/backup/snapshot', {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ key: 'nav:snap:x' }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it('key 非快照前缀 → 400（防误删其它 KV key）', async () => {
+    const { app, cookie } = await seedTwo();
+    const res = await app.request('/api/backup/snapshot', {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify({ key: 'haonav_links' }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('删除成功：返回剩余份数，列表与正文同步移除', async () => {
+    const { app, store, cookie } = await seedTwo();
+    const target = 'nav:snap:' + new Date(1_000).toISOString();
+
+    const res = await app.request('/api/backup/snapshot', {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify({ key: target }),
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, count: 1 });
+
+    // 正文真的被删了
+    expect(await store.getText(target)).toBeNull();
+    // 列表同步
+    const list = await (await app.request('/api/backup/snapshots', { headers: { cookie } })).json();
+    expect(list.snapshots.length).toBe(1);
+    expect(list.snapshots[0].key).not.toBe(target);
+  });
+
+  it('手动删除不受 retention 限制', async () => {
+    const { app, cookie } = await seedTwo();
+    // retention=1 时自动滚动只留 1 份；此处显式删 1 份应成功而不是被 retention 拦下
+    const target = 'nav:snap:' + new Date(1_000).toISOString();
+    const res = await app.request('/api/backup/snapshot', {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify({ key: target }),
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it('不存在的快照 → 404 且不改动索引', async () => {
+    const { app, cookie } = await seedTwo();
+    const res = await app.request('/api/backup/snapshot', {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify({ key: 'nav:snap:1970-01-01T00:00:00.000Z' }),
+    });
+    expect(res.status).toBe(404);
+    const list = await (await app.request('/api/backup/snapshots', { headers: { cookie } })).json();
+    expect(list.snapshots.length).toBe(2);
+  });
+
+  it('POST /api/backup/snapshot/delete 别名同样可用', async () => {
+    const { app, cookie } = await seedTwo();
+    const target = 'nav:snap:' + new Date(2_000).toISOString();
+    const res = await app.request('/api/backup/snapshot/delete', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify({ key: target }),
+    });
+    expect(res.status).toBe(200);
+    expect((await res.json()).count).toBe(1);
+  });
+});

@@ -88,23 +88,10 @@ function shareLink(link: IndexedLink): void {
 
 // ───────────────── 分类切换 ─────────────────
 
-function revealSection(catId: string): void {
-  const root = contentRef.value;
-  if (!root) return;
-  const el = root.querySelector<HTMLElement>(`#cat-${catId}`);
-  if (!el) return;
-  // content-visibility: auto 会让未渲染的 section 只有估值高度 → 先强制渲染再定位/滚动，避免落点不准
-  el.classList.add('force-render');
-  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove('force-render')));
-}
-
 function selectCat(id: string): void {
   setActiveCat(id);
   nextTick(() => {
-    const root = contentRef.value;
-    if (!root) return;
-    if (id !== ALL) revealSection(id);
-    root.scrollTo({ top: 0 });
+    contentRef.value?.scrollTo({ top: 0 });
     if (id === ALL) setupObserver();
   });
 }

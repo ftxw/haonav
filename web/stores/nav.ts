@@ -1,41 +1,31 @@
 import { computed, reactive, shallowRef } from 'vue';
-import type { CardStyle, Category, Doc, LinkItem, SiteSettings, ThemeMode } from '../lib/models';
+import type { CardStyle, Doc, SiteSettings, ThemeMode } from '../lib/models';
 import { DEFAULT_SETTINGS, mergeSettings } from '../lib/settings';
+import { UNCATEGORIZED, buildSections, type IndexedLink, type Section } from '../lib/sections';
 import * as cache from '../lib/cache';
 import { applyAccent, applyTheme, applyTitle, onSystemThemeChange } from '../lib/theme';
 import { fetchDoc } from '../lib/api';
 import { SEARCH_DEBOUNCE_MS, debounce } from '../lib/search';
 
 export const ALL = 'all';
-
-/** 预索引链接：hay 为一次性生成的小写检索串（title + url + desc） */
-export interface IndexedLink extends LinkItem {
-  hay: string;
-}
-
-export interface Section {
-  cat: Category;
-  links: IndexedLink[];
-}
+export { UNCATEGORIZED };
+export type { IndexedLink, Section };
 
 interface Snapshot {
-  categories: Category[];
+  categories: Section['cat'][];
   /** Map<catId, IndexedLink[]> —— 一次性预分组，渲染时绝不 O(分类×链接) */
   byCat: Map<string, IndexedLink[]>;
   pinned: IndexedLink[];
   total: number;
 }
 
-const UNCATEGORIZED = '__uncategorized__';
-
-const byOrder = (a: { order: string }, b: { order: string }): number =>
-  a.order < b.order ? -1 : a.order > b.order ? 1 : 0;
-
 export const state = reactive({
   ready: false,
   /** /api/data 失败 → 顶栏轻提示（不弹窗、不阻断） */
   stale: false,
   rev: -1,
+  /** 文档时间戳：与 rev/数量一起用于判断是否需要重建索引 */
+  updatedAt: 0,
   settings: { ...DEFAULT_SETTINGS } as SiteSettings,
   activeCat: ALL as string,
   /** 输入框即时值 */
@@ -70,45 +60,17 @@ function ingest(doc: Doc, stale: boolean): void {
   applyTheme(state.theme);
   applyTitle(settings.name);
 
-  const categories = [...(doc.categories ?? [])].sort(byOrder);
-  const known = new Set(categories.map((c) => c.id));
-  const byCat = new Map<string, IndexedLink[]>();
-  for (const c of categories) byCat.set(c.id, []);
+  // 分组逻辑抽成纯函数（web/lib/sections.ts），有单测覆盖
+  const built = buildSections(doc.categories ?? [], doc.links ?? []);
 
-  const pinned: IndexedLink[] = [];
-  const links = doc.links ?? [];
-  let hasOrphans = false;
-  for (let i = 0; i < links.length; i++) {
-    const l = links[i];
-    let catId = l.cat;
-    if (!known.has(catId)) {
-      catId = UNCATEGORIZED;
-      hasOrphans = true;
-    }
-    let bucket = byCat.get(catId);
-    if (!bucket) {
-      bucket = [];
-      byCat.set(catId, bucket);
-    }
-    const il: IndexedLink = { ...l, hay: `${l.title}\n${l.url}\n${l.desc ?? ''}`.toLowerCase() };
-    bucket.push(il);
-    if (l.pinned) pinned.push(il);
-  }
-
-  if (hasOrphans) {
-    categories.push({ id: UNCATEGORIZED, name: '未分类', icon: { type: 'letter' }, order: '\uffff' });
-  }
-
-  for (const bucket of byCat.values()) bucket.sort(byOrder);
-  pinned.sort(byOrder);
-
-  snap.value = { categories, byCat, pinned, total: links.length };
+  snap.value = { categories: built.categories, byCat: built.byCat, pinned: built.pinned, total: built.total };
   state.rev = doc.rev;
+  state.updatedAt = doc.updatedAt ?? 0;
   state.stale = stale;
   state.ready = true;
 
   // 选中的分类若已不存在，回落到「全部链接」
-  if (state.activeCat !== ALL && !byCat.has(state.activeCat)) state.activeCat = ALL;
+  if (state.activeCat !== ALL && !built.byCat.has(state.activeCat)) state.activeCat = ALL;
 }
 
 // ─────────────────────────── 派生数据 ───────────────────────────
@@ -231,7 +193,12 @@ export async function refresh(): Promise<void> {
       state.stale = false;
       return;
     }
-    if (doc.rev === state.rev && snap.value.total === (doc.links?.length ?? 0)) {
+    // rev 未变、数量未变、时间戳未变 → 内容一定没变，不重建索引
+    if (
+      doc.rev === state.rev &&
+      doc.updatedAt === state.updatedAt &&
+      snap.value.total === (doc.links?.length ?? 0)
+    ) {
       state.stale = false;
       return;
     }

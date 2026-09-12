@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import Modal from '../components/Modal.vue';
-import { api, ApiError } from '../lib/adminApi';
+import AdminIcon from '../components/AdminIcon.vue';
+import { api } from '../lib/adminApi';
 import { parseBookmarksHtml, type ParsedItem } from '../lib/importParse';
 import { checkLinks, type CheckMode, type CheckResult } from '../lib/checkLinks';
-import { slugId, formatBytes, formatTime, hostOf, maxOrderOf } from '../lib/util';
-import { reload, save, state, toast } from '../lib/adminStore';
-import type { LinkItem, SnapshotMeta } from '../../shared/types';
+import { slugId, hostOf, maxOrderOf } from '../lib/util';
+import { mutate, reload, save, state, toast } from '../lib/adminStore';
+import type { LinkItem } from '../../shared/types';
 
 /* ═══════════════════════ ① 导入书签 ═══════════════════════ */
 
@@ -306,7 +307,21 @@ const descCls = 'mt-0.5 text-xs text-slate-500 dark:text-slate-400';
       <p v-if="importError" class="mt-2 text-xs text-red-500">{{ importError }}</p>
     </div>
 
-    <!-- ② 重复链接 -->
+    <!-- ② 导出 -->
+    <div :class="cardCls">
+      <h3 :class="titleCls">导出</h3>
+      <p :class="descCls">下载完整备份（JSON 可一键还原）或标准书签 HTML。</p>
+      <div class="mt-3 flex gap-2">
+        <a :href="api.exportUrl('json')" :class="btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200'">
+          <span class="flex items-center gap-1.5"><AdminIcon name="download" :size="13" /> 导出 JSON</span>
+        </a>
+        <a :href="api.exportUrl('html')" :class="btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200'">
+          <span class="flex items-center gap-1.5"><AdminIcon name="download" :size="13" /> 导出 HTML 书签</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- ③ 重复链接 -->
     <div :class="cardCls">
       <div class="flex items-center gap-2">
         <h3 :class="titleCls">重复链接检测</h3>

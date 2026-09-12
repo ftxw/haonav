@@ -1028,6 +1028,50 @@ export function createApp(deps: AppDeps): Hono {
     return jsonResponse({ snapshots });
   });
 
+  /* ── DELETE /api/backup/snapshot：删除单份快照 ──
+   * 手动删除不受 retention 限制（retention 只约束"自动滚动删除"）。
+   * 同时注册 POST /api/backup/snapshot/delete 别名：部分 CDN / 代理会丢弃
+   * DELETE 的请求体，且 DELETE 带 body 在少数运行时不保证送达。
+   */
+  const handleDeleteSnapshot = async (c: Context): Promise<Response> => {
+    if (!isSameOrigin(c)) return jsonResponse({ error: '拒绝跨站请求' }, 403);
+    const denied = await requireSession(c, config);
+    if (denied) return denied;
+
+    let body: any = null;
+    try {
+      body = await c.req.json();
+    } catch {
+      return jsonResponse({ error: '请求体非法' }, 400);
+    }
+    const key = typeof body?.key === 'string' ? body.key : '';
+    if (!key.startsWith(KV.SNAPSHOT_PREFIX)) {
+      return jsonResponse({ error: '快照 key 非法' }, 400);
+    }
+
+    const index = await readSnapshotIndex(store);
+    const next = index.filter((m) => m.key !== key);
+    if (next.length === index.length) {
+      return jsonResponse({ error: '快照不存在' }, 404);
+    }
+
+    // 先删正文再改索引：索引先改会造成"列表消失但正文还在"的残留
+    try {
+      await store.del(key);
+    } catch {
+      /* 正文已丢/不可删时仍继续清理索引，避免列表里留幽灵条目 */
+    }
+    try {
+      await writeSnapshotIndex(store, next);
+    } catch {
+      return jsonResponse({ error: '快照索引更新失败' }, 500);
+    }
+    return jsonResponse({ ok: true, count: next.length });
+  };
+
+  app.delete('/api/backup/snapshot', handleDeleteSnapshot);
+  app.post('/api/backup/snapshot/delete', handleDeleteSnapshot);
+
   /* ── POST /api/backup/snapshot ── */
   app.post('/api/backup/snapshot', async (c) => {
     if (!isSameOrigin(c)) return jsonResponse({ error: '拒绝跨站请求' }, 403);
