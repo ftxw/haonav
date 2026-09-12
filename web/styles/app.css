@@ -16,13 +16,14 @@
 
 /* ── 玻璃面：明暗两套令牌集中在 :root / html.dark，组件统一用 glass-surface ──
    黑夜模式对齐 haoblog 参考项目（--glass-bg #ffffff14 / --glass-border #ffffff2e /
-   --glass-shadow 0 8px 32px #00000059 / blur 24px），白天模式按同一套语言推导浅色版。 */
+   --glass-shadow 0 8px 32px #00000059 / blur(16px) saturate(160%) / inset 顶部高光），
+   白天模式按同一套语言推导浅色版。 */
 @utility glass-surface {
   background-color: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--glass-shadow), inset 0 1px var(--glass-highlight);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 /* Tailwind v4 默认 grid-cols 只到 12，纯图标档需要 14 列 —— 用自定义 utility 补齐 */
@@ -37,13 +38,17 @@
     --glass-border: rgba(255, 255, 255, 0.85);
     --glass-shadow: 0 8px 32px rgba(15, 23, 42, 0.07);
     --glass-blur: 16px;
+    --glass-saturate: 160%;
+    --glass-highlight: rgba(255, 255, 255, 0.9);
   }
   /* 黑夜：对齐参考项目（深色玻璃拟态） */
   html.dark {
     --glass-bg: rgba(255, 255, 255, 0.08);
     --glass-border: rgba(255, 255, 255, 0.18);
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
-    --glass-blur: 24px;
+    --glass-blur: 16px;
+    --glass-saturate: 160%;
+    --glass-highlight: rgba(255, 255, 255, 0.12);
   }
   html,
   body {
