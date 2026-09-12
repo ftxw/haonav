@@ -78,7 +78,7 @@ function modeCls(active: boolean): string {
   <!-- 布局对齐原项目：站内/站外 胶囊在搜索框左侧；材质为当前玻璃风 -->
   <div class="flex w-full items-center gap-3" data-engine-root>
     <!-- 搜索模式胶囊 -->
-    <div class="flex h-9 shrink-0 items-center rounded-full bg-slate-200/60 px-1 dark:bg-white/10">
+    <div class="flex h-9 shrink-0 items-center rounded-full bg-slate-200/60 p-1 dark:bg-white/10">
       <button type="button" :class="modeCls(isLocal)" @click="setMode('local')">站内</button>
       <button type="button" :class="modeCls(state.mode === 'web')" @click="setMode('web')">站外</button>
     </div>
