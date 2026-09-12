@@ -55,12 +55,12 @@ async function saveNow(): Promise<void> {
 }
 
 const inputCls =
-  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-emerald-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
-const cardCls = 'rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800';
+  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-accent dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
+const cardCls = 'glass-surface rounded-2xl p-4';
 const titleCls = 'text-sm font-bold text-slate-800 dark:text-slate-100';
 const descCls = 'mt-0.5 text-xs text-slate-500 dark:text-slate-400';
 const miniBtn =
-  'rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200';
+  'rounded-lg bg-slate-900/[0.06] px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-900/[0.1] dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15';
 </script>
 
 <template>
@@ -124,7 +124,7 @@ const miniBtn =
     <div class="flex items-center gap-3">
       <button
         type="button"
-        class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+        class="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-50"
         :disabled="!state.dirty || state.saving || saving"
         @click="saveNow"
       >

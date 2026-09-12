@@ -16,7 +16,7 @@ function toggleCardStyle(): void {
 <template>
   <header
     :class="[
-      'relative z-30 flex h-16 shrink-0 items-center justify-center border-b px-4 shadow-sm backdrop-blur-xl lg:px-8',
+      'relative z-30 flex h-16 shrink-0 items-center justify-center px-4 lg:px-8',
       GLASS,
     ]"
   >
@@ -24,7 +24,7 @@ function toggleCardStyle(): void {
     <button
       type="button"
       aria-label="打开目录"
-      class="absolute left-3 top-1/2 -translate-y-1/2 rounded-full p-2 text-slate-600 transition-colors hover:bg-slate-200/60 lg:hidden dark:text-slate-300 dark:hover:bg-slate-700/60"
+      class="absolute left-3 top-1/2 -translate-y-1/2 rounded-full p-2 text-slate-600 transition-colors hover:bg-white/50 lg:hidden dark:text-slate-300 dark:hover:bg-white/10"
       @click="setDrawer(true)"
     >
       <AppIcon name="menu" />
@@ -41,7 +41,7 @@ function toggleCardStyle(): void {
         type="button"
         :title="state.theme === 'dark' ? '切换为白天' : '切换为黑夜'"
         :aria-label="state.theme === 'dark' ? '切换为白天' : '切换为黑夜'"
-        class="rounded-full p-2 text-slate-600 transition-colors hover:bg-slate-200/60 hover:text-emerald-600 dark:text-slate-300 dark:hover:bg-slate-700/60 dark:hover:text-emerald-400"
+        class="rounded-full p-2 text-slate-600 transition-colors hover:bg-white/50 hover:text-accent dark:text-slate-300 dark:hover:bg-white/10"
         @click="toggleTheme"
       >
         <AppIcon :name="state.theme === 'dark' ? 'sun' : 'moon'" :size="19" />
@@ -51,7 +51,7 @@ function toggleCardStyle(): void {
         type="button"
         :title="state.cardStyle === 'icon' ? '切换为卡片视图' : '切换为图标视图'"
         :aria-label="state.cardStyle === 'icon' ? '切换为卡片视图' : '切换为图标视图'"
-        class="rounded-full p-2 text-slate-600 transition-colors hover:bg-slate-200/60 hover:text-emerald-600 dark:text-slate-300 dark:hover:bg-slate-700/60 dark:hover:text-emerald-400"
+        class="rounded-full p-2 text-slate-600 transition-colors hover:bg-white/50 hover:text-accent dark:text-slate-300 dark:hover:bg-white/10"
         @click="toggleCardStyle"
       >
         <AppIcon :name="state.cardStyle === 'icon' ? 'grid' : 'dots'" :size="19" />

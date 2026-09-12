@@ -167,8 +167,8 @@ onBeforeUnmount(() => {
     <!-- 背景层：渐变 + 绿色光晕 + 冷色光斑（对齐 nav.lts.cc，纯 CSS 装饰） -->
     <!-- 背景层：用 z-0 + 内容 z-10 的显式层叠（不用负 z-index —— 任何祖先一旦有不透明
          背景就会把负 z-index 层整个盖住，这正是之前光晕消失的原因） -->
-    <div class="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-gray-100 dark:bg-[#0f172a]">
-      <div class="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-[#0f172a] dark:to-[#1e293b]"></div>
+    <div class="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-gray-100 dark:bg-[#0a0f1a]">
+      <div class="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-[#0a0f1a] dark:to-[#0f172a]"></div>
       <!-- 绿色光晕：位置、尺寸、模糊半径全部对齐参考项目（左上角 / 800px / blur-150px），
            仅不透明度略提高（参考为 /30 + multiply，在更亮的灰底上会被压没）。
            注：本布局左上角是 16rem 的毛玻璃侧栏，光晕会透过它显现。 -->
@@ -240,7 +240,7 @@ onBeforeUnmount(() => {
           <!-- 空态 -->
           <div
             v-if="!hasData && !state.appliedQuery"
-            class="flex flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 py-20 text-center dark:border-slate-700 dark:bg-slate-800/50"
+            class="glass-surface flex flex-col items-center justify-center gap-2 rounded-2xl py-20 text-center"
           >
             <AppIcon name="grid" :size="28" class="text-slate-300 dark:text-slate-600" />
             <p class="text-sm text-slate-400">{{ state.stale ? '数据加载失败' : '还没有内容' }}</p>

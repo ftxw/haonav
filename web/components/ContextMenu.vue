@@ -41,14 +41,14 @@ onBeforeUnmount(() => {
 });
 
 const itemClass =
-  'flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700/60';
+  'flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-white/50 hover:text-accent dark:text-slate-200 dark:hover:bg-white/10';
 </script>
 
 <template>
   <Teleport to="body">
     <div
       ref="el"
-      class="animate-zoom-in fixed z-[9999] w-44 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-2xl dark:border-slate-600 dark:bg-slate-800"
+      class="animate-zoom-in glass-surface fixed z-[9999] w-44 overflow-hidden rounded-2xl py-1"
       :style="{ left: pos.x + 'px', top: pos.y + 'px' }"
       role="menu"
     >

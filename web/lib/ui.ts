@@ -41,20 +41,33 @@ export function paletteColor(seed: string): string {
   return LETTER_PALETTE[hashSeed(seed) % LETTER_PALETTE.length];
 }
 
-/* ── 复用类名组合（对齐 nav.lts.cc 参考站） ── */
+/* ── 复用类名组合（深色玻璃拟态：明暗两套令牌统一由 glass-surface 提供） ── */
 
-/** 卡片外壳：半透明 + emerald 柔光阴影 + 悬停抬升（规格④） */
+/** 卡片外壳（小卡片）：玻璃面 + 悬停抬升 + 主色描边（明暗通用，主色走 --accent） */
 export const CARD_FRAME =
-  'rounded-xl border border-slate-200/50 bg-white/50 transition-all duration-300 ' +
-  'hover:-translate-y-0.5 hover:border-slate-300/60 hover:bg-white hover:shadow-md hover:shadow-emerald-500/10 ' +
-  'dark:border-transparent dark:bg-transparent dark:hover:border-slate-700/60 dark:hover:bg-slate-800';
+  'glass-surface rounded-2xl transition-all duration-300 hover:-translate-y-0.5 hover:border-accent/40';
 
-/** 悬停标题变色（配合外层 group） */
-export const TITLE_HOVER = 'transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-400';
+/** 悬停标题变色（配合外层 group）—— 主色走 --accent，后台改色实时生效 */
+export const TITLE_HOVER = 'transition-colors group-hover:text-accent';
 
-/** 分段控件（设置弹层内：主题三态 / 视图三选）选中态 —— 主色走 --accent，后台可改色 */
-export const SEG_ACTIVE = 'bg-white text-accent shadow-sm dark:bg-slate-700 dark:text-emerald-400';
+/** 分段控件（设置弹层内）选中态 —— 主色走 --accent，后台可改色 */
+export const SEG_ACTIVE = 'bg-white text-accent shadow-sm dark:bg-white/15 dark:text-accent';
 
-/** 毛玻璃顶栏 / 弹层（规格③） */
-export const GLASS =
-  'bg-gray-100/60 dark:bg-[#0f172a]/60 backdrop-blur-xl border-slate-200/40 dark:border-slate-700/40';
+/** 毛玻璃顶栏 / 弹层 / 侧栏（玻璃面统一令牌，明暗两套集中在 :root / html.dark） */
+export const GLASS = 'glass-surface';
+
+/** 区块小标签：全大写、宽字距、低对比（「分类目录」「置顶 / 常用」等 kicker） */
+export const SECTION_LABEL = 'text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500';
+
+/** 导航胶囊：选中态（主色浅底） / 空闲态（悬停玻璃浮起） */
+export const PILL_ACTIVE = 'bg-accent/15 font-medium text-accent dark:bg-accent/25';
+export const PILL_IDLE =
+  'text-slate-600 hover:bg-white/60 dark:text-slate-400 dark:hover:bg-white/10';
+
+/** 等宽小标签（计数 / 技术标签） */
+export const CHIP =
+  'inline-flex items-center rounded-md bg-slate-900/[0.06] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-slate-500 dark:bg-white/[0.08] dark:text-slate-400';
+
+/** 品牌 / 页面大标题：冷暖渐变收束到主色 */
+export const HERO_TITLE =
+  'bg-gradient-to-r from-slate-800 to-accent bg-clip-text text-transparent dark:from-slate-100 dark:to-accent';

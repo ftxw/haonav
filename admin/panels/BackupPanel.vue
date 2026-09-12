@@ -109,12 +109,12 @@ onMounted(loadSnapshots);
 const btnCls =
   'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 const inputCls =
-  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-emerald-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
+  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-accent dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
 const labelCls = 'mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300';
-const cardCls = 'rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800';
+const cardCls = 'glass-surface rounded-2xl p-4';
 const titleCls = 'text-sm font-bold text-slate-800 dark:text-slate-100';
 const descCls = 'mt-0.5 text-xs text-slate-500 dark:text-slate-400';
-const ghostBtn = btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200';
+const ghostBtn = btnCls + ' bg-slate-900/[0.06] text-slate-700 hover:bg-slate-900/[0.1] dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15';
 </script>
 
 <template>
@@ -164,7 +164,7 @@ const ghostBtn = btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:
       <div class="mt-3 flex items-center gap-3">
         <button
           type="button"
-          class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+          class="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-50"
           :disabled="!state.dirty || state.saving || saving"
           @click="saveNow"
         >
@@ -181,7 +181,7 @@ const ghostBtn = btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:
         <span class="text-xs text-slate-400">{{ snaps.length }} 份</span>
         <button
           type="button"
-          :class="btnCls + ' ml-auto bg-emerald-600 text-white hover:bg-emerald-700'"
+          :class="btnCls + ' ml-auto bg-accent text-white hover:brightness-110'"
           :disabled="snapshotBusy"
           @click="takeSnapshot"
         >
@@ -204,7 +204,7 @@ const ghostBtn = btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:
           <span class="text-slate-400">{{ formatBytes(s.size) }}</span>
           <button
             type="button"
-            class="ml-auto text-emerald-600 hover:underline dark:text-emerald-400"
+            class="ml-auto text-accent hover:underline"
             @click="restoreSnapshot(s.key)"
           >
             恢复

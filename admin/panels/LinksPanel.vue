@@ -235,7 +235,7 @@ function removeOne(l: LinkItem): void {
 }
 
 const inputCls =
-  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-emerald-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
+  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-accent dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
 const btnCls =
   'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 const thCls = 'px-3 py-2 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap';
@@ -263,31 +263,31 @@ const tdCls = 'px-3 py-2 text-sm text-slate-700 dark:text-slate-200';
         <option value="without">无描述</option>
       </select>
       <span class="ml-auto text-xs text-slate-500">{{ rows.length }} 条</span>
-      <button type="button" :class="btnCls + ' bg-emerald-600 text-white hover:bg-emerald-700'" @click="openAdd">＋ 添加链接</button>
+      <button type="button" :class="btnCls + ' bg-accent text-white hover:brightness-110'" @click="openAdd">＋ 添加链接</button>
     </div>
 
     <!-- 批量操作栏 -->
     <div
       v-if="selected.size"
-      class="flex flex-wrap items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 dark:border-emerald-900 dark:bg-emerald-950/40"
+      class="glass-surface flex flex-wrap items-center gap-2 rounded-2xl px-3 py-2 ring-1 ring-accent/30"
     >
-      <span class="text-xs font-medium text-emerald-700 dark:text-emerald-300">已选 {{ selected.size }} 条</span>
+      <span class="text-xs font-medium text-accent">已选 {{ selected.size }} 条</span>
       <select v-model="batchCat" :class="inputCls + ' w-40 !py-1.5'">
         <option value="" disabled>移动到分类…</option>
         <option value="__none__">（未分类）</option>
         <option v-for="c in state.doc?.categories ?? []" :key="c.id" :value="c.id">{{ c.name }}</option>
       </select>
-      <button type="button" :class="btnCls + ' bg-emerald-600 text-white hover:bg-emerald-700'" :disabled="!batchCat" @click="applyBatchCat">应用</button>
-      <button type="button" :class="btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200'" @click="batchPin(true)">置顶</button>
-      <button type="button" :class="btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200'" @click="batchPin(false)">取消置顶</button>
+      <button type="button" :class="btnCls + ' bg-accent text-white hover:brightness-110'" :disabled="!batchCat" @click="applyBatchCat">应用</button>
+      <button type="button" :class="btnCls + ' bg-slate-900/[0.06] text-slate-700 hover:bg-slate-900/[0.1] dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15'" @click="batchPin(true)">置顶</button>
+      <button type="button" :class="btnCls + ' bg-slate-900/[0.06] text-slate-700 hover:bg-slate-900/[0.1] dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15'" @click="batchPin(false)">取消置顶</button>
       <button type="button" :class="btnCls + ' bg-red-500 text-white hover:bg-red-600'" @click="batchDelete">删除</button>
       <button type="button" class="ml-auto text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300" @click="clearSel">取消选择</button>
     </div>
 
     <!-- 表格 -->
-    <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+    <div class="glass-surface overflow-x-auto rounded-2xl">
       <table class="w-full min-w-[720px] border-collapse">
-        <thead class="bg-slate-50 dark:bg-slate-800/60">
+        <thead class="bg-slate-900/[0.03] dark:bg-white/[0.05]">
           <tr>
             <th :class="thCls + ' w-10'">
               <input type="checkbox" :checked="allChecked" @change="toggleAll" aria-label="全选" />
@@ -304,8 +304,8 @@ const tdCls = 'px-3 py-2 text-sm text-slate-700 dark:text-slate-200';
           <tr
             v-for="r in rows"
             :key="r.id"
-            class="border-t border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/40"
-            :class="{ 'opacity-50': dragId === r.id, 'ring-2 ring-emerald-400 ring-inset': dragOverId === r.id }"
+            class="border-t border-slate-100 transition-colors hover:bg-white/40 dark:border-white/10 dark:hover:bg-white/5"
+            :class="{ 'opacity-50': dragId === r.id, 'ring-2 ring-accent ring-inset': dragOverId === r.id }"
             draggable="true"
             @dragstart="onDragStart(r.id, $event)"
             @dragover="onDragOver(r.id, $event)"
@@ -326,7 +326,7 @@ const tdCls = 'px-3 py-2 text-sm text-slate-700 dark:text-slate-200';
               </button>
             </td>
             <td :class="tdCls + ' whitespace-nowrap'">
-              <button type="button" class="text-xs text-emerald-600 hover:underline dark:text-emerald-400" @click="openEdit(r)">编辑</button>
+              <button type="button" class="text-xs text-accent hover:underline" @click="openEdit(r)">编辑</button>
               <button type="button" class="ml-2 text-xs text-red-500 hover:underline" @click="removeOne(r)">删除</button>
             </td>
           </tr>
@@ -365,8 +365,8 @@ const tdCls = 'px-3 py-2 text-sm text-slate-700 dark:text-slate-200';
         </div>
         <p v-if="formError" class="text-xs text-red-500">{{ formError }}</p>
         <div class="flex justify-end gap-2 pt-1">
-          <button type="button" :class="btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200'" @click="closeForm">取消</button>
-          <button type="button" :class="btnCls + ' bg-emerald-600 text-white hover:bg-emerald-700'" @click="submitForm">保存</button>
+          <button type="button" :class="btnCls + ' bg-slate-900/[0.06] text-slate-700 hover:bg-slate-900/[0.1] dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15'" @click="closeForm">取消</button>
+          <button type="button" :class="btnCls + ' bg-accent text-white hover:brightness-110'" @click="submitForm">保存</button>
         </div>
       </div>
     </Modal>

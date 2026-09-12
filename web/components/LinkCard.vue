@@ -28,11 +28,11 @@ function onContext(e: MouseEvent): void {
   emit('context', { link: props.link, x: e.clientX, y: e.clientY });
 }
 
-/** 两档共用的外壳（legacy 卡片边框/阴影/悬停抬升）+ 跳转属性 */
-const shell = computed(() => ['hn-card', CARD_FRAME, 'flex flex-col p-3']);
+/** 两档共用的外壳（玻璃面 + 悬停抬升，明暗通用）+ 跳转属性；group 让两档都有悬停主色标题 */
+const shell = computed(() => ['hn-card', 'group', CARD_FRAME, 'flex flex-col p-3']);
 /** 卡片档：最小高度；图标档：与卡片档同高的正方形（图标撑满内区，距边距 = p-3 与卡片档一致） */
 const shellCard = computed(() => [...shell.value, CARD_MIN_H]);
-const shellIcon = computed(() => [...shell.value, CARD_ICON_BOX, 'group relative items-center justify-center']);
+const shellIcon = computed(() => [...shell.value, CARD_ICON_BOX, 'relative items-center justify-center']);
 const jump = computed(() => ({
   href: props.link.url,
   target: props.openInNewTab ? '_blank' : '_self',
@@ -54,7 +54,7 @@ const jump = computed(() => ({
         class="h-8 w-8 shrink-0 rounded-lg"
         @error="failed = true"
       />
-      <span :class="['min-w-0 flex-1 truncate text-sm font-medium text-slate-800 dark:text-slate-200', TITLE_HOVER]">{{
+      <span :class="['min-w-0 flex-1 truncate text-sm font-medium text-slate-800 dark:text-slate-100', TITLE_HOVER]">{{
         link.title
       }}</span>
     </span>

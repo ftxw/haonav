@@ -55,12 +55,12 @@ async function saveNow(): Promise<void> {
 }
 
 const inputCls =
-  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-emerald-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
+  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-accent dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
 const labelCls = 'mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300';
-const cardCls = 'rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800';
+const cardCls = 'glass-surface rounded-2xl p-4';
 const titleCls = 'text-sm font-bold text-slate-800 dark:text-slate-100';
 const rowCls = 'grid gap-3 sm:grid-cols-3';
-const miniBtn = 'rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200';
+const miniBtn = 'rounded-lg bg-slate-900/[0.06] px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-900/[0.1] dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15';
 </script>
 
 <template>
@@ -155,7 +155,7 @@ const miniBtn = 'rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-medium text-sl
     <!-- 备份策略 → 见「备份」面板 -->
 
     <div class="flex items-center gap-3">
-      <button type="button" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50" :disabled="!state.dirty || state.saving || saving" @click="saveNow">
+      <button type="button" class="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-50" :disabled="!state.dirty || state.saving || saving" @click="saveNow">
         {{ state.saving || saving ? '保存中…' : '保存设置' }}
       </button>
       <span class="text-xs text-slate-500">{{ state.dirty ? '有未保存的更改' : '所有更改已保存' }}</span>

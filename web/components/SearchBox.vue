@@ -61,15 +61,15 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <!-- 外层容器：聚焦整块抬升 + accent 光环（对齐参考站） -->
+  <!-- 外层容器：玻璃胶囊，聚焦整块抬升 + accent 光环（对齐参考站） -->
   <div
-    class="relative flex h-10 min-w-0 w-full max-w-md items-center rounded-xl border border-slate-200 bg-white/90 shadow-sm backdrop-blur transition-all duration-300 focus-within:-translate-y-0.5 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-accent/50 dark:border-slate-600 dark:bg-slate-800/60"
+    class="glass-surface relative flex h-10 min-w-0 w-full max-w-md items-center rounded-full transition-all duration-300 focus-within:-translate-y-0.5 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-accent/50"
   >
     <!-- 搜索范围 / 引擎选择（内置在搜索框左侧） -->
     <div data-engine-root class="relative h-full">
       <button
         type="button"
-        class="flex h-full items-center gap-2 rounded-l-xl pl-3 pr-2 text-sm text-slate-600 transition-colors hover:bg-slate-50 hover:text-accent dark:text-slate-300 dark:hover:bg-slate-700/50"
+        class="flex h-full items-center gap-2 rounded-l-full pl-3 pr-2 text-sm text-slate-600 transition-colors hover:bg-white/40 hover:text-accent dark:text-slate-300 dark:hover:bg-white/10"
         :title="state.mode === 'web' ? '选择搜索引擎' : '搜索范围：站内'"
         :aria-expanded="openEngine"
         @click="openEngine = !openEngine"
@@ -89,11 +89,11 @@ onBeforeUnmount(() => {
 
       <div
         v-if="openEngine"
-        class="animate-zoom-in absolute left-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-slate-200/60 bg-white/95 py-1 shadow-xl backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-800/95"
+        class="animate-zoom-in glass-surface absolute left-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl py-1"
       >
         <button
           type="button"
-          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/60"
+          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-white/40 dark:hover:bg-white/10"
           :class="state.mode === 'local' ? 'text-accent' : 'text-slate-600 dark:text-slate-300'"
           @click="pickEngine('__local__')"
         >
@@ -105,7 +105,7 @@ onBeforeUnmount(() => {
           v-for="e in engines"
           :key="e.id"
           type="button"
-          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/60"
+          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-white/40 dark:hover:bg-white/10"
           :class="state.mode === 'web' && state.engineId === e.id ? 'text-accent' : 'text-slate-600 dark:text-slate-300'"
           @click="pickEngine(e.id)"
         >
@@ -125,7 +125,7 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- 竖分隔线 -->
-    <div class="mx-1 h-4 w-px bg-slate-200 dark:bg-slate-600"></div>
+    <div class="mx-1 h-4 w-px bg-slate-300/50 dark:bg-white/15"></div>
 
     <form class="flex h-full min-w-0 flex-1 items-center" @submit.prevent="onSubmit">
       <input
@@ -142,7 +142,7 @@ onBeforeUnmount(() => {
         v-if="state.query"
         type="button"
         aria-label="清空搜索"
-        class="mr-1 hidden rounded-full p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-red-500 sm:block dark:hover:bg-slate-700"
+        class="mr-1 hidden rounded-full p-1.5 text-slate-400 transition-colors hover:bg-white/40 hover:text-red-500 sm:block dark:hover:bg-white/10"
         @click="clearQuery"
       >
         <AppIcon name="close" :size="14" />
@@ -150,7 +150,7 @@ onBeforeUnmount(() => {
       <button
         type="submit"
         aria-label="搜索"
-        class="h-full rounded-r-xl border-l border-transparent px-4 text-slate-500 transition-colors hover:bg-emerald-50 hover:text-accent dark:border-slate-700/50 dark:text-slate-300 dark:hover:bg-slate-700/50"
+        class="h-full rounded-r-full border-l border-transparent px-4 text-slate-500 transition-colors hover:bg-accent/10 hover:text-accent dark:text-slate-300"
       >
         <AppIcon name="search" :size="16" />
       </button>

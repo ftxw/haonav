@@ -279,8 +279,8 @@ function removeDead(): void {
 const btnCls =
   'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 const inputCls =
-  'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-emerald-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
-const cardCls = 'rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800';
+  'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-accent dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
+const cardCls = 'glass-surface rounded-2xl p-4';
 const titleCls = 'text-sm font-bold text-slate-800 dark:text-slate-100';
 const descCls = 'mt-0.5 text-xs text-slate-500 dark:text-slate-400';
 </script>
@@ -293,7 +293,7 @@ const descCls = 'mt-0.5 text-xs text-slate-500 dark:text-slate-400';
       <p :class="descCls">支持浏览器导出的 Netscape HTML 书签文件（Web Worker 解析，不卡界面），或本工具导出的 JSON 备份（整体还原）。</p>
       <div class="mt-3 flex flex-wrap items-center gap-2">
         <input ref="fileInput" type="file" accept=".html,.htm,.json" class="hidden" @change="onFile" />
-        <button type="button" :class="btnCls + ' bg-emerald-600 text-white hover:bg-emerald-700'" :disabled="phase !== 'idle'" @click="fileInput?.click()">
+        <button type="button" :class="btnCls + ' bg-accent text-white hover:brightness-110'" :disabled="phase !== 'idle'" @click="fileInput?.click()">
           选择文件…
         </button>
         <label class="flex items-center gap-1.5 text-xs text-slate-500">
@@ -303,7 +303,7 @@ const descCls = 'mt-0.5 text-xs text-slate-500 dark:text-slate-400';
             <option v-for="c in state.doc?.categories ?? []" :key="c.id" :value="c.id">{{ c.name }}</option>
           </select>
         </label>
-        <span v-if="phase === 'parsing' || phase === 'diffing' || phase === 'applying'" class="text-xs text-emerald-600 dark:text-emerald-400">{{ progressText }}</span>
+        <span v-if="phase === 'parsing' || phase === 'diffing' || phase === 'applying'" class="text-xs text-accent">{{ progressText }}</span>
       </div>
       <p v-if="importError" class="mt-2 text-xs text-red-500">{{ importError }}</p>
     </div>
@@ -313,10 +313,10 @@ const descCls = 'mt-0.5 text-xs text-slate-500 dark:text-slate-400';
       <h3 :class="titleCls">导出</h3>
       <p :class="descCls">下载完整备份（JSON 可一键还原）或标准书签 HTML。</p>
       <div class="mt-3 flex gap-2">
-        <a :href="api.exportUrl('json')" :class="btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200'">
+        <a :href="api.exportUrl('json')" :class="btnCls + ' bg-slate-900/[0.06] text-slate-700 hover:bg-slate-900/[0.1] dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15'">
           <span class="flex items-center gap-1.5"><AdminIcon name="download" :size="13" /> 导出 JSON</span>
         </a>
-        <a :href="api.exportUrl('html')" :class="btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200'">
+        <a :href="api.exportUrl('html')" :class="btnCls + ' bg-slate-900/[0.06] text-slate-700 hover:bg-slate-900/[0.1] dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15'">
           <span class="flex items-center gap-1.5"><AdminIcon name="download" :size="13" /> 导出 HTML 书签</span>
         </a>
       </div>
@@ -326,7 +326,7 @@ const descCls = 'mt-0.5 text-xs text-slate-500 dark:text-slate-400';
     <div :class="cardCls">
       <div class="flex items-center gap-2">
         <h3 :class="titleCls">重复链接检测</h3>
-        <button type="button" :class="btnCls + ' ml-auto bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200'" @click="findDupes">开始检测</button>
+        <button type="button" :class="btnCls + ' ml-auto bg-slate-900/[0.06] text-slate-700 hover:bg-slate-900/[0.1] dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15'" @click="findDupes">开始检测</button>
         <span v-if="dupes.length" class="text-xs text-slate-500">{{ dupes.length }} 组 / {{ dupesFound }} 条冗余</span>
       </div>
       <p :class="descCls">同一规范化网址（urlKey）出现多次即为重复。</p>
@@ -356,7 +356,7 @@ const descCls = 'mt-0.5 text-xs text-slate-500 dark:text-slate-400';
           <option value="all">全部链接</option>
           <option value="nodesc">仅无描述的链接</option>
         </select>
-        <button type="button" :class="btnCls + ' bg-emerald-600 text-white hover:bg-emerald-700'" :disabled="deadRunning" @click="runDeadCheck">
+        <button type="button" :class="btnCls + ' bg-accent text-white hover:brightness-110'" :disabled="deadRunning" @click="runDeadCheck">
           {{ deadRunning ? '检测中…' : '开始检测' }}
         </button>
         <span v-if="deadTotal" class="text-xs text-slate-500">{{ deadDone }}/{{ deadTotal }}</span>
@@ -386,7 +386,7 @@ const descCls = 'mt-0.5 text-xs text-slate-500 dark:text-slate-400';
       <div class="space-y-4 text-sm">
         <div class="flex flex-wrap gap-2">
           <span class="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-300">新增 {{ added.length }}</span>
-          <span class="rounded-full bg-slate-200 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300">已存在 {{ existingCount }}</span>
+          <span class="rounded-full bg-slate-900/[0.06] px-3 py-1 text-xs font-medium text-slate-600 dark:bg-white/10 dark:text-slate-300">已存在 {{ existingCount }}</span>
           <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">冲突 {{ conflicts.length }}</span>
         </div>
 
@@ -417,8 +417,8 @@ const descCls = 'mt-0.5 text-xs text-slate-500 dark:text-slate-400';
         <p v-if="importError" class="text-xs text-red-500">{{ importError }}</p>
 
         <div class="flex justify-end gap-2 pt-1">
-          <button type="button" :class="btnCls + ' bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200'" :disabled="phase === 'applying'" @click="cancelImport">取消</button>
-          <button type="button" :class="btnCls + ' bg-emerald-600 text-white hover:bg-emerald-700'" :disabled="phase === 'applying' || (!added.length && (conflictChoice !== 'new' || !conflicts.length))" @click="confirmImport">
+          <button type="button" :class="btnCls + ' bg-slate-900/[0.06] text-slate-700 hover:bg-slate-900/[0.1] dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15'" :disabled="phase === 'applying'" @click="cancelImport">取消</button>
+          <button type="button" :class="btnCls + ' bg-accent text-white hover:brightness-110'" :disabled="phase === 'applying' || (!added.length && (conflictChoice !== 'new' || !conflicts.length))" @click="confirmImport">
             {{ phase === 'applying' ? '导入中…' : `确认导入（新增 ${added.length} 条）` }}
           </button>
         </div>

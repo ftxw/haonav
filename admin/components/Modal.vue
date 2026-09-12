@@ -15,15 +15,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
   <Teleport to="body">
     <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" @click.self="emit('close')">
       <div
-        class="flex max-h-[86vh] w-full flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-800"
+        class="glass-surface flex max-h-[86vh] w-full flex-col overflow-hidden rounded-3xl"
         :class="wide ? 'max-w-3xl' : 'max-w-md'"
       >
-        <div class="flex shrink-0 items-center border-b border-slate-200 px-5 py-3.5 dark:border-slate-700">
+        <div class="flex shrink-0 items-center border-b border-slate-200/60 px-5 py-3.5 dark:border-white/10">
           <h3 class="text-sm font-bold text-slate-800 dark:text-slate-100">{{ title }}</h3>
           <button
             type="button"
             aria-label="关闭"
-            class="ml-auto rounded-full p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700"
+            class="ml-auto rounded-full p-1.5 text-slate-400 transition-colors hover:bg-white/50 hover:text-slate-600 dark:hover:bg-white/10"
             @click="emit('close')"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
