@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import type { CardStyle, IconStrategy } from '../lib/models';
 import { linkLetterIcon } from '../lib/brandIcon';
-import { CARD_FRAME, CARD_ICON_BOX, CARD_MIN_H, TITLE_HOVER } from '../lib/ui';
+import { CARD_FRAME, CARD_MIN_H, TITLE_HOVER } from '../lib/ui';
 import type { IndexedLink } from '../stores/nav';
 
 const props = defineProps<{
@@ -30,8 +30,8 @@ function onContext(e: MouseEvent): void {
 
 /** 卡片档外壳：玻璃面 + 最小高度 + 内边距 + 跳转属性；group 让两档都有悬停主色标题 */
 const shellCard = computed(() => ['hn-card', 'group', CARD_FRAME, 'flex flex-col p-2.5', CARD_MIN_H]);
-/** 纯图标档外壳：保留内边距（玻璃底可见，呼应「恢复修改前样式」）+ 图标填满内部、圆角与卡一致 + 居中 + 跳转属性 */
-const shellIcon = computed(() => ['hn-card', 'group', CARD_FRAME, 'flex flex-col p-2.5', CARD_ICON_BOX, 'relative items-center justify-center']);
+/** 纯图标档外壳：彻底无卡片（去玻璃底/边框/模糊/圆角），仅作为布满网格单元、居中图标的容器 + 跳转属性 */
+const shellIcon = computed(() => ['group', 'relative flex items-center justify-center p-3']);
 const jump = computed(() => ({
   href: props.link.url,
   target: props.openInNewTab ? '_blank' : '_self',
@@ -63,7 +63,7 @@ const jump = computed(() => ({
     </span>
   </a>
 
-  <!-- ── 纯图标档：图标撑满整张卡（大小/圆角与卡一致），标题悬停显示 ── -->
+  <!-- ── 纯图标档：仅图标本身（无卡片），填满网格单元并居中，标题悬停显示 ── -->
   <a
     v-else
     :class="shellIcon"
@@ -71,16 +71,14 @@ const jump = computed(() => ({
     v-bind="jump"
     @contextmenu="onContext"
   >
-    <span class="relative h-full w-full overflow-hidden rounded-xl">
-      <img
-        :src="src"
-        :loading="loading"
-        decoding="async"
-        alt=""
-        class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-        @error="failed = true"
-      />
-    </span>
+    <img
+      :src="src"
+      :loading="loading"
+      decoding="async"
+      alt=""
+      class="h-full w-full object-contain transition-transform duration-300 group-hover:scale-110"
+      @error="failed = true"
+    />
     <span
       class="pointer-events-none absolute left-1/2 top-full z-30 mt-1 max-w-[12rem] -translate-x-1/2 truncate rounded-md bg-slate-900 px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 dark:bg-slate-700"
       >{{ link.title }}</span
