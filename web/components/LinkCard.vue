@@ -30,8 +30,17 @@ function onContext(e: MouseEvent): void {
 
 /** 卡片档外壳：玻璃面 + 最小高度 + 内边距 + 跳转属性；group 让两档都有悬停主色标题 */
 const shellCard = computed(() => ['hn-card', 'group', CARD_FRAME, 'flex flex-col p-2.5', CARD_MIN_H]);
-/** 纯图标档外壳：彻底无卡片（去玻璃底/边框/模糊/圆角），仅作为布满网格单元、居中图标的容器 + 跳转属性 */
-const shellIcon = computed(() => ['group', 'relative flex items-center justify-center p-3']);
+/** 纯图标档外壳：静止态无卡片（仅图标）；尺寸与卡片档高度一致（88px）。
+    悬停只保留与卡片一致的「图标放大 scale-110（在 img 上）+ 绿光晕阴影」，无边框、不上浮 */
+const shellIcon = computed(() => [
+  'group',
+  'cursor-pointer',
+  'h-[88px] w-[88px] justify-self-center',
+  'relative flex items-center justify-center',
+  'rounded-xl',
+  'transition-all duration-300',
+  'hover:shadow-lg hover:shadow-accent/20',
+]);
 const jump = computed(() => ({
   href: props.link.url,
   target: props.openInNewTab ? '_blank' : '_self',
