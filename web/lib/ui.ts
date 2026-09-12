@@ -5,14 +5,19 @@
  */
 import type { CardStyle } from './models';
 
-/* ── 卡片网格：card 正常卡片 / icon 纯图标（两档，卡片高度一致）── */
+/* ── 卡片网格：card 正常卡片 / icon 纯图标（两档外框高度一致）── */
 export const GRID: Record<CardStyle, string> = {
   card: 'grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8',
-  icon: 'grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10',
+  // 图标档格子自适应成接近正方形的宽度（最小 112px，容纳 104px 外框 + 呼吸空间）
+  icon: 'grid-cols-[repeat(auto-fill,minmax(112px,1fr))]',
 };
 
-/** 卡片外壳最小高度：两档共用，保证切换视图时布局不跳动 */
+/** 卡片基准高度（px）：卡片档的最小高度，同时也是图标档正方形的边长 —— 两档外框高度一致 */
+export const CARD_H_PX = 104;
+/** 卡片档：最小高度（内容被 truncate/line-clamp 约束，实际高度即 CARD_H_PX） */
 export const CARD_MIN_H = 'min-h-[104px]';
+/** 图标档：与卡片档同高的正方形外框，在网格单元内居中 */
+export const CARD_ICON_BOX = 'h-[104px] w-[104px] justify-self-center';
 
 /* ── 字母图标色板：12 色固定色板，按 seed 稳定取色（同站每次同色） ── */
 export const LETTER_PALETTE: readonly string[] = [
