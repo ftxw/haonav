@@ -41,17 +41,22 @@ export function paletteColor(seed: string): string {
   return LETTER_PALETTE[hashSeed(seed) % LETTER_PALETTE.length];
 }
 
-/* ── 复用类名组合（卡片/列表项全部对齐参考站「logo 卡片」，含悬停动效） ── */
+/* ── 复用类名组合（亮色 = 参考站「logo 卡片」样式；深色 = 参考站「玻璃卡」样式） ── */
 
 /**
- * 卡片外壳：完全对齐参考项目顶部 logo 卡片（workers.js 顶部导航第一个元素）：
- * rounded-xl + bg-white/50 dark:bg-transparent + border-slate-200/50 dark:border-transparent +
- * hover:bg-white dark:hover:bg-slate-800 + hover:shadow-md hover:shadow-accent/10 + hover:-translate-y-0.5
- * （阴影走 --accent 以保留后台改色能力；accent 默认即 emerald-500，视觉一致）
+ * 卡片外壳（明暗两套配方）：
+ * - 亮色：参考项目顶部 logo 卡片（bg-white/50 + border-slate-200/50，
+ *   hover:bg-white hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5）
+ * - 深色：参考站内容玻璃卡（bg-white/[0.06] + border-white/15 + backdrop-blur，
+ *   hover:bg-white/[0.12] hover:border-white/25）—— logo 卡片在深色下是透明的，
+ *   直接照抄会导致内容卡片不可见、悬停变死黑
  */
 export const CARD_FRAME =
-  'group cursor-pointer rounded-xl border border-slate-200/50 bg-white/50 dark:border-transparent dark:bg-transparent ' +
-  'transition-all duration-300 hover:bg-white dark:hover:bg-slate-800 hover:shadow-md hover:shadow-accent/10 hover:-translate-y-0.5';
+  'group cursor-pointer rounded-xl border backdrop-blur-md bg-white/50 border-slate-200/50 ' +
+  'dark:bg-white/[0.06] dark:border-white/15 ' +
+  'transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg ' +
+  'hover:bg-white hover:border-slate-300 hover:shadow-slate-900/10 ' +
+  'dark:hover:bg-white/[0.12] dark:hover:border-white/25 dark:hover:shadow-black/40';
 
 /** 悬停标题变色（配合外层 group）—— 主色走 --accent，后台改色实时生效 */
 export const TITLE_HOVER = 'transition-colors group-hover:text-accent';

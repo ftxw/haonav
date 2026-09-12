@@ -101,7 +101,7 @@ const MOBILE_BTN =
         type="button"
         :title="state.theme === 'dark' ? '浅色模式' : '深色模式'"
         :aria-label="state.theme === 'dark' ? '浅色模式' : '深色模式'"
-        :class="MOBILE_BTN"
+        :class="[MOBILE_BTN, 'bg-slate-200/60 dark:bg-white/10']"
         @click="toggleTheme"
       >
         <AppIcon :name="state.theme === 'dark' ? 'sun' : 'moon'" :size="19" />
