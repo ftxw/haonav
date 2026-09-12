@@ -48,6 +48,12 @@ function segCls(active: boolean): string {
 /** 手机圆钮通用样式 */
 const MOBILE_BTN =
   'rounded-full p-2 text-slate-600 transition-colors hover:bg-white/60 dark:text-slate-300 dark:hover:bg-white/10';
+
+/** 主题按钮：圆形底与布局分段控件/站内站外胶囊同色；图标尺寸与配色对齐布局控件子按钮。
+    悬停仅变亮文字（与 segCls 未选中态一致：hover:text-slate-600 dark:hover:text-slate-200），
+    不变底色、不变形、不加阴影 —— 与布局按钮悬浮效果完全一致 */
+const THEME_BTN =
+  'rounded-full bg-slate-200/60 p-2 text-slate-400 transition-all hover:text-slate-600 dark:bg-white/10 dark:text-slate-400 dark:hover:text-slate-200';
 </script>
 
 <template>
@@ -72,8 +78,9 @@ const MOBILE_BTN =
       <SearchBox />
     </div>
 
-    <!-- 右侧按钮组：手机 = 搜索/主题/布局 三个图标（右对齐）；桌面 = 两个分段控件 -->
-    <div class="ml-auto flex shrink-0 items-center gap-1">
+    <!-- 右侧按钮组：手机 = 搜索/主题/布局 三个图标（右对齐）；桌面 = 两个分段控件。
+         theme↔layout 间距对齐 SearchBox 内 站内外胶囊↔搜索框 的 gap-3 -->
+    <div class="ml-auto flex shrink-0 items-center gap-3">
       <!-- 搜索（仅手机）：点击顶部下拉搜索面板 -->
       <button
         v-if="searchOpen"
@@ -101,10 +108,10 @@ const MOBILE_BTN =
         type="button"
         :title="state.theme === 'dark' ? '浅色模式' : '深色模式'"
         :aria-label="state.theme === 'dark' ? '浅色模式' : '深色模式'"
-        :class="[MOBILE_BTN, 'bg-slate-200/60 dark:bg-white/10']"
+        :class="THEME_BTN"
         @click="toggleTheme"
       >
-        <AppIcon :name="state.theme === 'dark' ? 'sun' : 'moon'" :size="19" />
+        <AppIcon :name="state.theme === 'dark' ? 'sun' : 'moon'" :size="16" />
       </button>
 
       <!-- 布局：手机 = 单图标互换；桌面 = 分段控件 -->
