@@ -34,7 +34,10 @@
       })();
     </script>
   </head>
-  <body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-50">
+  <!-- 注意：body 不能加不透明背景类 —— 按 CSS 绘制顺序，body 背景会盖住
+       App.vue 里 z-index:-10 的背景层（渐变 + 绿色光晕）。底色由该层自己提供，
+       html 的底色在 app.css 里（防白闪），位于负 z-index 层之下不会遮挡。 -->
+  <body class="text-slate-900 dark:text-slate-50">
     <div id="app">
       <!-- 骨架：HTML + CSS 直出，首帧即可见（有 localStorage 缓存时几乎看不到）。Vue 挂载时会被替换 -->
       <div class="app-shell" style="pointer-events: none" aria-hidden="true">

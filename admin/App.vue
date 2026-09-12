@@ -109,22 +109,24 @@ const navCls = (active: boolean): string =>
 
 <!-- 背景层：与前台同款渐变 + 光斑（登录页与主界面共用） -->
 <template>
-  <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-gray-100 dark:bg-[#0f172a]">
+  <!-- 用 z-0 + 内容 z-10 的显式层叠，不用负 z-index（祖先若有不透明背景会整层盖住它；
+       body 也不能有不透明背景类，否则同样会盖住这一层） -->
+  <div class="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-gray-100 dark:bg-[#0f172a]">
     <div class="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-[#0f172a] dark:to-[#1e293b]"></div>
     <div
-      class="animate-blob absolute left-[-10%] top-[-10%] h-[800px] w-[800px] rounded-full bg-emerald-200/30 blur-[150px] mix-blend-multiply dark:bg-indigo-900/20 dark:mix-blend-screen"
+      class="animate-blob absolute left-[-10%] top-[-10%] h-[800px] w-[800px] rounded-full bg-emerald-300/50 blur-[110px] dark:bg-emerald-500/20 dark:mix-blend-screen"
     ></div>
     <div
-      class="animate-blob-slow absolute bottom-[-15%] right-[-10%] h-[700px] w-[700px] rounded-full bg-teal-200/30 blur-[150px] mix-blend-multiply dark:bg-emerald-900/20 dark:mix-blend-screen"
+      class="animate-blob-slow absolute bottom-[-15%] right-[-10%] h-[700px] w-[700px] rounded-full bg-teal-300/40 blur-[120px] dark:bg-teal-500/15 dark:mix-blend-screen"
     ></div>
   </div>
 
   <!-- ═════════ 登录 ═════════ -->
-  <div v-if="state.checking" class="flex min-h-screen items-center justify-center text-sm text-slate-400">
+  <div v-if="state.checking" class="relative z-10 flex min-h-screen items-center justify-center text-sm text-slate-400">
     正在检查登录状态…
   </div>
 
-  <div v-else-if="!state.authed" class="flex min-h-screen items-center justify-center p-6">
+  <div v-else-if="!state.authed" class="relative z-10 flex min-h-screen items-center justify-center p-6">
     <form
       class="w-full max-w-sm rounded-2xl border border-slate-200/60 bg-white/80 p-8 shadow-sm backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-800/80"
       @submit.prevent="doLogin"
@@ -157,7 +159,7 @@ const navCls = (active: boolean): string =>
   </div>
 
   <!-- ═════════ 主界面：左侧固定导航 + 右侧内容区 ═════════ -->
-  <div v-else class="flex h-screen overflow-hidden">
+  <div v-else class="relative z-10 flex h-screen overflow-hidden">
     <!-- 左侧导航（w-60 ≈ 15rem）：毛玻璃，与前台侧栏同款 -->
     <aside
       class="flex w-60 shrink-0 flex-col border-r border-slate-200/40 bg-white/60 backdrop-blur-xl dark:border-slate-700/40 dark:bg-[#0f172a]/60"

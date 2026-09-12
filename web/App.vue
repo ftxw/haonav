@@ -165,7 +165,9 @@ onBeforeUnmount(() => {
 <template>
   <div class="app-shell">
     <!-- 背景层：渐变 + 绿色光晕 + 冷色光斑（对齐 nav.lts.cc，纯 CSS 装饰） -->
-    <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-gray-100 dark:bg-[#0f172a]">
+    <!-- 背景层：用 z-0 + 内容 z-10 的显式层叠（不用负 z-index —— 任何祖先一旦有不透明
+         背景就会把负 z-index 层整个盖住，这正是之前光晕消失的原因） -->
+    <div class="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-gray-100 dark:bg-[#0f172a]">
       <div class="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-[#0f172a] dark:to-[#1e293b]"></div>
       <!-- 绿色光晕：右上角。浅色下用正常混合（multiply 会把绿色压成灰绿、几乎看不见），
            深色下用 screen 混合让光晕浮起来 -->
@@ -178,6 +180,7 @@ onBeforeUnmount(() => {
     </div>
 
     <SidebarNav
+      class="relative z-10"
       :class="{ 'is-open': state.drawerOpen }"
       :settings="state.settings"
       :categories="categories"
@@ -195,7 +198,7 @@ onBeforeUnmount(() => {
       @click="setDrawer(false)"
     />
 
-    <div class="flex min-w-0 flex-col overflow-hidden">
+    <div class="relative z-10 flex min-w-0 flex-col overflow-hidden">
       <TopBar />
 
       <!-- 读失败降级提示：不弹窗、不阻断浏览 -->
