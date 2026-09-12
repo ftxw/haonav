@@ -35,7 +35,7 @@ function iconHoverCls(active: boolean): string {
 function itemClass(active: boolean, opts?: { tall?: boolean }): string {
   return (
     'flex w-full items-center gap-3 px-4 ' +
-    (opts?.tall ? 'py-3 ' : 'py-2.5 ') +
+    (opts?.tall ? 'py-3.5 ' : 'py-3 ') +
     (active ? PILL_ACTIVE : PILL_IDLE)
   );
 }
@@ -77,8 +77,8 @@ function itemClass(active: boolean, opts?: { tall?: boolean }): string {
         :class="itemClass(activeCat === ALL, { tall: true })"
         @click="emit('select', ALL)"
       >
-        <AppIcon name="grid" :size="16" :class="iconHoverCls(activeCat === ALL)" />
-        <span class="flex-1 truncate text-left text-sm">全部链接</span>
+        <AppIcon name="grid" :size="20" :class="iconHoverCls(activeCat === ALL)" />
+        <span class="flex-1 truncate text-left text-base">全部链接</span>
         <span :class="CHIP">{{ totalCount }}</span>
       </button>
 
@@ -92,10 +92,10 @@ function itemClass(active: boolean, opts?: { tall?: boolean }): string {
         @click="emit('select', c.id)"
       >
         <!-- 分类图标与「全部链接」同一套线性图标（AppIcon），大小基线一致 -->
-        <span :class="['flex h-4 w-4 shrink-0 items-center justify-center', iconHoverCls(activeCat === c.id)]">
-          <AppIcon :name="c.icon" :size="16" />
+        <span :class="['flex h-5 w-5 shrink-0 items-center justify-center', iconHoverCls(activeCat === c.id)]">
+          <AppIcon :name="c.icon" :size="20" />
         </span>
-        <span class="flex-1 truncate text-left text-sm">{{ c.name }}</span>
+        <span class="flex-1 truncate text-left text-base">{{ c.name }}</span>
         <span v-if="activeCat === c.id" class="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent)]"></span>
         <span v-else :class="CHIP">{{ counts[c.id] ?? 0 }}</span>
       </button>
