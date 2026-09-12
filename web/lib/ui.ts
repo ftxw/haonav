@@ -65,9 +65,11 @@ export const GLASS = 'glass-surface';
 /** 区块小标签：全大写、宽字距、低对比（「分类目录」「置顶 / 常用」等 kicker） */
 export const SECTION_LABEL = 'text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500';
 
-/** 侧栏项选中态：与链接卡片常态一致（白卡/深卡），发光小圆点（绿）作选中指示 */
+/** 侧栏项选中态：颜色与悬停一致（实白卡 + 同色边框），但不上浮；发光小圆点（绿）作选中指示。
+    两个状态都带 transition-all —— 点击切换时新旧目录交叉渐变，形成高亮过渡动效 */
 export const PILL_ACTIVE =
-  'rounded-xl border border-slate-200/50 bg-white/50 font-medium text-slate-700 dark:border-slate-700/50 dark:bg-slate-800/60 dark:text-slate-100';
+  'rounded-xl border border-slate-200/50 bg-white font-medium text-slate-700 shadow-sm ' +
+  'transition-all duration-300 dark:border-slate-700/50 dark:bg-slate-800 dark:text-slate-100';
 
 /** 侧栏项空闲态：默认透明；悬停 = 链接卡片的悬停（logo 卡片动效） */
 export const PILL_IDLE =
