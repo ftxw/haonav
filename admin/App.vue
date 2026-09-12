@@ -22,6 +22,7 @@ import {
   undo,
   type PanelId,
 } from './lib/adminStore';
+import { BTN_PRIMARY, BTN_SECONDARY } from './lib/adminUi';
 
 const password = ref('');
 const loggingIn = ref(false);
@@ -169,7 +170,7 @@ const navCls = (active: boolean): string =>
           {{ brandChar }}
         </div>
         <div class="min-w-0">
-          <p class="truncate text-sm font-bold text-slate-800 dark:text-slate-100">{{ siteName }}</p>
+          <p class="truncate text-sm font-bold text-slate-700 dark:text-slate-100">{{ siteName }}</p>
           <p class="text-[11px] text-slate-400">管理后台</p>
         </div>
       </div>
@@ -212,7 +213,10 @@ const navCls = (active: boolean): string =>
     <!-- 右侧：顶栏 + 独立滚动的内容区 -->
     <div class="flex min-w-0 flex-1 flex-col">
       <header class="glass-surface flex h-14 shrink-0 flex-wrap items-center gap-3 px-4 lg:px-6">
-        <h1 class="text-sm font-bold text-slate-800 dark:text-slate-100">{{ currentPanel.label }}</h1>
+        <!-- 面包屑：大标题交给各面板的 PAGE_HEAD，顶栏只做上下文 + 全局保存/撤销 -->
+        <span class="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+          管理后台<span class="text-slate-300 dark:text-slate-600">/</span>{{ currentPanel.label }}
+        </span>
         <span class="text-xs text-slate-400">rev {{ state.doc?.rev ?? '—' }}</span>
         <span v-if="state.dirty" class="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
           <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>未保存
@@ -221,7 +225,7 @@ const navCls = (active: boolean): string =>
         <div class="ml-auto flex items-center gap-2">
           <button
             type="button"
-            class="rounded-lg bg-slate-900/[0.06] px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-900/[0.1] disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15"
+            :class="BTN_SECONDARY"
             :disabled="!canUndo()"
             title="Ctrl/Cmd+Z"
             @click="undo() || toast('没有可撤销的操作')"
@@ -230,7 +234,7 @@ const navCls = (active: boolean): string =>
           </button>
           <button
             type="button"
-            class="rounded-lg bg-accent px-4 py-1.5 text-xs font-medium text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+            :class="BTN_PRIMARY"
             :disabled="!state.dirty || state.saving"
             title="Ctrl/Cmd+S"
             @click="doSave"
@@ -266,7 +270,7 @@ const navCls = (active: boolean): string =>
           另一个窗口或设备先保存了数据（服务端 rev
           {{ conflictDiff?.serverRev }}，你的编辑基于 rev {{ conflictDiff?.myRev }}）。
         </p>
-        <p v-if="conflictDiff" class="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:bg-slate-800/60">
+        <p v-if="conflictDiff" class="rounded-lg bg-slate-900/[0.04] px-3 py-2 text-xs text-slate-500 dark:bg-white/[0.06]">
           服务端版本比你多/少的链接：你这边新增 {{ conflictDiff.added }} 条、删除 {{ conflictDiff.removed }} 条。
         </p>
         <div class="flex flex-col gap-2 pt-1">

@@ -4,6 +4,26 @@ import Modal from '../components/Modal.vue';
 import { between, appendOrder, orderForIndex } from '../lib/order';
 import { newId, hostOf, maxOrderOf } from '../lib/util';
 import { mutate, state, toast } from '../lib/adminStore';
+import {
+  BTN_DANGER,
+  BTN_PRIMARY,
+  BTN_SECONDARY,
+  CARD,
+  INPUT,
+  LINK_BTN,
+  LINK_DANGER,
+  PAGE,
+  PAGE_HEAD,
+  PAGE_HEAD_MAIN,
+  PAGE_TITLE,
+  ROW,
+  SECTION_LABEL,
+  TABLE,
+  TABLE_WRAP,
+  TD,
+  TH,
+  THEAD,
+} from '../lib/adminUi';
 import type { Category, LinkItem } from '../../shared/types';
 
 /* ───────── 筛选 ───────── */
@@ -234,18 +254,27 @@ function removeOne(l: LinkItem): void {
   toast('已删除');
 }
 
-const inputCls =
-  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-accent dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
-const btnCls =
-  'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
-const thCls = 'px-3 py-2 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap';
-const tdCls = 'px-3 py-2 text-sm text-slate-700 dark:text-slate-200';
+/* 类名统一走 admin/lib/adminUi.ts（玻璃面 + accent 令牌，与前台同语言） */
+const inputCls = INPUT;
+const thCls = TH;
+const tdCls = TD;
 </script>
 
 <template>
-  <div class="space-y-4">
-    <!-- 筛选栏 -->
-    <div class="flex flex-wrap items-center gap-2">
+  <div :class="PAGE">
+    <!-- 页面标题区：微标签 + 大标题 + 右侧主操作 -->
+    <div :class="PAGE_HEAD">
+      <div :class="PAGE_HEAD_MAIN">
+        <span :class="SECTION_LABEL">链接管理</span>
+        <h2 :class="PAGE_TITLE">链接</h2>
+      </div>
+      <div class="ml-auto flex flex-wrap items-center gap-2">
+        <button type="button" :class="BTN_PRIMARY" @click="openAdd">＋ 添加链接</button>
+      </div>
+    </div>
+
+    <!-- 筛选栏（玻璃卡片） -->
+    <div class="flex flex-wrap items-center gap-2 p-4" :class="CARD">
       <select v-model="fCat" :class="inputCls + ' w-44'">
         <option value="all">全部分类</option>
         <option value="none">（未分类）</option>
@@ -263,13 +292,13 @@ const tdCls = 'px-3 py-2 text-sm text-slate-700 dark:text-slate-200';
         <option value="without">无描述</option>
       </select>
       <span class="ml-auto text-xs text-slate-500">{{ rows.length }} 条</span>
-      <button type="button" :class="btnCls + ' bg-accent text-white hover:brightness-110'" @click="openAdd">＋ 添加链接</button>
     </div>
 
     <!-- 批量操作栏 -->
     <div
       v-if="selected.size"
-      class="glass-surface flex flex-wrap items-center gap-2 rounded-2xl px-3 py-2 ring-1 ring-accent/30"
+      class="flex flex-wrap items-center gap-2 px-3 py-2 ring-1 ring-accent/30"
+      :class="CARD"
     >
       <span class="text-xs font-medium text-accent">已选 {{ selected.size }} 条</span>
       <select v-model="batchCat" :class="inputCls + ' w-40 !py-1.5'">
@@ -277,17 +306,17 @@ const tdCls = 'px-3 py-2 text-sm text-slate-700 dark:text-slate-200';
         <option value="__none__">（未分类）</option>
         <option v-for="c in state.doc?.categories ?? []" :key="c.id" :value="c.id">{{ c.name }}</option>
       </select>
-      <button type="button" :class="btnCls + ' bg-accent text-white hover:brightness-110'" :disabled="!batchCat" @click="applyBatchCat">应用</button>
-      <button type="button" :class="btnCls + ' bg-slate-900/[0.06] text-slate-700 hover:bg-slate-900/[0.1] dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15'" @click="batchPin(true)">置顶</button>
-      <button type="button" :class="btnCls + ' bg-slate-900/[0.06] text-slate-700 hover:bg-slate-900/[0.1] dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15'" @click="batchPin(false)">取消置顶</button>
-      <button type="button" :class="btnCls + ' bg-red-500 text-white hover:bg-red-600'" @click="batchDelete">删除</button>
+      <button type="button" :class="BTN_PRIMARY" :disabled="!batchCat" @click="applyBatchCat">应用</button>
+      <button type="button" :class="BTN_SECONDARY" @click="batchPin(true)">置顶</button>
+      <button type="button" :class="BTN_SECONDARY" @click="batchPin(false)">取消置顶</button>
+      <button type="button" :class="BTN_DANGER" @click="batchDelete">删除</button>
       <button type="button" class="ml-auto text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300" @click="clearSel">取消选择</button>
     </div>
 
     <!-- 表格 -->
-    <div class="glass-surface overflow-x-auto rounded-2xl">
-      <table class="w-full min-w-[720px] border-collapse">
-        <thead class="bg-slate-900/[0.03] dark:bg-white/[0.05]">
+    <div class="overflow-x-auto" :class="TABLE_WRAP">
+      <table class="min-w-[720px]" :class="TABLE">
+        <thead :class="THEAD">
           <tr>
             <th :class="thCls + ' w-10'">
               <input type="checkbox" :checked="allChecked" @change="toggleAll" aria-label="全选" />
@@ -304,8 +333,7 @@ const tdCls = 'px-3 py-2 text-sm text-slate-700 dark:text-slate-200';
           <tr
             v-for="r in rows"
             :key="r.id"
-            class="border-t border-slate-100 transition-colors hover:bg-white/40 dark:border-white/10 dark:hover:bg-white/5"
-            :class="{ 'opacity-50': dragId === r.id, 'ring-2 ring-accent ring-inset': dragOverId === r.id }"
+            :class="[ROW, { 'opacity-50': dragId === r.id, 'ring-2 ring-accent ring-inset': dragOverId === r.id }]"
             draggable="true"
             @dragstart="onDragStart(r.id, $event)"
             @dragover="onDragOver(r.id, $event)"
@@ -326,8 +354,8 @@ const tdCls = 'px-3 py-2 text-sm text-slate-700 dark:text-slate-200';
               </button>
             </td>
             <td :class="tdCls + ' whitespace-nowrap'">
-              <button type="button" class="text-xs text-accent hover:underline" @click="openEdit(r)">编辑</button>
-              <button type="button" class="ml-2 text-xs text-red-500 hover:underline" @click="removeOne(r)">删除</button>
+              <button type="button" :class="LINK_BTN" @click="openEdit(r)">编辑</button>
+              <button type="button" class="ml-2" :class="LINK_DANGER" @click="removeOne(r)">删除</button>
             </td>
           </tr>
           <tr v-if="!rows.length">
@@ -365,8 +393,8 @@ const tdCls = 'px-3 py-2 text-sm text-slate-700 dark:text-slate-200';
         </div>
         <p v-if="formError" class="text-xs text-red-500">{{ formError }}</p>
         <div class="flex justify-end gap-2 pt-1">
-          <button type="button" :class="btnCls + ' bg-slate-900/[0.06] text-slate-700 hover:bg-slate-900/[0.1] dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15'" @click="closeForm">取消</button>
-          <button type="button" :class="btnCls + ' bg-accent text-white hover:brightness-110'" @click="submitForm">保存</button>
+          <button type="button" :class="BTN_SECONDARY" @click="closeForm">取消</button>
+          <button type="button" :class="BTN_PRIMARY" @click="submitForm">保存</button>
         </div>
       </div>
     </Modal>

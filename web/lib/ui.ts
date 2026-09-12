@@ -8,16 +8,16 @@ import type { CardStyle } from './models';
 /* ── 卡片网格：card 正常卡片 / icon 纯图标（两档外框高度一致）── */
 export const GRID: Record<CardStyle, string> = {
   card: 'grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8',
-  // 图标档格子自适应成接近正方形的宽度（最小 112px，容纳 104px 外框 + 呼吸空间）
+  // 图标档格子自适应成接近正方形的宽度（最小 112px，容纳 88px 外框 + 呼吸空间）
   icon: 'grid-cols-[repeat(auto-fill,minmax(112px,1fr))]',
 };
 
 /** 卡片基准高度（px）：卡片档的最小高度，同时也是图标档正方形的边长 —— 两档外框高度一致 */
-export const CARD_H_PX = 104;
+export const CARD_H_PX = 88;
 /** 卡片档：最小高度（内容被 truncate/line-clamp 约束，实际高度即 CARD_H_PX） */
-export const CARD_MIN_H = 'min-h-[104px]';
+export const CARD_MIN_H = 'min-h-[88px]';
 /** 图标档：与卡片档同高的正方形外框，在网格单元内居中 */
-export const CARD_ICON_BOX = 'h-[104px] w-[104px] justify-self-center';
+export const CARD_ICON_BOX = 'h-[88px] w-[88px] justify-self-center';
 
 /* ── 字母图标色板：12 色固定色板，按 seed 稳定取色（同站每次同色） ── */
 export const LETTER_PALETTE: readonly string[] = [
@@ -67,7 +67,3 @@ export const PILL_IDLE =
 /** 等宽小标签（计数 / 技术标签） */
 export const CHIP =
   'inline-flex items-center rounded-md bg-slate-900/[0.06] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-slate-500 dark:bg-white/[0.08] dark:text-slate-400';
-
-/** 品牌 / 页面大标题：冷暖渐变收束到主色 */
-export const HERO_TITLE =
-  'bg-gradient-to-r from-slate-800 to-accent bg-clip-text text-transparent dark:from-slate-100 dark:to-accent';

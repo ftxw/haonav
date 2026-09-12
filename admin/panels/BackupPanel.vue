@@ -4,6 +4,26 @@ import AdminIcon from '../components/AdminIcon.vue';
 import { api, ApiError } from '../lib/adminApi';
 import { formatBytes, formatTime } from '../lib/util';
 import { mutate, reload, save, state, toast } from '../lib/adminStore';
+import {
+  BTN_PRIMARY,
+  BTN_PRIMARY_LG,
+  BTN_SECONDARY,
+  CARD_BOX,
+  CARD_DESC,
+  CARD_HEAD,
+  CARD_TITLE,
+  INPUT,
+  LABEL,
+  LINK_BTN,
+  LINK_DANGER,
+  PAGE,
+  PAGE_HEAD,
+  PAGE_HEAD_MAIN,
+  PAGE_TITLE,
+  ROW_CARD,
+  SECTION_LABEL,
+  TAG_NEUTRAL,
+} from '../lib/adminUi';
 import type { SiteSettings, SnapshotMeta } from '../../shared/types';
 
 /* ── ① 自动备份策略：开关（auto/manual）+ 频率 + 保留份数 ── */
@@ -106,19 +126,32 @@ async function saveNow(): Promise<void> {
 
 onMounted(loadSnapshots);
 
-const btnCls =
-  'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
-const inputCls =
-  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-accent dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
-const labelCls = 'mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300';
-const cardCls = 'glass-surface rounded-2xl p-4';
-const titleCls = 'text-sm font-bold text-slate-800 dark:text-slate-100';
-const descCls = 'mt-0.5 text-xs text-slate-500 dark:text-slate-400';
-const ghostBtn = btnCls + ' bg-slate-900/[0.06] text-slate-700 hover:bg-slate-900/[0.1] dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15';
+/* 类名统一走 admin/lib/adminUi.ts（玻璃面 + accent 令牌，与前台同语言） */
+const inputCls = INPUT;
+const labelCls = LABEL;
+const cardCls = CARD_BOX;
+const titleCls = CARD_TITLE;
+const descCls = CARD_DESC;
+const ghostBtn = BTN_SECONDARY;
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div :class="PAGE">
+    <!-- 页面标题区：微标签 + 大标题 + 右侧主操作 -->
+    <div :class="PAGE_HEAD">
+      <div :class="PAGE_HEAD_MAIN">
+        <span :class="SECTION_LABEL">数据备份</span>
+        <h2 :class="PAGE_TITLE">备份</h2>
+      </div>
+      <div class="ml-auto flex flex-wrap items-center gap-2">
+        <button type="button" :class="BTN_PRIMARY" :disabled="snapshotBusy" @click="takeSnapshot">
+          <span class="flex items-center gap-1.5">
+            <AdminIcon name="plus" :size="13" />{{ snapshotBusy ? '保存中…' : '存一份快照' }}
+          </span>
+        </button>
+      </div>
+    </div>
+
     <!-- ① 自动备份策略 -->
     <div :class="cardCls">
       <h3 :class="titleCls">自动备份策略</h3>
@@ -164,7 +197,7 @@ const ghostBtn = btnCls + ' bg-slate-900/[0.06] text-slate-700 hover:bg-slate-90
       <div class="mt-3 flex items-center gap-3">
         <button
           type="button"
-          class="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-50"
+          :class="BTN_PRIMARY_LG"
           :disabled="!state.dirty || state.saving || saving"
           @click="saveNow"
         >
@@ -176,40 +209,20 @@ const ghostBtn = btnCls + ' bg-slate-900/[0.06] text-slate-700 hover:bg-slate-90
 
     <!-- ② 快照 -->
     <div :class="cardCls">
-      <div class="flex items-center gap-2">
+      <div :class="CARD_HEAD">
         <h3 :class="titleCls">快照</h3>
-        <span class="text-xs text-slate-400">{{ snaps.length }} 份</span>
-        <button
-          type="button"
-          :class="btnCls + ' ml-auto bg-accent text-white hover:brightness-110'"
-          :disabled="snapshotBusy"
-          @click="takeSnapshot"
-        >
-          <span class="flex items-center gap-1.5">
-            <AdminIcon name="plus" :size="13" />{{ snapshotBusy ? '保存中…' : '存一份快照' }}
-          </span>
-        </button>
-        <button type="button" :class="ghostBtn" :disabled="snapsLoading" @click="loadSnapshots">刷新</button>
+        <span :class="TAG_NEUTRAL">{{ snaps.length }} 份</span>
+        <button type="button" :class="ghostBtn + ' ml-auto'" :disabled="snapsLoading" @click="loadSnapshots">刷新</button>
       </div>
       <p :class="descCls">快照存于 KV，当前保留 {{ settings?.backup.retention ?? 7 }} 份；恢复前服务端会自动把当前状态另存一份。</p>
       <p v-if="snapsError" class="mt-2 text-xs text-amber-600 dark:text-amber-400">{{ snapsError }}</p>
       <p v-else-if="!snaps.length && !snapsLoading" class="mt-3 text-xs text-slate-400">还没有快照，点右上角「存一份快照」。</p>
       <ul v-else-if="snaps.length" class="mt-3 max-h-56 space-y-1 overflow-y-auto">
-        <li
-          v-for="s in snaps"
-          :key="s.key"
-          class="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs dark:bg-slate-800/60"
-        >
+        <li v-for="s in snaps" :key="s.key" :class="ROW_CARD">
           <span class="text-slate-600 dark:text-slate-300">{{ formatTime(s.at) }}</span>
           <span class="text-slate-400">{{ formatBytes(s.size) }}</span>
-          <button
-            type="button"
-            class="ml-auto text-accent hover:underline"
-            @click="restoreSnapshot(s.key)"
-          >
-            恢复
-          </button>
-          <button type="button" class="text-red-500 hover:underline" @click="removeSnapshot(s.key)">删除</button>
+          <button type="button" class="ml-auto" :class="LINK_BTN" @click="restoreSnapshot(s.key)">恢复</button>
+          <button type="button" :class="LINK_DANGER" @click="removeSnapshot(s.key)">删除</button>
         </li>
       </ul>
     </div>

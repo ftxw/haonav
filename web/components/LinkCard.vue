@@ -29,7 +29,7 @@ function onContext(e: MouseEvent): void {
 }
 
 /** 两档共用的外壳（玻璃面 + 悬停抬升，明暗通用）+ 跳转属性；group 让两档都有悬停主色标题 */
-const shell = computed(() => ['hn-card', 'group', CARD_FRAME, 'flex flex-col p-3']);
+const shell = computed(() => ['hn-card', 'group', CARD_FRAME, 'flex flex-col p-2.5']);
 /** 卡片档：最小高度；图标档：与卡片档同高的正方形（图标撑满内区，距边距 = p-3 与卡片档一致） */
 const shellCard = computed(() => [...shell.value, CARD_MIN_H]);
 const shellIcon = computed(() => [...shell.value, CARD_ICON_BOX, 'relative items-center justify-center']);
@@ -58,7 +58,7 @@ const jump = computed(() => ({
         link.title
       }}</span>
     </span>
-    <span class="block h-4 w-full overflow-hidden text-xs text-slate-500 line-clamp-1 dark:text-slate-400">
+    <span class="block h-4 w-full overflow-hidden text-xs text-slate-600 line-clamp-1 dark:text-slate-400">
       <template v-if="link.desc">{{ link.desc }}</template>
       <span v-else class="opacity-0">.</span>
     </span>

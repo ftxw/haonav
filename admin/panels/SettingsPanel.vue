@@ -1,6 +1,21 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { mutate, save, state, toast } from '../lib/adminStore';
+import {
+  BTN_PRIMARY_LG,
+  BTN_SECONDARY,
+  CARD_BOX,
+  CARD_TITLE,
+  FORM_ROW,
+  INPUT,
+  LABEL,
+  PAGE,
+  PAGE_ACTIONS,
+  PAGE_HEAD,
+  PAGE_HEAD_MAIN,
+  PAGE_TITLE,
+  SECTION_LABEL,
+} from '../lib/adminUi';
 import type { SearchEngine, SiteSettings } from '../../shared/types';
 
 const settings = computed<SiteSettings | null>(() => state.doc?.settings ?? null);
@@ -54,17 +69,36 @@ async function saveNow(): Promise<void> {
   }
 }
 
-const inputCls =
-  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-accent dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
-const labelCls = 'mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300';
-const cardCls = 'glass-surface rounded-2xl p-4';
-const titleCls = 'text-sm font-bold text-slate-800 dark:text-slate-100';
-const rowCls = 'grid gap-3 sm:grid-cols-3';
-const miniBtn = 'rounded-lg bg-slate-900/[0.06] px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-900/[0.1] dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15';
+/* 类名统一走 admin/lib/adminUi.ts（玻璃面 + accent 令牌，与前台同语言） */
+const inputCls = INPUT;
+const labelCls = LABEL;
+const cardCls = CARD_BOX;
+const titleCls = CARD_TITLE;
+const rowCls = FORM_ROW;
+const miniBtn = BTN_SECONDARY;
 </script>
 
 <template>
-  <div v-if="settings" class="space-y-4">
+  <div v-if="settings" :class="PAGE">
+    <!-- 页面标题区：微标签 + 大标题 + 右侧主操作 -->
+    <div :class="PAGE_HEAD">
+      <div :class="PAGE_HEAD_MAIN">
+        <span :class="SECTION_LABEL">站点设置</span>
+        <h2 :class="PAGE_TITLE">设置</h2>
+      </div>
+      <div :class="PAGE_ACTIONS">
+        <span class="text-xs text-slate-500">{{ state.dirty ? '有未保存的更改' : '所有更改已保存' }}</span>
+        <button
+          type="button"
+          :class="BTN_PRIMARY_LG"
+          :disabled="!state.dirty || state.saving || saving"
+          @click="saveNow"
+        >
+          {{ state.saving || saving ? '保存中…' : '保存设置' }}
+        </button>
+      </div>
+    </div>
+
     <!-- 品牌 -->
     <div :class="cardCls">
       <h3 :class="titleCls">品牌</h3>
@@ -95,7 +129,7 @@ const miniBtn = 'rounded-lg bg-slate-900/[0.06] px-3 py-1.5 text-xs font-medium 
         <label class="block">
           <span :class="labelCls">主色（运行时生效，无需重新构建）</span>
           <div class="flex gap-2">
-            <input type="color" :value="settings.accent" class="h-9 w-12 cursor-pointer rounded border border-slate-300 dark:border-slate-600" @input="setAccent(($event.target as HTMLInputElement).value)" />
+            <input type="color" :value="settings.accent" class="h-9 w-12 cursor-pointer rounded-lg border border-slate-300/70 dark:border-white/15" @input="setAccent(($event.target as HTMLInputElement).value)" />
             <input :value="settings.accent" type="text" :class="inputCls" @input="setAccent(($event.target as HTMLInputElement).value)" />
           </div>
         </label>
@@ -154,11 +188,6 @@ const miniBtn = 'rounded-lg bg-slate-900/[0.06] px-3 py-1.5 text-xs font-medium 
 
     <!-- 备份策略 → 见「备份」面板 -->
 
-    <div class="flex items-center gap-3">
-      <button type="button" class="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-50" :disabled="!state.dirty || state.saving || saving" @click="saveNow">
-        {{ state.saving || saving ? '保存中…' : '保存设置' }}
-      </button>
-      <span class="text-xs text-slate-500">{{ state.dirty ? '有未保存的更改' : '所有更改已保存' }}</span>
-    </div>
+    <!-- 保存操作统一放在页面标题区（见上） -->
   </div>
 </template>

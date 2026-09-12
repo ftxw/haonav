@@ -2,6 +2,20 @@
 import { computed, ref } from 'vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import { mutate, save, state, toast } from '../lib/adminStore';
+import {
+  BTN_PRIMARY_LG,
+  BTN_SECONDARY,
+  CARD_BOX,
+  CARD_DESC,
+  CARD_TITLE,
+  INPUT,
+  LINK_DANGER,
+  PAGE,
+  PAGE_HEAD,
+  PAGE_HEAD_MAIN,
+  PAGE_TITLE,
+  SECTION_LABEL,
+} from '../lib/adminUi';
 import type { SiteSettings } from '../../shared/types';
 
 const settings = computed<SiteSettings | null>(() => state.doc?.settings ?? null);
@@ -54,17 +68,35 @@ async function saveNow(): Promise<void> {
   }
 }
 
-const inputCls =
-  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-accent dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
-const cardCls = 'glass-surface rounded-2xl p-4';
-const titleCls = 'text-sm font-bold text-slate-800 dark:text-slate-100';
-const descCls = 'mt-0.5 text-xs text-slate-500 dark:text-slate-400';
-const miniBtn =
-  'rounded-lg bg-slate-900/[0.06] px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-900/[0.1] dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15';
+/* 类名统一走 admin/lib/adminUi.ts（玻璃面 + accent 令牌，与前台同语言） */
+const inputCls = INPUT;
+const cardCls = CARD_BOX;
+const titleCls = CARD_TITLE;
+const descCls = CARD_DESC;
+const miniBtn = BTN_SECONDARY;
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div :class="PAGE">
+    <!-- 页面标题区：微标签 + 大标题 + 右侧主操作 -->
+    <div :class="PAGE_HEAD">
+      <div :class="PAGE_HEAD_MAIN">
+        <span :class="SECTION_LABEL">搜索配置</span>
+        <h2 :class="PAGE_TITLE">搜索</h2>
+      </div>
+      <div class="ml-auto flex flex-wrap items-center gap-2">
+        <span class="text-xs text-slate-500">{{ state.dirty ? '有未保存的更改' : '所有更改已保存' }}</span>
+        <button
+          type="button"
+          :class="BTN_PRIMARY_LG"
+          :disabled="!state.dirty || state.saving || saving"
+          @click="saveNow"
+        >
+          {{ state.saving || saving ? '保存中…' : '保存搜索引擎' }}
+        </button>
+      </div>
+    </div>
+
     <div :class="cardCls">
       <div class="flex items-center gap-2">
         <div>
@@ -112,7 +144,7 @@ const miniBtn =
             >
               <AdminIcon name="chevron-down" :size="14" />
             </button>
-            <button type="button" class="px-2 py-1.5 text-xs text-red-500 hover:underline" @click="removeEngine(e.id)">
+            <button type="button" class="px-2 py-1.5" :class="LINK_DANGER" @click="removeEngine(e.id)">
               删除
             </button>
           </div>
@@ -121,16 +153,6 @@ const miniBtn =
       </div>
     </div>
 
-    <div class="flex items-center gap-3">
-      <button
-        type="button"
-        class="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-50"
-        :disabled="!state.dirty || state.saving || saving"
-        @click="saveNow"
-      >
-        {{ state.saving || saving ? '保存中…' : '保存搜索引擎' }}
-      </button>
-      <span class="text-xs text-slate-500">{{ state.dirty ? '有未保存的更改' : '所有更改已保存' }}</span>
-    </div>
+    <!-- 保存操作统一放在页面标题区（见上） -->
   </div>
 </template>

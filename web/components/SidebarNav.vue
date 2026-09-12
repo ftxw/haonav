@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import AppIcon from './AppIcon.vue';
 import { categoryIconUri, firstChar } from '../lib/brandIcon';
 import type { Category, FooterLink, SiteSettings } from '../lib/models';
-import { CHIP, HERO_TITLE, PILL_ACTIVE, PILL_IDLE, SECTION_LABEL } from '../lib/ui';
+import { CHIP, PILL_ACTIVE, PILL_IDLE, SECTION_LABEL } from '../lib/ui';
 import { ALL } from '../stores/nav';
 
 const props = defineProps<{
@@ -60,7 +60,7 @@ function itemClass(active: boolean, opts?: { pale?: boolean; tall?: boolean }): 
       >
         {{ brandChar }}
       </div>
-      <span :class="['min-w-0 truncate text-lg font-bold tracking-wide', HERO_TITLE]">{{ settings.name }}</span>
+      <span class="min-w-0 truncate text-lg font-bold tracking-wide text-slate-700 dark:text-slate-100">{{ settings.name }}</span>
       <button
         type="button"
         class="ml-auto rounded-full p-2 text-slate-500 transition-colors hover:bg-white/50 lg:hidden dark:text-slate-400 dark:hover:bg-white/10"
