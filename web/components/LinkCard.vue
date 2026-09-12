@@ -28,11 +28,10 @@ function onContext(e: MouseEvent): void {
   emit('context', { link: props.link, x: e.clientX, y: e.clientY });
 }
 
-/** 两档共用的外壳（玻璃面 + 悬停抬升，明暗通用）+ 跳转属性；group 让两档都有悬停主色标题 */
-const shell = computed(() => ['hn-card', 'group', CARD_FRAME, 'flex flex-col p-2.5']);
-/** 卡片档：最小高度；图标档：与卡片档同高的正方形（图标撑满内区，距边距 = p-3 与卡片档一致） */
-const shellCard = computed(() => [...shell.value, CARD_MIN_H]);
-const shellIcon = computed(() => [...shell.value, CARD_ICON_BOX, 'relative items-center justify-center']);
+/** 卡片档外壳：玻璃面 + 最小高度 + 内边距 + 跳转属性；group 让两档都有悬停主色标题 */
+const shellCard = computed(() => ['hn-card', 'group', CARD_FRAME, 'flex flex-col p-2.5', CARD_MIN_H]);
+/** 纯图标档外壳：去掉内边距（图标撑满整张卡，大小/圆角与卡一致）+ 居中 + 跳转属性 */
+const shellIcon = computed(() => ['hn-card', 'group', CARD_FRAME, CARD_ICON_BOX, 'relative flex items-center justify-center']);
 const jump = computed(() => ({
   href: props.link.url,
   target: props.openInNewTab ? '_blank' : '_self',
@@ -64,7 +63,7 @@ const jump = computed(() => ({
     </span>
   </a>
 
-  <!-- ── 纯图标档：正方形卡片，图标撑满内区（距边距与卡片档一致），标题悬停显示 ── -->
+  <!-- ── 纯图标档：图标撑满整张卡（大小/圆角与卡一致），标题悬停显示 ── -->
   <a
     v-else
     :class="shellIcon"
@@ -72,14 +71,16 @@ const jump = computed(() => ({
     v-bind="jump"
     @contextmenu="onContext"
   >
-    <img
-      :src="src"
-      :loading="loading"
-      decoding="async"
-      alt=""
-      class="h-full w-full rounded-lg object-contain transition-transform duration-300 group-hover:scale-105"
-      @error="failed = true"
-    />
+    <span class="relative h-full w-full overflow-hidden rounded-xl">
+      <img
+        :src="src"
+        :loading="loading"
+        decoding="async"
+        alt=""
+        class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+        @error="failed = true"
+      />
+    </span>
     <span
       class="pointer-events-none absolute left-1/2 top-full z-30 mt-1 max-w-[12rem] -translate-x-1/2 truncate rounded-md bg-slate-900 px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 dark:bg-slate-700"
       >{{ link.title }}</span
