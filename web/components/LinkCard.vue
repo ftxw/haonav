@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import type { CardStyle, IconStrategy } from '../lib/models';
 import { linkLetterIcon } from '../lib/brandIcon';
-import { CARD_FRAME, CARD_MIN_H, TITLE_HOVER } from '../lib/ui';
+import { CARD_FRAME, CARD_MIN_H, ICON_RADIUS, TITLE_HOVER } from '../lib/ui';
 import type { IndexedLink } from '../stores/nav';
 
 const props = defineProps<{
@@ -85,7 +85,10 @@ const jump = computed(() => ({
       :loading="loading"
       decoding="async"
       alt=""
-      class="h-full w-full rounded-xl object-contain transition-all duration-300 group-hover:shadow-lg group-hover:shadow-accent/20"
+      :class="[
+        'h-full w-full object-contain transition-all duration-300 group-hover:shadow-lg group-hover:shadow-accent/20',
+        ICON_RADIUS,
+      ]"
       @error="failed = true"
     />
     <span

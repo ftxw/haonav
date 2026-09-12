@@ -18,6 +18,9 @@ export const CARD_H_PX = 88;
 export const CARD_MIN_H = 'min-h-[88px]';
 /** 图标档：与卡片档同高的正方形外框，在网格单元内居中 */
 export const CARD_ICON_BOX = 'h-[88px] w-[88px] justify-self-center';
+/** 图标档圆角（单一来源）：直接加在 <img> 上，box-shadow 会自动跟随它 —— 改这里即同时改图标与阴影的圆角。
+    可用档位：rounded-xl .75rem(12px) / rounded-2xl 1rem(16px) / rounded-3xl 1.5rem(24px) */
+export const ICON_RADIUS = 'rounded-2xl';
 
 /* ── 字母图标色板：12 色固定色板，按 seed 稳定取色（同站每次同色） ── */
 export const LETTER_PALETTE: readonly string[] = [
