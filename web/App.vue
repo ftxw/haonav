@@ -169,13 +169,15 @@ onBeforeUnmount(() => {
          背景就会把负 z-index 层整个盖住，这正是之前光晕消失的原因） -->
     <div class="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-gray-100 dark:bg-[#0f172a]">
       <div class="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-[#0f172a] dark:to-[#1e293b]"></div>
-      <!-- 绿色光晕：右上角。浅色下用正常混合（multiply 会把绿色压成灰绿、几乎看不见），
-           深色下用 screen 混合让光晕浮起来 -->
+      <!-- 绿色光晕：几何尺寸与模糊半径完全对齐参考项目（800px / blur-150px），
+           仅把不透明度略提高（参考为 /30 + multiply，在更亮的灰底上会被压没）。
+           位置按需求放右上角（参考站在左上角，本布局那里被 16rem 侧栏遮挡）。 -->
       <div
-        class="animate-blob absolute right-[-12%] top-[-16%] h-[760px] w-[760px] rounded-full bg-emerald-300/50 blur-[110px] dark:bg-emerald-500/20 dark:mix-blend-screen"
+        class="animate-blob absolute right-[-10%] top-[-10%] h-[800px] w-[800px] rounded-full bg-emerald-200/40 blur-[150px] dark:bg-emerald-500/15 dark:mix-blend-screen"
       ></div>
+      <!-- 冷色光斑：参考项目为 500px / blur-120px -->
       <div
-        class="animate-blob-slow absolute bottom-[-18%] right-[-8%] h-[640px] w-[640px] rounded-full bg-teal-300/40 blur-[120px] dark:bg-teal-500/15 dark:mix-blend-screen"
+        class="animate-blob-slow absolute bottom-[-10%] right-[-10%] h-[500px] w-[500px] rounded-full bg-teal-200/30 blur-[120px] dark:bg-teal-500/12 dark:mix-blend-screen"
       ></div>
     </div>
 

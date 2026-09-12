@@ -114,10 +114,10 @@ const navCls = (active: boolean): string =>
   <div class="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-gray-100 dark:bg-[#0f172a]">
     <div class="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-[#0f172a] dark:to-[#1e293b]"></div>
     <div
-      class="animate-blob absolute left-[-10%] top-[-10%] h-[800px] w-[800px] rounded-full bg-emerald-300/50 blur-[110px] dark:bg-emerald-500/20 dark:mix-blend-screen"
+      class="animate-blob absolute left-[-10%] top-[-10%] h-[800px] w-[800px] rounded-full bg-emerald-200/40 blur-[150px] dark:bg-emerald-500/15 dark:mix-blend-screen"
     ></div>
     <div
-      class="animate-blob-slow absolute bottom-[-15%] right-[-10%] h-[700px] w-[700px] rounded-full bg-teal-300/40 blur-[120px] dark:bg-teal-500/15 dark:mix-blend-screen"
+      class="animate-blob-slow absolute bottom-[-15%] right-[-10%] h-[500px] w-[500px] rounded-full bg-teal-200/30 blur-[120px] dark:bg-teal-500/12 dark:mix-blend-screen"
     ></div>
   </div>
 
