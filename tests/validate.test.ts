@@ -9,7 +9,7 @@ function goodDoc(): Doc {
     rev: 3,
     updatedAt: 1,
     settings: {} as unknown as Doc['settings'],
-    categories: [{ id: 'c1', name: '开发', icon: { type: 'letter' }, order: '0000' }],
+    categories: [{ id: 'c1', name: '开发', icon: 'folder', order: '0000' }],
     links: [
       {
         id: 'l1',

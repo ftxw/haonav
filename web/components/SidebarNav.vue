@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import AppIcon from './AppIcon.vue';
-import { categoryIconUri, firstChar } from '../lib/brandIcon';
+import { firstChar } from '../lib/brandIcon';
 import type { Category, FooterLink, SiteSettings } from '../lib/models';
 import { CHIP, PILL_ACTIVE, PILL_IDLE, SECTION_LABEL } from '../lib/ui';
 import { ALL } from '../stores/nav';
@@ -25,11 +25,6 @@ const brandChar = computed(() =>
 );
 
 const footers = computed<FooterLink[]>(() => props.settings.footerLinks ?? []);
-const catIcons = computed<Record<string, string>>(() => {
-  const m: Record<string, string> = {};
-  for (const c of props.categories) m[c.id] = categoryIconUri(c.icon, c.name, c.id);
-  return m;
-});
 
 /** 列表项图标的悬停缩放（选中态为实心主色底，不参与 hover 效果） */
 function iconHoverCls(active: boolean): string {
@@ -39,7 +34,7 @@ function iconHoverCls(active: boolean): string {
 /** 选中态实心主色（对齐参考站分类 chip）；空闲态 hover 对齐参考站 logo 卡片 */
 function itemClass(active: boolean, opts?: { tall?: boolean }): string {
   return (
-    'group flex w-full items-center gap-3 rounded-xl px-4 transition-all ' +
+    'flex w-full items-center gap-3 px-4 ' +
     (opts?.tall ? 'py-3 ' : 'py-2.5 ') +
     (active ? PILL_ACTIVE : PILL_IDLE)
   );
@@ -48,7 +43,7 @@ function itemClass(active: boolean, opts?: { tall?: boolean }): string {
 
 <template>
   <aside class="sidebar glass-surface flex h-full w-64 flex-col">
-    <!-- 品牌区：emerald→teal 渐变 logo（emerald glow + hover 缩放微旋转）+ 渐变站名 -->
+    <!-- 品牌区：emerald→teal 渐变 logo（hover 缩放微旋转）+ 站名（与参考项目标题同色） -->
     <div class="group flex h-16 shrink-0 items-center gap-3 border-b border-slate-200/40 px-6 dark:border-white/10">
       <img
         v-if="brandImage"
@@ -96,10 +91,9 @@ function itemClass(active: boolean, opts?: { tall?: boolean }): string {
         :class="itemClass(activeCat === c.id)"
         @click="emit('select', c.id)"
       >
-        <!-- 三种图标类型同一 16px 槽位，与「全部链接」的线性图标同大小、同基线；icon 型直接继承行文字色 -->
+        <!-- 分类图标与「全部链接」同一套线性图标（AppIcon），大小基线一致 -->
         <span :class="['flex h-4 w-4 shrink-0 items-center justify-center', iconHoverCls(activeCat === c.id)]">
-          <AppIcon v-if="c.icon.type === 'icon'" :name="c.icon.value" :size="16" />
-          <img v-else :src="catIcons[c.id]" width="16" height="16" alt="" class="h-4 w-4 rounded" />
+          <AppIcon :name="c.icon" :size="16" />
         </span>
         <span class="flex-1 truncate text-left text-sm">{{ c.name }}</span>
         <span v-if="activeCat === c.id" class="h-1.5 w-1.5 rounded-full bg-white"></span>

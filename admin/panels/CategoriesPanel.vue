@@ -59,23 +59,18 @@ const ICON_CHOICES = [
 
 const editing = ref<Category | null>(null);
 const isAdd = ref(false);
-const form = ref({ name: '', iconType: 'icon' as Category['icon']['type'], iconValue: 'folder', emoji: '' });
+const form = ref({ name: '', icon: 'folder' });
 const formError = ref('');
 
 function openAdd(): void {
   isAdd.value = true;
-  form.value = { name: '', iconType: 'icon', iconValue: 'folder', emoji: '' };
+  form.value = { name: '', icon: 'folder' };
   formError.value = '';
   editing.value = {} as Category;
 }
 function openEdit(c: Category): void {
   isAdd.value = false;
-  form.value = {
-    name: c.name,
-    iconType: c.icon.type,
-    iconValue: c.icon.type === 'icon' ? c.icon.value : 'folder',
-    emoji: c.icon.type === 'emoji' ? c.icon.value : '',
-  };
+  form.value = { name: c.name, icon: c.icon };
   formError.value = '';
   editing.value = c;
 }
@@ -89,12 +84,7 @@ function submitForm(): void {
     formError.value = '请填写分类名称';
     return;
   }
-  const icon: Category['icon'] =
-    form.value.iconType === 'icon'
-      ? { type: 'icon', value: form.value.iconValue || 'folder' }
-      : form.value.iconType === 'emoji' && form.value.emoji.trim()
-        ? { type: 'emoji', value: form.value.emoji.trim() }
-        : { type: 'letter' };
+  const icon = form.value.icon || 'folder';
 
   if (isAdd.value) {
     mutate((d) => {
@@ -245,20 +235,8 @@ const inputCls = INPUT;
           >
             <td class="cursor-grab px-3 py-2 text-slate-300 active:cursor-grabbing">⠿</td>
             <td :class="TD">
-              <span
-                v-if="c.icon.type === 'icon'"
-                class="flex h-6 w-6 items-center justify-center rounded-md text-slate-500 dark:text-slate-300"
-                ><AdminIcon :name="c.icon.value" :size="16" /></span
-              >
-              <span
-                v-else-if="c.icon.type === 'emoji'"
-                class="flex h-6 w-6 items-center justify-center rounded-md text-sm"
-                >{{ c.icon.value }}</span
-              >
-              <span
-                v-else
-                class="flex h-6 w-6 items-center justify-center rounded-md bg-slate-900/[0.06] text-xs font-bold text-slate-600 dark:bg-white/10 dark:text-slate-200"
-                >{{ c.name.slice(0, 1) }}</span
+              <span class="flex h-6 w-6 items-center justify-center rounded-md text-slate-500 dark:text-slate-300"
+                ><AdminIcon :name="c.icon" :size="16" /></span
               >
             </td>
             <td class="font-medium" :class="TD">{{ c.name }}</td>
@@ -284,41 +262,22 @@ const inputCls = INPUT;
         </label>
         <div class="space-y-2">
           <span class="block text-xs font-medium text-slate-600 dark:text-slate-300">图标</span>
-          <div class="flex flex-wrap items-center gap-4">
-            <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-              <input v-model="form.iconType" type="radio" value="icon" /> 图标
-            </label>
-            <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-              <input v-model="form.iconType" type="radio" value="emoji" /> Emoji
-            </label>
-            <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-              <input v-model="form.iconType" type="radio" value="letter" /> 首字母
-            </label>
-          </div>
-          <div v-if="form.iconType === 'icon'" class="flex flex-wrap gap-1">
+          <div class="flex flex-wrap gap-1">
             <button
               v-for="n in ICON_CHOICES"
               :key="n"
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded-lg transition-colors"
               :class="
-                form.iconValue === n
+                form.icon === n
                   ? 'bg-accent text-white shadow-md'
                   : 'text-slate-500 hover:bg-slate-900/[0.06] dark:text-slate-300 dark:hover:bg-white/10'
               "
-              @click="form.iconValue = n"
+              @click="form.icon = n"
             >
               <AdminIcon :name="n" :size="18" />
             </button>
           </div>
-          <input
-            v-if="form.iconType === 'emoji'"
-            v-model="form.emoji"
-            type="text"
-            maxlength="4"
-            placeholder="🎨"
-            :class="inputCls + ' w-24'"
-          />
         </div>
         <p v-if="formError" class="text-xs text-red-500">{{ formError }}</p>
         <div class="flex justify-end gap-2 pt-1">

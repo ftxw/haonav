@@ -128,7 +128,7 @@ describe('api / PATCH 乐观并发', () => {
       body: JSON.stringify({
         rev: 0,
         ops: [
-          { t: 'cat.add', cat: { id: 'dev', name: '开发', icon: { type: 'letter' }, order: 'V' } },
+          { t: 'cat.add', cat: { id: 'dev', name: '开发', icon: 'folder', order: 'V' } },
           { t: 'link.add', link: newLink() },
         ],
       }),
@@ -256,7 +256,7 @@ describe('api / 导出', () => {
       body: JSON.stringify({
         rev: 0,
         ops: [
-          { t: 'cat.add', cat: { id: 'c', name: 'A&B', icon: { type: 'letter' }, order: 'V' } },
+          { t: 'cat.add', cat: { id: 'c', name: 'A&B', icon: 'folder', order: 'V' } },
           {
             t: 'link.add',
             link: newLink({ id: 'x', title: 'A <B> "C"', url: 'https://a.example/?a=1&b=2', cat: 'c' }),

@@ -23,7 +23,7 @@
 // 注：本文件是可直接执行的 CLI，故运行时 import 带 .ts 扩展名，
 // 以便 `node --experimental-strip-types migrate/v0-to-v1.ts` 直接运行
 // （tsconfig 已开 allowImportingTsExtensions，vitest / tsc 同样接受）。
-import type { Category, CategoryIcon, Doc, LinkItem, SiteSettings } from '../shared/types.ts';
+import type { Category, Doc, LinkItem, SiteSettings } from '../shared/types.ts';
 import { KV, SCHEMA_VERSION } from '../api/keys.ts';
 import { orderForIndex } from '../api/order.ts';
 import type { Store } from '../api/store.ts';
@@ -78,19 +78,18 @@ function isNonEmpty(v: unknown): boolean {
   return true;
 }
 
-/** 旧图标字符串（lucide 名 / emoji）→ 新 CategoryIcon */
-function toCategoryIcon(icon: unknown): CategoryIcon {
-  const t = str(icon).trim();
-  if (!t) return { type: 'letter' };
-  try {
-    if (/\p{Extended_Pictographic}/u.test(t)) {
-      return { type: 'emoji', value: [...t][0] ?? t };
-    }
-  } catch {
-    /* 正则不支持则退化为 letter */
-  }
-  // 'Star' / 'Code' 这类旧 lucide 图标名 → 字母块
-  return { type: 'letter' };
+/** 现有线性图标名集合（AppIcon 支持），迁移时旧图标名能对上就用，对不上用 folder */
+const KNOWN_CATEGORY_ICONS = new Set([
+  'folder', 'star', 'globe', 'code', 'book', 'gamepad', 'palette', 'rss', 'music',
+  'video', 'image', 'chat', 'mail', 'cart', 'map', 'cloud', 'grid', 'list', 'pin',
+  'monitor', 'search', 'link', 'home',
+]);
+
+/** 旧图标字符串（lucide 名 / emoji）→ 现在的线性图标名（无法识别时用 folder） */
+function toCategoryIcon(icon: unknown): string {
+  const t = str(icon).trim().toLowerCase();
+  if (!t) return 'folder';
+  return KNOWN_CATEGORY_ICONS.has(t) ? t : 'folder';
 }
 
 /* ------------------------------------------------------------------ *

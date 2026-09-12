@@ -66,7 +66,7 @@ export function buildSections(categories: Category[], links: LinkItem[]): BuiltS
   }
 
   if (hasOrphans) {
-    cats.push({ id: UNCATEGORIZED, name: '未分类', icon: { type: 'letter' }, order: '\uffff' });
+    cats.push({ id: UNCATEGORIZED, name: '未分类', icon: 'folder', order: '￿' });
   }
 
   for (const bucket of byCat.values()) bucket.sort(byOrder);

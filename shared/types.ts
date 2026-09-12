@@ -26,16 +26,11 @@ export type BrandIcon =
   | { type: 'emoji'; value: string }
   | { type: 'image'; value: string };
 
-export type CategoryIcon =
-  | { type: 'letter' }
-  | { type: 'emoji'; value: string }
-  /** 线性图标：value 为 UI 图标名（与侧栏「全部链接」的图标同风格），见 web/components/AppIcon.vue */
-  | { type: 'icon'; value: string };
-
 export interface Category {
   id: string;
   name: string;
-  icon: CategoryIcon;
+  /** 分类图标：UI 图标名（与侧栏「全部链接」同风格的线性图标，见 AppIcon） */
+  icon: string;
   order: string;
 }
 

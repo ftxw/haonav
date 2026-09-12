@@ -17,7 +17,7 @@ import type { Category, Doc, LinkItem } from '../shared/types';
 const cat = (id: string, order: string): Category => ({
   id,
   name: id,
-  icon: { type: 'letter' },
+  icon: 'folder',
   order,
 });
 

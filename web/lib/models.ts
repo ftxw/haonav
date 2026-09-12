@@ -8,7 +8,6 @@ export type {
   BrandIcon,
   CardStyle,
   Category,
-  CategoryIcon,
   Doc,
   IconStrategy,
   LinkItem,

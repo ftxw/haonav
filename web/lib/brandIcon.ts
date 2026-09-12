@@ -1,4 +1,4 @@
-import type { BrandIcon, CategoryIcon } from './models';
+import type { BrandIcon } from './models';
 import { paletteColor } from './ui';
 
 export function hostOf(url: string): string {
@@ -56,12 +56,6 @@ function emojiBlock(char: string, size = 64): string {
 export function linkLetterIcon(title: string, url: string): string {
   const host = hostOf(url);
   return svgToDataUri(letterBlock(firstChar(title), paletteColor(host), '#fff'));
-}
-
-/** 分类图标：letter 由分类 id 从色板取色；emoji 直接渲染字符 */
-export function categoryIconUri(icon: CategoryIcon | undefined, name: string, id: string): string {
-  if (icon && icon.type === 'emoji' && icon.value) return svgToDataUri(emojiBlock(icon.value));
-  return svgToDataUri(letterBlock(firstChar(name), paletteColor(id), '#fff'));
 }
 
 /** 品牌图标 → favicon：letter/emoji 本地生成，image 直接用 URL */

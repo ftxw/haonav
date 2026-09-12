@@ -41,11 +41,17 @@ export function paletteColor(seed: string): string {
   return LETTER_PALETTE[hashSeed(seed) % LETTER_PALETTE.length];
 }
 
-/* ── 复用类名组合（深色玻璃拟态：明暗两套令牌统一由 glass-surface 提供） ── */
+/* ── 复用类名组合（卡片/列表项全部对齐参考站「logo 卡片」，含悬停动效） ── */
 
-/** 卡片外壳（小卡片）：玻璃面 + 悬停对齐参考站 logo 卡片（白底/深底 + 主色柔影 + 上浮 + 主色描边） */
+/**
+ * 卡片外壳：完全对齐参考项目顶部 logo 卡片（workers.js 顶部导航第一个元素）：
+ * rounded-xl + bg-white/50 dark:bg-transparent + border-slate-200/50 dark:border-transparent +
+ * hover:bg-white dark:hover:bg-slate-800 + hover:shadow-md hover:shadow-accent/10 + hover:-translate-y-0.5
+ * （阴影走 --accent 以保留后台改色能力；accent 默认即 emerald-500，视觉一致）
+ */
 export const CARD_FRAME =
-  'glass-surface rounded-2xl transition-all duration-300 hover:-translate-y-0.5 hover:border-accent/40 hover:bg-white hover:shadow-md hover:shadow-accent/10 dark:hover:bg-slate-800';
+  'group cursor-pointer rounded-xl border border-slate-200/50 bg-white/50 dark:border-transparent dark:bg-transparent ' +
+  'transition-all duration-300 hover:bg-white dark:hover:bg-slate-800 hover:shadow-md hover:shadow-accent/10 hover:-translate-y-0.5';
 
 /** 悬停标题变色（配合外层 group）—— 主色走 --accent，后台改色实时生效 */
 export const TITLE_HOVER = 'transition-colors group-hover:text-accent';
@@ -59,11 +65,12 @@ export const GLASS = 'glass-surface';
 /** 区块小标签：全大写、宽字距、低对比（「分类目录」「置顶 / 常用」等 kicker） */
 export const SECTION_LABEL = 'text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500';
 
-/** 侧栏项选中态：对齐参考站 logo 卡片「正常状态」（白卡 + 中性边框），发光小圆点作选中指示 */
+/** 侧栏项选中态：logo 卡片「正常状态」样式，发光小圆点作选中指示 */
 export const PILL_ACTIVE =
-  'border-slate-200/50 bg-white/50 font-medium text-slate-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100';
-export const PILL_IDLE =
-  'text-slate-600 hover:bg-white hover:shadow-md hover:shadow-accent/10 hover:-translate-y-0.5 dark:text-slate-400 dark:hover:bg-slate-800';
+  'rounded-xl border border-slate-200/50 bg-white/50 font-medium text-slate-700 dark:border-transparent dark:bg-transparent dark:text-slate-100';
+
+/** 侧栏项空闲态：与 logo 卡片同款（含悬停动效） */
+export const PILL_IDLE = CARD_FRAME;
 
 /** 等宽小标签（计数 / 技术标签） */
 export const CHIP =

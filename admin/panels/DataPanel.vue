@@ -155,7 +155,7 @@ async function confirmImport(): Promise<void> {
         for (const name of needNames) {
           const id = slugId('imp', name);
           last = last ? last + '1' : 'V';
-          d.categories.push({ id, name, icon: { type: 'letter' }, order: last });
+          d.categories.push({ id, name, icon: 'folder', order: last });
           nameToId.set(name, id);
         }
       });
