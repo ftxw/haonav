@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import { mutate, save, state, toast } from '../lib/adminStore';
 import type { SiteSettings } from '../../shared/types';

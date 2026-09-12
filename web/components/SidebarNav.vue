@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import AppIcon from './AppIcon.vue';
-import { firstChar } from '../lib/brandIcon';
+import { categoryIconUri, firstChar } from '../lib/brandIcon';
 import type { Category, FooterLink, SiteSettings } from '../lib/models';
 import { ALL } from '../stores/nav';
 

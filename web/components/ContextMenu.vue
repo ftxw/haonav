@@ -4,7 +4,7 @@ import AppIcon from './AppIcon.vue';
 import type { IndexedLink } from '../stores/nav';
 
 const props = defineProps<{ x: number; y: number; link: IndexedLink; openInNewTab: boolean }>();
-const emit = defineEmits<{ copy: []; share: []; close: [] }>();
+const emit = defineEmits<{ copy: []; share: []; close: []; open: [] }>();
 
 const el = ref<HTMLElement | null>(null);
 const pos = ref({ x: props.x, y: props.y });

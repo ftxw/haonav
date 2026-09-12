@@ -98,7 +98,8 @@ async function diffItems(items: ParsedItem[]): Promise<void> {
     progressText.value = `正在比对 ${Math.min(i + CHUNK, withIds.length)} / ${withIds.length} …`;
     const res = await api.importParse(withIds.slice(i, i + CHUNK));
     addedAll.push(...(res.added as ParsedItem[]));
-    conflictAll.push(...res.conflict);
+    // import/parse 回显的 item 就是本次提交的 ParsedItem（必填字段齐全），此处对齐类型
+    conflictAll.push(...(res.conflict as { item: ParsedItem; existing: LinkItem }[]));
     existing += res.counts.existing;
   }
 
