@@ -61,14 +61,14 @@ onBeforeUnmount(() => {
   document.removeEventListener('mousedown', onDocMouseDown);
 });
 
-/** 站内/站外 胶囊按钮（原项目：选中白底胶囊 / 未选中灰字） */
+/** 站内/站外 胶囊按钮：选中态与顶栏「布局切换」分段控件选中态完全一致
+    （bg-white text-accent shadow-sm；深色 bg-slate-600 text-slate-100），
+    不再区分站内/站外，保证两者选中色一致且都等于布局按钮 icon 选中色 */
 function modeCls(active: boolean): string {
   return (
     'h-full rounded-full px-3 text-xs font-medium transition-all ' +
     (active
-      ? state.mode === 'web'
-        ? 'bg-white text-accent shadow-sm dark:bg-slate-600 dark:text-slate-100'
-        : 'bg-white text-slate-900 shadow-sm dark:bg-slate-600 dark:text-white'
+      ? 'bg-white text-accent shadow-sm dark:bg-slate-600 dark:text-slate-100'
       : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200')
   );
 }
