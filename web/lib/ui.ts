@@ -71,18 +71,17 @@ export const GLASS = 'glass-surface';
 /** 区块小标签：全大写、宽字距、低对比（「分类目录」「置顶 / 常用」等 kicker） */
 export const SECTION_LABEL = 'text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500';
 
-/** 侧栏项选中态：完全对齐链接卡片的「深色玻璃 / 浅色白卡」静止样式（圆角、边框、底色一致），
-    仅不悬浮；发光小圆点（绿）作选中指示。深色下用 bg-white/[0.06]+border-white/15，
-    与链接卡片深色静止态完全相同，不再用死黑的 slate-800 */
+/** 侧栏项选中态：完全复制链接卡片「静止态」外观（圆角/0.5px边框/磨砂/白底50%/白边），
+    仅不悬浮；发光小圆点（绿）作选中指示。深色 = bg-white/[0.06]+border-white/15，与卡片一致 */
 export const PILL_ACTIVE =
-  'rounded-xl border-[0.5px] border-white/80 bg-white font-medium text-slate-700 ' +
+  'rounded-xl border-[0.5px] backdrop-blur-md bg-white/50 border-white/80 font-medium text-slate-700 ' +
   'transition-all duration-300 dark:border-white/15 dark:bg-white/[0.06] dark:text-slate-100';
 
-/** 侧栏项空闲态：默认透明；悬停 = 链接卡片的悬停（圆角、绿边框、绿光晕、轻微上浮完全一致）。
-    明暗两套悬停阴影量级一致（都是 shadow-lg），与链接卡片悬停动效统一 */
+/** 侧栏项空闲态：默认透明无边框；悬停 = 链接卡片「悬停态」完全复制
+    （白底80%/accent绿边/shadow-lg+绿光晕/轻微上浮，深色 bg-white/[0.12]） */
 export const PILL_IDLE =
-  'rounded-xl border-[0.5px] border-transparent text-slate-600 dark:text-slate-400 transition-all duration-300 ' +
-  'hover:bg-white dark:hover:bg-white/[0.12] ' +
+  'rounded-xl border-[0.5px] backdrop-blur-md border-transparent text-slate-600 dark:text-slate-400 transition-all duration-300 ' +
+  'hover:bg-white/80 dark:hover:bg-white/[0.12] ' +
   'hover:border-accent/50 dark:hover:border-accent/50 ' +
   'hover:shadow-lg hover:shadow-accent/20 dark:hover:shadow-lg dark:hover:shadow-accent/20 ' +
   'hover:-translate-y-0.5';
