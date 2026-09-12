@@ -56,7 +56,7 @@ export const CARD_FRAME =
   'dark:bg-white/[0.06] dark:border-white/15 ' +
   'transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg ' +
   // 悬停：明暗两套阴影量级一致（都是 shadow-lg），边框统一变绿与背景光晕呼应
-  'hover:bg-white hover:border-accent/50 hover:shadow-accent/20 ' +
+  'hover:bg-white/80 hover:border-accent/50 hover:shadow-accent/20 ' +
   'dark:hover:bg-white/[0.12] dark:hover:border-accent/50 dark:hover:shadow-accent/20';
 
 /** 悬停标题变色（配合外层 group）—— 主色走 --accent，后台改色实时生效 */
