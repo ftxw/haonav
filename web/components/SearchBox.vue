@@ -61,15 +61,15 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <!-- 外层容器：玻璃胶囊，聚焦整块抬升 + accent 光环（对齐参考站） -->
+  <!-- 外层容器：类名照抄参考站搜索栏，主色走 --accent；按需求去掉所有 hover: 触发的动效 -->
   <div
-    class="glass-surface relative flex h-10 min-w-0 w-full max-w-md items-center rounded-full transition-all duration-300 focus-within:-translate-y-0.5 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-accent/50"
+    class="relative flex items-center w-full h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-sm transition-all duration-300 focus-within:ring-2 focus-within:ring-accent/50 focus-within:shadow-lg focus-within:-translate-y-0.5"
   >
     <!-- 搜索范围 / 引擎选择（内置在搜索框左侧） -->
     <div data-engine-root class="relative h-full">
       <button
         type="button"
-        class="flex h-full items-center gap-2 rounded-l-full pl-3 pr-2 text-sm text-slate-600 transition-colors hover:bg-white/40 hover:text-accent dark:text-slate-300 dark:hover:bg-white/10"
+        class="h-full pl-3 pr-2 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 rounded-l-xl outline-none w-auto md:min-w-[5.5rem]"
         :title="state.mode === 'web' ? '选择搜索引擎' : '搜索范围：站内'"
         :aria-expanded="openEngine"
         @click="openEngine = !openEngine"
@@ -89,11 +89,11 @@ onBeforeUnmount(() => {
 
       <div
         v-if="openEngine"
-        class="animate-zoom-in glass-surface absolute left-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl py-1"
+        class="animate-zoom-in absolute left-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-600 dark:bg-slate-800"
       >
         <button
           type="button"
-          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-white/40 dark:hover:bg-white/10"
+          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/60"
           :class="state.mode === 'local' ? 'text-accent' : 'text-slate-600 dark:text-slate-300'"
           @click="pickEngine('__local__')"
         >
@@ -105,7 +105,7 @@ onBeforeUnmount(() => {
           v-for="e in engines"
           :key="e.id"
           type="button"
-          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-white/40 dark:hover:bg-white/10"
+          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/60"
           :class="state.mode === 'web' && state.engineId === e.id ? 'text-accent' : 'text-slate-600 dark:text-slate-300'"
           @click="pickEngine(e.id)"
         >
@@ -125,7 +125,7 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- 竖分隔线 -->
-    <div class="mx-1 h-4 w-px bg-slate-300/50 dark:bg-white/15"></div>
+    <div class="h-4 w-px bg-slate-200 dark:bg-slate-600 mx-1"></div>
 
     <form class="flex h-full min-w-0 flex-1 items-center" @submit.prevent="onSubmit">
       <input
@@ -135,14 +135,14 @@ onBeforeUnmount(() => {
         type="text"
         autocomplete="off"
         spellcheck="false"
-        class="h-full w-full flex-1 border-none bg-transparent px-2 text-sm text-slate-800 outline-none placeholder-slate-400 focus:ring-0 dark:text-slate-100"
+        class="flex-1 bg-transparent border-none text-slate-700 dark:text-slate-200 text-sm focus:ring-0 placeholder-slate-400 h-full w-full outline-none px-2"
         @input="setQuery(($event.target as HTMLInputElement).value)"
       />
       <button
         v-if="state.query"
         type="button"
         aria-label="清空搜索"
-        class="mr-1 hidden rounded-full p-1.5 text-slate-400 transition-colors hover:bg-white/40 hover:text-red-500 sm:block dark:hover:bg-white/10"
+        class="hidden p-1.5 mr-1 rounded-full text-slate-400 hover:text-red-500 sm:block"
         @click="clearQuery"
       >
         <AppIcon name="close" :size="14" />
@@ -150,7 +150,7 @@ onBeforeUnmount(() => {
       <button
         type="submit"
         aria-label="搜索"
-        class="h-full rounded-r-full border-l border-transparent px-4 text-slate-500 transition-colors hover:bg-accent/10 hover:text-accent dark:text-slate-300"
+        class="h-full px-4 rounded-r-xl text-slate-500 dark:text-slate-300 border-l border-transparent dark:border-slate-700/50"
       >
         <AppIcon name="search" :size="16" />
       </button>

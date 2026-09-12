@@ -22,7 +22,7 @@ import {
   undo,
   type PanelId,
 } from './lib/adminStore';
-import { BTN_PRIMARY, BTN_SECONDARY } from './lib/adminUi';
+import { BTN_PRIMARY, BTN_SECONDARY, NAV_ACTIVE, NAV_IDLE } from './lib/adminUi';
 
 const password = ref('');
 const loggingIn = ref(false);
@@ -100,12 +100,10 @@ onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', onBeforeUnload);
 });
 
-/** 左侧导航项：选中玻璃胶囊 + 主色文字 + 右侧光点（与前台同款观感，主色走 --accent） */
+/** 左侧导航项：选中实心主色（与前台 PILL_ACTIVE 同语言）+ 右侧白点 */
 const navCls = (active: boolean): string =>
   'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all ' +
-  (active
-    ? 'bg-accent/15 font-medium text-accent dark:bg-accent/25'
-    : 'text-slate-600 hover:bg-white/60 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white');
+  (active ? NAV_ACTIVE : NAV_IDLE);
 </script>
 
 <!-- 背景层：与前台同款渐变 + 光斑（登录页与主界面共用） -->
@@ -187,7 +185,7 @@ const navCls = (active: boolean): string =>
           <span class="flex-1 truncate text-left">{{ p.label }}</span>
           <span
             v-if="state.panel === p.id"
-            class="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent)]"
+            class="h-1.5 w-1.5 rounded-full bg-white"
           ></span>
         </button>
       </nav>

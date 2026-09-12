@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import AppIcon from './AppIcon.vue';
 import { categoryIconUri, firstChar } from '../lib/brandIcon';
 import type { Category, FooterLink, SiteSettings } from '../lib/models';
-import { CHIP, PILL_ACTIVE, PILL_IDLE, SECTION_LABEL } from '../lib/ui';
+import { CHIP, CHIP_ON_ACCENT, PILL_ACTIVE, PILL_IDLE, SECTION_LABEL } from '../lib/ui';
 import { ALL } from '../stores/nav';
 
 const props = defineProps<{
@@ -31,13 +31,17 @@ const catIcons = computed<Record<string, string>>(() => {
   return m;
 });
 
-/** 选中态主色走 --accent（后台改色实时生效）；「全部链接」底色更淡，避免抢走分类高亮 */
-function itemClass(active: boolean, opts?: { pale?: boolean; tall?: boolean }): string {
-  const activeCls = opts?.pale ? 'bg-accent/10 font-medium text-accent dark:bg-accent/15' : PILL_ACTIVE;
+/** 列表项图标的悬停缩放（选中态为实心主色底，不参与 hover 效果） */
+function iconHoverCls(active: boolean): string {
+  return active ? '' : 'group-hover:scale-110 transition-transform duration-300';
+}
+
+/** 选中态实心主色（对齐参考站分类 chip）；空闲态 hover 对齐参考站 logo 卡片 */
+function itemClass(active: boolean, opts?: { tall?: boolean }): string {
   return (
-    'flex w-full items-center gap-3 rounded-xl px-4 transition-all ' +
+    'group flex w-full items-center gap-3 rounded-xl px-4 transition-all ' +
     (opts?.tall ? 'py-3 ' : 'py-2.5 ') +
-    (active ? activeCls : PILL_IDLE)
+    (active ? PILL_ACTIVE : PILL_IDLE)
   );
 }
 </script>
@@ -75,12 +79,12 @@ function itemClass(active: boolean, opts?: { pale?: boolean; tall?: boolean }): 
     <nav class="hn-scroll no-scrollbar flex-1 space-y-1 overflow-y-auto p-3">
       <button
         type="button"
-        :class="itemClass(activeCat === ALL, { pale: true, tall: true })"
+        :class="itemClass(activeCat === ALL, { tall: true })"
         @click="emit('select', ALL)"
       >
-        <AppIcon name="grid" :size="16" />
+        <AppIcon name="grid" :size="16" :class="iconHoverCls(activeCat === ALL)" />
         <span class="flex-1 truncate text-left text-sm">全部链接</span>
-        <span :class="CHIP">{{ totalCount }}</span>
+        <span :class="activeCat === ALL ? CHIP_ON_ACCENT : CHIP">{{ totalCount }}</span>
       </button>
 
       <p class="px-4 pb-1 pt-3" :class="SECTION_LABEL">分类目录</p>
@@ -92,19 +96,13 @@ function itemClass(active: boolean, opts?: { pale?: boolean; tall?: boolean }): 
         :class="itemClass(activeCat === c.id)"
         @click="emit('select', c.id)"
       >
-        <span
-          :class="[
-            'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors',
-            activeCat === c.id ? 'bg-accent/25 dark:bg-accent/30' : 'bg-slate-900/[0.06] dark:bg-white/[0.08]',
-          ]"
-        >
-          <img :src="catIcons[c.id]" width="16" height="16" alt="" class="h-4 w-4 rounded" />
+        <!-- 三种图标类型同一 16px 槽位，与「全部链接」的线性图标同大小、同基线；icon 型直接继承行文字色 -->
+        <span :class="['flex h-4 w-4 shrink-0 items-center justify-center', iconHoverCls(activeCat === c.id)]">
+          <AppIcon v-if="c.icon.type === 'icon'" :name="c.icon.value" :size="16" />
+          <img v-else :src="catIcons[c.id]" width="16" height="16" alt="" class="h-4 w-4 rounded" />
         </span>
         <span class="flex-1 truncate text-left text-sm">{{ c.name }}</span>
-        <span
-          v-if="activeCat === c.id"
-          class="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent)]"
-        ></span>
+        <span v-if="activeCat === c.id" class="h-1.5 w-1.5 rounded-full bg-white"></span>
         <span v-else :class="CHIP">{{ counts[c.id] ?? 0 }}</span>
       </button>
     </nav>

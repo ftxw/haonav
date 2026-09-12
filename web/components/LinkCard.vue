@@ -51,7 +51,7 @@ const jump = computed(() => ({
         width="32"
         height="32"
         alt=""
-        class="h-8 w-8 shrink-0 rounded-lg"
+        class="h-8 w-8 shrink-0 rounded-lg transition-transform duration-300 group-hover:rotate-3 group-hover:scale-110"
         @error="failed = true"
       />
       <span :class="['min-w-0 flex-1 truncate text-sm font-medium text-slate-800 dark:text-slate-100', TITLE_HOVER]">{{
@@ -77,7 +77,7 @@ const jump = computed(() => ({
       :loading="loading"
       decoding="async"
       alt=""
-      class="h-full w-full rounded-lg object-contain"
+      class="h-full w-full rounded-lg object-contain transition-transform duration-300 group-hover:scale-105"
       @error="failed = true"
     />
     <span

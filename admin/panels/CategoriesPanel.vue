@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import Modal from '../components/Modal.vue';
+import AdminIcon from '../components/AdminIcon.vue';
 import { between, appendOrder, orderForIndex } from '../lib/order';
 import { newId, maxOrderOf, slugId } from '../lib/util';
 import { mutate, state, toast } from '../lib/adminStore';
@@ -36,29 +37,50 @@ const cats = computed<Category[]>(() =>
 );
 
 /* ───────── 新增 / 编辑 ───────── */
+/* 分类可选线性图标（与 web/components/AppIcon.vue 的 icon 型分类图标同表） */
+const ICON_CHOICES = [
+  'folder',
+  'star',
+  'globe',
+  'code',
+  'book',
+  'gamepad',
+  'palette',
+  'rss',
+  'music',
+  'video',
+  'image',
+  'chat',
+  'mail',
+  'cart',
+  'map',
+  'cloud',
+] as const;
+
 const editing = ref<Category | null>(null);
 const isAdd = ref(false);
-const form = ref({ name: '', iconType: 'letter' as 'letter' | 'emoji', emoji: '' });
+const form = ref({ name: '', iconType: 'icon' as Category['icon']['type'], iconValue: 'folder', emoji: '' });
 const formError = ref('');
 
 function openAdd(): void {
   isAdd.value = true;
-  form.value = { name: '', iconType: 'letter', emoji: '' };
+  form.value = { name: '', iconType: 'icon', iconValue: 'folder', emoji: '' };
   formError.value = '';
   editing.value = {} as Category;
 }
 function openEdit(c: Category): void {
   isAdd.value = false;
-  form.value = { name: c.name, iconType: c.icon.type, emoji: c.icon.type === 'emoji' ? c.icon.value : '' };
+  form.value = {
+    name: c.name,
+    iconType: c.icon.type,
+    iconValue: c.icon.type === 'icon' ? c.icon.value : 'folder',
+    emoji: c.icon.type === 'emoji' ? c.icon.value : '',
+  };
   formError.value = '';
   editing.value = c;
 }
 function closeForm(): void {
   editing.value = null;
-}
-
-function iconOf(c: { name: string; icon: Category['icon'] }): string {
-  return c.icon.type === 'emoji' && c.icon.value ? c.icon.value : c.name.slice(0, 1);
 }
 
 function submitForm(): void {
@@ -67,10 +89,12 @@ function submitForm(): void {
     formError.value = '请填写分类名称';
     return;
   }
-  const icon =
-    form.value.iconType === 'emoji' && form.value.emoji.trim()
-      ? ({ type: 'emoji', value: form.value.emoji.trim() } as Category['icon'])
-      : ({ type: 'letter' } as Category['icon']);
+  const icon: Category['icon'] =
+    form.value.iconType === 'icon'
+      ? { type: 'icon', value: form.value.iconValue || 'folder' }
+      : form.value.iconType === 'emoji' && form.value.emoji.trim()
+        ? { type: 'emoji', value: form.value.emoji.trim() }
+        : { type: 'letter' };
 
   if (isAdd.value) {
     mutate((d) => {
@@ -222,9 +246,19 @@ const inputCls = INPUT;
             <td class="cursor-grab px-3 py-2 text-slate-300 active:cursor-grabbing">⠿</td>
             <td :class="TD">
               <span
+                v-if="c.icon.type === 'icon'"
+                class="flex h-6 w-6 items-center justify-center rounded-md text-slate-500 dark:text-slate-300"
+                ><AdminIcon :name="c.icon.value" :size="16" /></span
+              >
+              <span
+                v-else-if="c.icon.type === 'emoji'"
                 class="flex h-6 w-6 items-center justify-center rounded-md text-sm"
-                :class="c.icon.type === 'emoji' ? '' : 'bg-slate-900/[0.06] text-xs font-bold text-slate-600 dark:bg-white/10 dark:text-slate-200'"
-                >{{ iconOf(c) }}</span
+                >{{ c.icon.value }}</span
+              >
+              <span
+                v-else
+                class="flex h-6 w-6 items-center justify-center rounded-md bg-slate-900/[0.06] text-xs font-bold text-slate-600 dark:bg-white/10 dark:text-slate-200"
+                >{{ c.name.slice(0, 1) }}</span
               >
             </td>
             <td class="font-medium" :class="TD">{{ c.name }}</td>
@@ -248,13 +282,35 @@ const inputCls = INPUT;
           <span class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">名称</span>
           <input v-model="form.name" type="text" :class="inputCls" />
         </label>
-        <div class="flex items-center gap-3">
-          <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-            <input v-model="form.iconType" type="radio" value="letter" /> 字母块
-          </label>
-          <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-            <input v-model="form.iconType" type="radio" value="emoji" /> Emoji
-          </label>
+        <div class="space-y-2">
+          <span class="block text-xs font-medium text-slate-600 dark:text-slate-300">图标</span>
+          <div class="flex flex-wrap items-center gap-4">
+            <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+              <input v-model="form.iconType" type="radio" value="icon" /> 图标
+            </label>
+            <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+              <input v-model="form.iconType" type="radio" value="emoji" /> Emoji
+            </label>
+            <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+              <input v-model="form.iconType" type="radio" value="letter" /> 首字母
+            </label>
+          </div>
+          <div v-if="form.iconType === 'icon'" class="flex flex-wrap gap-1">
+            <button
+              v-for="n in ICON_CHOICES"
+              :key="n"
+              type="button"
+              class="flex h-9 w-9 items-center justify-center rounded-lg transition-colors"
+              :class="
+                form.iconValue === n
+                  ? 'bg-accent text-white shadow-md'
+                  : 'text-slate-500 hover:bg-slate-900/[0.06] dark:text-slate-300 dark:hover:bg-white/10'
+              "
+              @click="form.iconValue = n"
+            >
+              <AdminIcon :name="n" :size="18" />
+            </button>
+          </div>
           <input
             v-if="form.iconType === 'emoji'"
             v-model="form.emoji"
