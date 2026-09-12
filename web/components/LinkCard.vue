@@ -31,16 +31,15 @@ function onContext(e: MouseEvent): void {
 /** 卡片档外壳：玻璃面 + 最小高度 + 内边距 + 跳转属性；group 让两档都有悬停主色标题 */
 const shellCard = computed(() => ['hn-card', 'group', CARD_FRAME, 'flex flex-col p-2.5', CARD_MIN_H]);
 /** 纯图标档外壳：静止态无卡片（仅图标）；尺寸与卡片档高度一致（88px）。
-    阴影打在外壳上（外壳带 rounded-xl，阴影才有圆角）；img 不做圆角裁切，
-    保持生成的字母图标是直角方形，与外壳阴影的圆角互不干扰 */
+    外壳只负责整体上浮 + 定位；圆角与阴影都在 img 上（同一盒子），
+    阴影自动跟随圆角 —— 改圆角时阴影一起变，不会两层不一致 */
 const shellIcon = computed(() => [
   'group',
   'cursor-pointer',
   'h-[88px] w-[88px] justify-self-center',
   'relative flex items-center justify-center',
-  'rounded-xl',
   'transition-all duration-300',
-  'hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/20',
+  'hover:-translate-y-0.5',
 ]);
 const jump = computed(() => ({
   href: props.link.url,
@@ -86,7 +85,7 @@ const jump = computed(() => ({
       :loading="loading"
       decoding="async"
       alt=""
-      class="h-full w-full object-contain"
+      class="h-full w-full rounded-xl object-contain transition-all duration-300 group-hover:shadow-lg group-hover:shadow-accent/20"
       @error="failed = true"
     />
     <span
