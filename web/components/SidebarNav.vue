@@ -96,7 +96,7 @@ function itemClass(active: boolean, opts?: { tall?: boolean }): string {
           <AppIcon :name="c.icon" :size="16" />
         </span>
         <span class="flex-1 truncate text-left text-sm">{{ c.name }}</span>
-        <span v-if="activeCat === c.id" class="h-1.5 w-1.5 rounded-full bg-white"></span>
+        <span v-if="activeCat === c.id" class="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent)]"></span>
         <span v-else :class="CHIP">{{ counts[c.id] ?? 0 }}</span>
       </button>
     </nav>

@@ -65,12 +65,15 @@ export const GLASS = 'glass-surface';
 /** 区块小标签：全大写、宽字距、低对比（「分类目录」「置顶 / 常用」等 kicker） */
 export const SECTION_LABEL = 'text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500';
 
-/** 侧栏项选中态：logo 卡片「正常状态」样式，发光小圆点作选中指示 */
+/** 侧栏项选中态：与链接卡片常态一致（白卡/深卡），发光小圆点（绿）作选中指示 */
 export const PILL_ACTIVE =
-  'rounded-xl border border-slate-200/50 bg-white/50 font-medium text-slate-700 dark:border-transparent dark:bg-transparent dark:text-slate-100';
+  'rounded-xl border border-slate-200/50 bg-white/50 font-medium text-slate-700 dark:border-slate-700/50 dark:bg-slate-800/60 dark:text-slate-100';
 
-/** 侧栏项空闲态：与 logo 卡片同款（含悬停动效） */
-export const PILL_IDLE = CARD_FRAME;
+/** 侧栏项空闲态：默认透明；悬停 = 链接卡片的悬停（logo 卡片动效） */
+export const PILL_IDLE =
+  'rounded-xl border border-transparent text-slate-600 dark:text-slate-400 transition-all duration-300 ' +
+  'hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200/50 dark:hover:border-slate-700/50 ' +
+  'hover:shadow-md hover:shadow-accent/10 hover:-translate-y-0.5';
 
 /** 等宽小标签（计数 / 技术标签） */
 export const CHIP =
