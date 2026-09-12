@@ -84,7 +84,7 @@ const jump = computed(() => ({
       :loading="loading"
       decoding="async"
       alt=""
-      class="h-full w-full rounded-xl object-contain transition-all duration-300 group-hover:shadow-lg group-hover:shadow-accent/20"
+      class="h-full w-full object-contain transition-all duration-300 group-hover:shadow-lg group-hover:shadow-accent/20"
       @error="failed = true"
     />
     <span
