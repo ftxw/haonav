@@ -55,8 +55,9 @@ export const CARD_FRAME =
   'group cursor-pointer rounded-xl border backdrop-blur-md bg-white/50 border-slate-200/50 ' +
   'dark:bg-white/[0.06] dark:border-white/15 ' +
   'transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg ' +
-  'hover:bg-white hover:border-slate-300 hover:shadow-slate-900/10 ' +
-  'dark:hover:bg-white/[0.12] dark:hover:border-white/25 dark:hover:shadow-black/40';
+  // 悬停：明暗两套阴影量级一致（都是 shadow-lg），边框统一变绿与背景光晕呼应
+  'hover:bg-white hover:border-accent hover:shadow-accent/20 ' +
+  'dark:hover:bg-white/[0.12] dark:hover:border-accent dark:hover:shadow-accent/20';
 
 /** 悬停标题变色（配合外层 group）—— 主色走 --accent，后台改色实时生效 */
 export const TITLE_HOVER = 'transition-colors group-hover:text-accent';
@@ -70,17 +71,21 @@ export const GLASS = 'glass-surface';
 /** 区块小标签：全大写、宽字距、低对比（「分类目录」「置顶 / 常用」等 kicker） */
 export const SECTION_LABEL = 'text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500';
 
-/** 侧栏项选中态：颜色与悬停一致（实白卡 + 同色边框），但不上浮；发光小圆点（绿）作选中指示。
-    两个状态都带 transition-all —— 点击切换时新旧目录交叉渐变，形成高亮过渡动效 */
+/** 侧栏项选中态：完全对齐链接卡片的「深色玻璃 / 浅色白卡」静止样式（圆角、边框、底色一致），
+    仅不悬浮；发光小圆点（绿）作选中指示。深色下用 bg-white/[0.06]+border-white/15，
+    与链接卡片深色静止态完全相同，不再用死黑的 slate-800 */
 export const PILL_ACTIVE =
-  'rounded-xl border border-slate-200/50 bg-white font-medium text-slate-700 shadow-sm ' +
-  'transition-all duration-300 dark:border-slate-700/50 dark:bg-slate-800 dark:text-slate-100';
+  'rounded-xl border border-slate-200/50 bg-white font-medium text-slate-700 ' +
+  'transition-all duration-300 dark:border-white/15 dark:bg-white/[0.06] dark:text-slate-100';
 
-/** 侧栏项空闲态：默认透明；悬停 = 链接卡片的悬停（logo 卡片动效） */
+/** 侧栏项空闲态：默认透明；悬停 = 链接卡片的悬停（圆角、绿边框、绿光晕、轻微上浮完全一致）。
+    明暗两套悬停阴影量级一致（都是 shadow-lg），与链接卡片悬停动效统一 */
 export const PILL_IDLE =
   'rounded-xl border border-transparent text-slate-600 dark:text-slate-400 transition-all duration-300 ' +
-  'hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200/50 dark:hover:border-slate-700/50 ' +
-  'hover:shadow-md hover:shadow-accent/10 hover:-translate-y-0.5';
+  'hover:bg-white dark:hover:bg-white/[0.12] ' +
+  'hover:border-accent dark:hover:border-accent ' +
+  'hover:shadow-lg hover:shadow-accent/20 dark:hover:shadow-lg dark:hover:shadow-accent/20 ' +
+  'hover:-translate-y-0.5';
 
 /** 等宽小标签（计数 / 技术标签） */
 export const CHIP =
