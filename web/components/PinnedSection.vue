@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppIcon from './AppIcon.vue';
 import LinkCard from './LinkCard.vue';
-import { CHIP, SECTION_LABEL } from '../lib/ui';
+import { SECTION_LABEL } from '../lib/ui';
 import type { CardStyle, IconStrategy } from '../lib/models';
 import type { IndexedLink } from '../stores/nav';
 
@@ -17,12 +17,12 @@ const emit = defineEmits<{ context: [payload: { link: IndexedLink; x: number; y:
 </script>
 
 <template>
-  <!-- 玻璃语言：Pin 图标 + 微标签标题 + 等宽计数（无外框，对齐 legacy） -->
+  <!-- 玻璃语言：与分类区完全一致的表头（图标 + 大标题 + 计数小标签 + 分隔线） -->
   <section>
-    <div class="mb-4 flex items-center gap-2">
-      <AppIcon name="pin" :size="16" class="fill-current text-accent" />
-      <h2 :class="SECTION_LABEL">置顶 / 常用</h2>
-      <span class="ml-auto" :class="CHIP">{{ links.length }}</span>
+    <div class="mb-4 flex items-center gap-2.5 border-b border-slate-100 pb-3 dark:border-white/10">
+      <AppIcon name="pin" :size="22" class="text-slate-400 dark:text-slate-500" />
+      <h2 class="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100">置顶链接</h2>
+      <span :class="SECTION_LABEL">{{ links.length }}</span>
     </div>
     <div class="grid gap-3" :class="gridClass">
       <LinkCard
