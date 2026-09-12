@@ -52,7 +52,7 @@ export function paletteColor(seed: string): string {
  *   直接照抄会导致内容卡片不可见、悬停变死黑
  */
 export const CARD_FRAME =
-  'group cursor-pointer rounded-xl border backdrop-blur-md bg-white/50 border-slate-200/50 ' +
+  'group cursor-pointer rounded-xl border-[0.5px] backdrop-blur-md bg-white/50 border-slate-200/50 ' +
   'dark:bg-white/[0.06] dark:border-white/15 ' +
   'transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg ' +
   // 悬停：明暗两套阴影量级一致（都是 shadow-lg），边框统一变绿与背景光晕呼应
@@ -75,13 +75,13 @@ export const SECTION_LABEL = 'text-[11px] font-semibold uppercase tracking-[0.18
     仅不悬浮；发光小圆点（绿）作选中指示。深色下用 bg-white/[0.06]+border-white/15，
     与链接卡片深色静止态完全相同，不再用死黑的 slate-800 */
 export const PILL_ACTIVE =
-  'rounded-xl border border-slate-200/50 bg-white font-medium text-slate-700 ' +
+  'rounded-xl border-[0.5px] border-slate-200/50 bg-white font-medium text-slate-700 ' +
   'transition-all duration-300 dark:border-white/15 dark:bg-white/[0.06] dark:text-slate-100';
 
 /** 侧栏项空闲态：默认透明；悬停 = 链接卡片的悬停（圆角、绿边框、绿光晕、轻微上浮完全一致）。
     明暗两套悬停阴影量级一致（都是 shadow-lg），与链接卡片悬停动效统一 */
 export const PILL_IDLE =
-  'rounded-xl border border-transparent text-slate-600 dark:text-slate-400 transition-all duration-300 ' +
+  'rounded-xl border-[0.5px] border-transparent text-slate-600 dark:text-slate-400 transition-all duration-300 ' +
   'hover:bg-white dark:hover:bg-white/[0.12] ' +
   'hover:border-accent dark:hover:border-accent ' +
   'hover:shadow-lg hover:shadow-accent/20 dark:hover:shadow-lg dark:hover:shadow-accent/20 ' +
