@@ -64,7 +64,7 @@ onBeforeUnmount(() => {
 /** 站内/站外 胶囊按钮（原项目：选中白底胶囊 / 未选中灰字） */
 function modeCls(active: boolean): string {
   return (
-    'px-3 py-1.5 text-sm font-medium rounded-full transition-all ' +
+    'px-2.5 py-1 text-xs font-medium rounded-full transition-all ' +
     (active
       ? state.mode === 'web'
         ? 'bg-white text-accent shadow-sm dark:bg-slate-600 dark:text-slate-100'
@@ -78,7 +78,7 @@ function modeCls(active: boolean): string {
   <!-- 布局对齐原项目：站内/站外 胶囊在搜索框左侧；材质为当前玻璃风 -->
   <div class="flex w-full items-center gap-3" data-engine-root>
     <!-- 搜索模式胶囊 -->
-    <div class="flex shrink-0 items-center rounded-full bg-slate-200/60 p-1 dark:bg-white/10">
+    <div class="flex shrink-0 items-center rounded-full bg-slate-200/60 p-0.5 dark:bg-white/10">
       <button type="button" :class="modeCls(isLocal)" @click="setMode('local')">站内</button>
       <button type="button" :class="modeCls(state.mode === 'web')" @click="setMode('web')">站外</button>
     </div>
@@ -131,7 +131,7 @@ function modeCls(active: boolean): string {
       <!-- 引擎下拉（原项目：left-0 top-full；玻璃材质） -->
       <div
         v-if="openEngine && state.mode === 'web'"
-        class="glass-surface absolute left-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl"
+        class="absolute left-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-600 dark:bg-slate-800"
       >
         <div class="py-2">
           <button
@@ -142,7 +142,6 @@ function modeCls(active: boolean): string {
           >
             <AppIcon name="search" :size="14" />
             <span class="flex-1">站内搜索</span>
-            <AppIcon v-if="isLocal" name="check" :size="14" />
           </button>
           <button
             v-for="e in engines"
@@ -162,7 +161,6 @@ function modeCls(active: boolean): string {
             />
             <AppIcon v-else name="search" :size="14" />
             <span class="flex-1 truncate">{{ e.name }}</span>
-            <AppIcon v-if="state.mode === 'web' && state.engineId === e.id" name="check" :size="14" />
           </button>
         </div>
       </div>

@@ -214,7 +214,7 @@ onBeforeUnmount(() => {
 
       <!-- 内容区：顶部时高亮回到「全部链接」，下滚后由联动接管 -->
     <main ref="contentRef" class="hn-scroll min-h-0 flex-1 p-4 lg:p-8" @scroll.passive="onContentScroll">
-        <div class="mx-auto w-full max-w-[1600px] space-y-8">
+        <div class="space-y-8">
           <!-- 全局置顶区：两个视图都显示，内容都是跨分类的全部置顶链接 -->
           <PinnedSection
             v-if="pinnedList.length"

@@ -42,13 +42,23 @@ function viewCls(active: boolean): string {
       <AppIcon name="menu" />
     </button>
 
-    <!-- 中：搜索组（布局对齐原项目：站内/站外胶囊在搜索框左侧，整体 flex-1） -->
-    <div class="flex min-w-0 flex-1 items-center">
+    <!-- 中：搜索组（约 1/4 宽、左对齐） -->
+    <div class="flex w-full max-w-sm shrink-0 items-center">
       <SearchBox />
     </div>
 
-    <!-- 右：卡片/图标 分段切换 + 白天/黑夜 按钮（布局对齐原项目） -->
+    <!-- 右：白天/黑夜 按钮（前） + 卡片/图标 分段切换（后） -->
     <div class="ml-auto flex shrink-0 items-center gap-2">
+      <button
+        type="button"
+        :title="state.theme === 'dark' ? '切换为白天' : '切换为黑夜'"
+        :aria-label="state.theme === 'dark' ? '切换为白天' : '切换为黑夜'"
+        class="rounded-full p-2 text-slate-600 transition-colors hover:bg-white/60 dark:text-slate-300 dark:hover:bg-white/10"
+        @click="toggleTheme"
+      >
+        <AppIcon :name="state.theme === 'dark' ? 'sun' : 'moon'" :size="19" />
+      </button>
+
       <div class="hidden items-center gap-1 rounded-lg bg-slate-200/60 p-1 md:flex dark:bg-white/10">
         <button
           v-for="v in VIEWS"
@@ -62,16 +72,6 @@ function viewCls(active: boolean): string {
           <AppIcon :name="v.icon" :size="16" />
         </button>
       </div>
-
-      <button
-        type="button"
-        :title="state.theme === 'dark' ? '切换为白天' : '切换为黑夜'"
-        :aria-label="state.theme === 'dark' ? '切换为白天' : '切换为黑夜'"
-        class="rounded-full p-2 text-slate-600 transition-colors hover:bg-white/60 dark:text-slate-300 dark:hover:bg-white/10"
-        @click="toggleTheme"
-      >
-        <AppIcon :name="state.theme === 'dark' ? 'sun' : 'moon'" :size="19" />
-      </button>
     </div>
   </header>
 </template>
