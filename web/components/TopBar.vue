@@ -67,8 +67,8 @@ const MOBILE_BTN =
       <AppIcon name="menu" />
     </button>
 
-    <!-- 桌面：内联搜索组（站内/站外胶囊 + 圆角搜索框） -->
-    <div class="hidden min-w-0 flex-1 md:flex">
+    <!-- 桌面：内联搜索组（1/3 宽、左对齐） -->
+    <div class="hidden min-w-0 max-w-md flex-1 md:flex">
       <SearchBox />
     </div>
 
@@ -96,24 +96,16 @@ const MOBILE_BTN =
         <AppIcon name="search" :size="19" />
       </button>
 
-      <!-- 浅色/深色：手机 = 单图标互换；桌面 = 分段控件 -->
+      <!-- 浅色/深色：单图标互换（明暗两态一个按钮） -->
       <button
         type="button"
         :title="state.theme === 'dark' ? '浅色模式' : '深色模式'"
         :aria-label="state.theme === 'dark' ? '浅色模式' : '深色模式'"
-        :class="[MOBILE_BTN, 'md:hidden']"
+        :class="MOBILE_BTN"
         @click="toggleTheme"
       >
         <AppIcon :name="state.theme === 'dark' ? 'sun' : 'moon'" :size="19" />
       </button>
-      <div class="hidden items-center gap-1 rounded-lg bg-slate-200/60 p-1 md:flex dark:bg-white/10" role="group" aria-label="主题">
-        <button type="button" title="浅色" aria-label="浅色" :class="segCls(state.theme === 'light')" @click="setTheme('light')">
-          <AppIcon name="sun" :size="16" />
-        </button>
-        <button type="button" title="深色" aria-label="深色" :class="segCls(state.theme === 'dark')" @click="setTheme('dark')">
-          <AppIcon name="moon" :size="16" />
-        </button>
-      </div>
 
       <!-- 布局：手机 = 单图标互换；桌面 = 分段控件 -->
       <button

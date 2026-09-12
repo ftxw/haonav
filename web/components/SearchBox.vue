@@ -13,7 +13,7 @@ const placeholder = computed(() =>
   state.mode === 'web' ? `在 ${engine.value?.name ?? '搜索引擎'} 搜索...` : '搜索书签...',
 );
 
-/** 下拉把「站内搜索」与各个搜索引擎放在同一处：选站内 = local，选引擎 = web + 该引擎 */
+/** 引擎下拉：仅列搜索引擎（站内/站外由左侧胶囊切换） */
 function pickEngine(id: string): void {
   openEngine.value = false;
   if (id === '__local__') {
@@ -64,7 +64,7 @@ onBeforeUnmount(() => {
 /** 站内/站外 胶囊按钮（原项目：选中白底胶囊 / 未选中灰字） */
 function modeCls(active: boolean): string {
   return (
-    'px-2.5 py-1 text-xs font-medium rounded-full transition-all ' +
+    'h-full rounded-full px-3 text-xs font-medium transition-all ' +
     (active
       ? state.mode === 'web'
         ? 'bg-white text-accent shadow-sm dark:bg-slate-600 dark:text-slate-100'
@@ -78,7 +78,7 @@ function modeCls(active: boolean): string {
   <!-- 布局对齐原项目：站内/站外 胶囊在搜索框左侧；材质为当前玻璃风 -->
   <div class="flex w-full items-center gap-3" data-engine-root>
     <!-- 搜索模式胶囊 -->
-    <div class="flex shrink-0 items-center rounded-full bg-slate-200/60 p-0.5 dark:bg-white/10">
+    <div class="flex h-9 shrink-0 items-center rounded-full bg-slate-200/60 px-1 dark:bg-white/10">
       <button type="button" :class="modeCls(isLocal)" @click="setMode('local')">站内</button>
       <button type="button" :class="modeCls(state.mode === 'web')" @click="setMode('web')">站外</button>
     </div>
@@ -92,7 +92,7 @@ function modeCls(active: boolean): string {
         type="text"
         autocomplete="off"
         spellcheck="false"
-        class="w-full rounded-full border border-slate-200/60 bg-white/60 py-2 pl-10 pr-12 text-sm text-slate-700 outline-none backdrop-blur placeholder-slate-400 transition-colors dark:border-white/10 dark:bg-white/10 dark:text-slate-100 dark:placeholder-slate-500 focus:border-accent/50 focus:bg-white focus:ring-2 focus:ring-accent/50 dark:focus:bg-white/10"
+        class="w-full h-9 rounded-full border border-slate-200/60 bg-white/60 pl-10 pr-12 text-sm text-slate-700 outline-none backdrop-blur placeholder-slate-400 transition-colors dark:border-white/10 dark:bg-white/10 dark:text-slate-100 dark:placeholder-slate-500 focus:border-accent/50 focus:bg-white focus:ring-2 focus:ring-accent/50 dark:focus:bg-white/10"
         @input="setQuery(($event.target as HTMLInputElement).value)"
       />
 
@@ -134,15 +134,6 @@ function modeCls(active: boolean): string {
         class="absolute left-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-600 dark:bg-slate-800"
       >
         <div class="py-2">
-          <button
-            type="button"
-            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-white/50 dark:hover:bg-white/10"
-            :class="isLocal ? 'text-accent' : 'text-slate-600 dark:text-slate-300'"
-            @click="pickEngine('__local__')"
-          >
-            <AppIcon name="search" :size="14" />
-            <span class="flex-1">站内搜索</span>
-          </button>
           <button
             v-for="e in engines"
             :key="e.id"
