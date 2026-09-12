@@ -30,8 +30,8 @@ function onContext(e: MouseEvent): void {
 
 /** 卡片档外壳：玻璃面 + 最小高度 + 内边距 + 跳转属性；group 让两档都有悬停主色标题 */
 const shellCard = computed(() => ['hn-card', 'group', CARD_FRAME, 'flex flex-col p-2.5', CARD_MIN_H]);
-/** 纯图标档外壳：去掉内边距（图标撑满整张卡，大小/圆角与卡一致）+ 居中 + 跳转属性 */
-const shellIcon = computed(() => ['hn-card', 'group', CARD_FRAME, CARD_ICON_BOX, 'relative flex items-center justify-center']);
+/** 纯图标档外壳：保留内边距（玻璃底可见，呼应「恢复修改前样式」）+ 图标填满内部、圆角与卡一致 + 居中 + 跳转属性 */
+const shellIcon = computed(() => ['hn-card', 'group', CARD_FRAME, 'flex flex-col p-2.5', CARD_ICON_BOX, 'relative items-center justify-center']);
 const jump = computed(() => ({
   href: props.link.url,
   target: props.openInNewTab ? '_blank' : '_self',
