@@ -77,11 +77,11 @@ export const PILL_ACTIVE =
   'rounded-xl border-[0.5px] backdrop-blur-md bg-white/50 border-white/80 font-medium text-slate-700 ' +
   'transition-all duration-300 dark:border-white/15 dark:bg-white/[0.06] dark:text-slate-100';
 
-/** 侧栏项空闲态：默认透明无边框；悬停 = 链接卡片「悬停态」完全复制
-    （白底80%/accent绿边/shadow-lg+绿光晕/轻微上浮，深色 bg-white/[0.12]） */
+/** 侧栏项空闲态：默认完全透明（无背景、无边框、无模糊），仅文字可见；悬停 = 链接卡片「悬停态」
+    （白底80%+backdrop-blur/accent绿边/shadow-lg+绿光晕/轻微上浮，深色 bg-white/[0.12]） */
 export const PILL_IDLE =
-  'rounded-xl border-[0.5px] backdrop-blur-md border-transparent text-slate-600 dark:text-slate-400 transition-all duration-300 ' +
-  'hover:bg-white/80 dark:hover:bg-white/[0.12] ' +
+  'rounded-xl border-[0.5px] border-transparent text-slate-600 dark:text-slate-400 transition-all duration-300 ' +
+  'hover:bg-white/80 hover:backdrop-blur-md dark:hover:bg-white/[0.12] ' +
   'hover:border-accent/50 dark:hover:border-accent/50 ' +
   'hover:shadow-lg hover:shadow-accent/20 dark:hover:shadow-lg dark:hover:shadow-accent/20 ' +
   'hover:-translate-y-0.5';
