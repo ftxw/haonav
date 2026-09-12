@@ -6,8 +6,10 @@
  * `export type` / `export interface`。所有类型在编译期消失，运行时 0 字节。
  */
 
-export type CardStyle = 'card' | 'compact' | 'icon';
-export type ThemeMode = 'light' | 'dark' | 'system';
+/** 卡片视图：只有「正常卡片」与「纯图标」两档（简洁档已按用户要求移除） */
+export type CardStyle = 'card' | 'icon';
+/** 主题：只有白天 / 黑夜两态（跟随系统已按用户要求移除） */
+export type ThemeMode = 'light' | 'dark';
 export type IconStrategy = 'letter' | 'fetched';
 export type BackupMode = 'auto' | 'manual';
 export type BackupFrequency = 'daily' | 'weekly';

@@ -9,12 +9,10 @@ import { setCardStyle, setDrawer, setTheme, state } from '../stores/nav';
 const THEMES: { value: ThemeMode; icon: string; label: string }[] = [
   { value: 'light', icon: 'sun', label: '白天' },
   { value: 'dark', icon: 'moon', label: '黑夜' },
-  { value: 'system', icon: 'monitor', label: '跟随系统' },
 ];
 const STYLES: { value: CardStyle; icon: string; label: string }[] = [
-  { value: 'card', icon: 'grid', label: '正常' },
-  { value: 'compact', icon: 'list', label: '简洁' },
-  { value: 'icon', icon: 'dots', label: '纯图标' },
+  { value: 'card', icon: 'grid', label: '卡片' },
+  { value: 'icon', icon: 'dots', label: '图标' },
 ];
 
 /* ── 设置弹层（对齐参考站：一个设置入口，内含主题/视图切换） ── */

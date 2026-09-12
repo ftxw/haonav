@@ -63,7 +63,7 @@ onBeforeUnmount(() => {
 <template>
   <!-- 外层容器：聚焦整块抬升 + accent 光环（对齐参考站） -->
   <div
-    class="relative flex h-10 min-w-0 w-full flex-1 items-center rounded-xl border border-slate-200 bg-white/90 shadow-sm backdrop-blur transition-all duration-300 focus-within:-translate-y-0.5 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-accent/50 dark:border-slate-600 dark:bg-slate-800/60"
+    class="relative flex h-10 min-w-0 w-full max-w-md items-center rounded-xl border border-slate-200 bg-white/90 shadow-sm backdrop-blur transition-all duration-300 focus-within:-translate-y-0.5 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-accent/50 dark:border-slate-600 dark:bg-slate-800/60"
   >
     <!-- 搜索范围 / 引擎选择（内置在搜索框左侧） -->
     <div data-engine-root class="relative h-full">

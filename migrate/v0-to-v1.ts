@@ -340,7 +340,9 @@ export async function migrate(deps: MigrateDeps): Promise<MigrateReport> {
     settingsFields.push('icon');
   }
   if (legacySettings.cardStyle === 'detailed' || legacySettings.cardStyle === 'simple') {
-    settings.cardStyle = legacySettings.cardStyle === 'simple' ? 'compact' : 'card';
+    // 旧版 'detailed' | 'simple' → 现在只剩 'card' | 'icon'。
+    // 'simple'（单行图标+标题、更密）映射到同为「更密」的 icon 档；若要保留标题可改成 'card'。
+    settings.cardStyle = legacySettings.cardStyle === 'simple' ? 'icon' : 'card';
     settingsFields.push('cardStyle');
   }
   if (typeof legacySettings.darkMode === 'boolean') {

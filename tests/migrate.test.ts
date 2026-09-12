@@ -118,7 +118,8 @@ describe('migrate v0 → v1', () => {
     expect(report.settingsFields).toContain('name');
     expect(report.settingsFields).toContain('cardStyle');
     expect(report.settingsFields).toContain('searchEngines');
-    expect((report.doc.settings as any).cardStyle).toBe('compact');
+    // 旧版 'simple'（单行图标+标题、更密）→ 现在映射到同为「更密」的 icon 档（compact 已移除）
+    expect((report.doc.settings as any).cardStyle).toBe('icon');
     expect((report.doc.settings as any).themeDefault).toBe('dark');
   });
 

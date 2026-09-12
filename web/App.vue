@@ -90,10 +90,19 @@ function shareLink(link: IndexedLink): void {
 
 function selectCat(id: string): void {
   setActiveCat(id);
+  // 切到「全部链接」时先复位高亮，再滚回顶部，避免联动把高亮抢到第一个分类
+  if (id === ALL) spyCat.value = ALL;
   nextTick(() => {
     contentRef.value?.scrollTo({ top: 0 });
     if (id === ALL) setupObserver();
   });
+}
+
+/** 顶部时高亮回到「全部链接」：滚动联动只在真正向下滚动后生效 */
+function onContentScroll(): void {
+  const root = contentRef.value;
+  if (!root) return;
+  if (root.scrollTop <= 8 && state.activeCat === ALL) spyCat.value = ALL;
 }
 
 // ───────────────── 滚动联动高亮（仅「全部链接」视图） ─────────────────
@@ -190,7 +199,8 @@ onBeforeUnmount(() => {
         <span>数据可能不是最新</span>
       </div>
 
-      <main ref="contentRef" class="hn-scroll min-h-0 flex-1 p-4 lg:p-8">
+      <!-- 内容区：顶部时高亮回到「全部链接」，下滚后由联动接管 -->
+    <main ref="contentRef" class="hn-scroll min-h-0 flex-1 p-4 lg:p-8" @scroll.passive="onContentScroll">
         <div class="mx-auto w-full max-w-[1600px] space-y-8">
           <!-- 全局置顶区：两个视图都显示，内容都是跨分类的全部置顶链接 -->
           <PinnedSection

@@ -5,12 +5,14 @@
  */
 import type { CardStyle } from './models';
 
-/* ── 卡片网格：card 详情 / compact 简洁 / icon 纯图标 ── */
+/* ── 卡片网格：card 正常卡片 / icon 纯图标（两档，卡片高度一致）── */
 export const GRID: Record<CardStyle, string> = {
   card: 'grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8',
-  compact: 'grid-cols-2 md:grid-cols-5 lg:grid-cols-8 xl:grid-cols-10',
-  icon: 'grid-cols-3 md:grid-cols-6 lg:grid-cols-10 xl:grid-cols-14',
+  icon: 'grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10',
 };
+
+/** 卡片外壳最小高度：两档共用，保证切换视图时布局不跳动 */
+export const CARD_MIN_H = 'min-h-[104px]';
 
 /* ── 字母图标色板：12 色固定色板，按 seed 稳定取色（同站每次同色） ── */
 export const LETTER_PALETTE: readonly string[] = [

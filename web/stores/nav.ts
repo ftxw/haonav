@@ -34,7 +34,7 @@ export const state = reactive({
   appliedQuery: '',
   mode: 'local' as 'local' | 'web',
   engineId: '',
-  theme: 'system' as ThemeMode,
+  theme: 'light' as ThemeMode,
   cardStyle: 'card' as CardStyle,
   drawerOpen: false,
 });
@@ -52,7 +52,7 @@ const pref = { theme: false, card: false, engine: false };
 function ingest(doc: Doc, stale: boolean): void {
   const settings = mergeSettings(doc.settings);
   state.settings = settings;
-  if (!pref.theme) state.theme = settings.themeDefault ?? 'system';
+  if (!pref.theme) state.theme = settings.themeDefault ?? 'light';
   if (!pref.card) state.cardStyle = settings.cardStyle ?? 'card';
   if (!pref.engine) state.engineId = settings.searchEngines?.[0]?.id ?? '';
 
@@ -217,12 +217,13 @@ export function bootstrap(): void {
   if (booted) return;
   booted = true;
 
-  const savedTheme = cache.readPref(cache.LS_THEME, ['light', 'dark', 'system'] as const);
+  // 允许列表已移除 'system' / 'compact'：旧 localStorage 值不在列表内时自动回退到默认值
+  const savedTheme = cache.readPref(cache.LS_THEME, ['light', 'dark'] as const);
   if (savedTheme) {
     state.theme = savedTheme;
     pref.theme = true;
   }
-  const savedCard = cache.readPref(cache.LS_CARD, ['card', 'compact', 'icon'] as const);
+  const savedCard = cache.readPref(cache.LS_CARD, ['card', 'icon'] as const);
   if (savedCard) {
     state.cardStyle = savedCard;
     pref.card = true;
@@ -243,7 +244,7 @@ export function bootstrap(): void {
   if (savedCat) state.activeCat = savedCat;
 
   onSystemThemeChange(() => {
-    if (!pref.theme || state.theme === 'system') applyTheme(state.theme);
+    if (!pref.theme) applyTheme(state.theme);
   });
 
   // 切回页面时比对一次 rev（零轮询成本）

@@ -102,7 +102,6 @@ const miniBtn = 'rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-medium text-sl
         <label class="block">
           <span :class="labelCls">默认主题</span>
           <select :value="settings.themeDefault" :class="inputCls" @change="setThemeDefault(($event.target as HTMLSelectElement).value)">
-            <option value="system">跟随系统</option>
             <option value="light">浅色</option>
             <option value="dark">深色</option>
           </select>
@@ -110,9 +109,8 @@ const miniBtn = 'rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-medium text-sl
         <label class="block">
           <span :class="labelCls">默认卡片视图（前台可临时覆盖）</span>
           <select :value="settings.cardStyle" :class="inputCls" @change="setCardStyle(($event.target as HTMLSelectElement).value)">
-            <option value="card">正常卡片</option>
-            <option value="compact">简洁</option>
-            <option value="icon">纯图标</option>
+            <option value="card">卡片</option>
+            <option value="icon">图标</option>
           </select>
         </label>
       </div>

@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import type { CardStyle, IconStrategy } from '../lib/models';
 import { linkLetterIcon } from '../lib/brandIcon';
-import { CARD_FRAME, TITLE_HOVER } from '../lib/ui';
+import { CARD_FRAME, CARD_MIN_H, TITLE_HOVER } from '../lib/ui';
 import type { IndexedLink } from '../stores/nav';
 
 const props = defineProps<{
@@ -28,12 +28,8 @@ function onContext(e: MouseEvent): void {
   emit('context', { link: props.link, x: e.clientX, y: e.clientY });
 }
 
-/** 三档共用的外壳（legacy 卡片边框/阴影/悬停抬升）+ 跳转属性 */
-const shell = computed(() => [
-  props.cardStyle === 'icon' ? 'hn-card-lite' : 'hn-card',
-  CARD_FRAME,
-  props.cardStyle === 'card' ? 'p-3' : 'p-2',
-]);
+/** 两档共用的外壳（legacy 卡片边框/阴影/悬停抬升）+ 跳转属性；两档高度一致，切换不跳动 */
+const shell = computed(() => ['hn-card', CARD_FRAME, CARD_MIN_H, 'flex flex-col p-3']);
 const jump = computed(() => ({
   href: props.link.url,
   target: props.openInNewTab ? '_blank' : '_self',
@@ -65,29 +61,10 @@ const jump = computed(() => ({
     </span>
   </a>
 
-  <!-- ── 简洁档（单行：图标+标题） ── -->
-  <a v-else-if="cardStyle === 'compact'" :class="shell" :title="link.title" v-bind="jump" @contextmenu="onContext">
-    <span class="flex items-center gap-2.5">
-      <img
-        :src="src"
-        :loading="loading"
-        decoding="async"
-        width="24"
-        height="24"
-        alt=""
-        class="h-6 w-6 shrink-0 rounded-lg"
-        @error="failed = true"
-      />
-      <span :class="['min-w-0 flex-1 truncate text-sm font-medium text-slate-800 dark:text-slate-200', TITLE_HOVER]">{{
-        link.title
-      }}</span>
-    </span>
-  </a>
-
-  <!-- ── 纯图标档（悬停显示标题） ── -->
+  <!-- ── 纯图标档：与卡片档同高，内部只放居中的大图标，标题悬停显示 ── -->
   <a
     v-else
-    :class="[...shell, 'group relative flex aspect-square items-center justify-center']"
+    :class="[...shell, 'items-center justify-center']"
     :title="link.title"
     v-bind="jump"
     @contextmenu="onContext"
