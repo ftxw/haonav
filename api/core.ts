@@ -176,8 +176,31 @@ async function readDocForWrite(
     throw new Error('stored document is not valid JSON');
   }
   const v = validateDoc(parsed);
-  if (!v.ok) throw new Error(`stored document invalid: ${v.error}`);
-  return { doc: v.doc, text };
+  if (v.ok) return { doc: v.doc, text };
+
+  /* 陈旧/半损坏文档自愈：只补「顶层结构」（缺 categories/links/settings、rev 类型不对等），
+   * 不猜内容、不改条目 —— 修完再过一次 validateDoc，仍不合法才判死并 500。
+   * 目的是让「老格式数据」不会把写接口拖成不可自恢复的崩溃（线上曾表现为 400「.for is not iterable」）。 */
+  const fixed = repairDoc(parsed, now);
+  const v2 = validateDoc(fixed);
+  if (!v2.ok) throw new Error(`stored document invalid: ${v.error}`);
+  const fixedText = JSON.stringify(v2.doc);
+  console.warn('[HaoNav] 文档顶层结构缺失，已自动修复:', v.error);
+  return { doc: v2.doc, text: fixedText };
+}
+
+/** 补齐顶层结构（不校验条目内容，那是 validateDoc 的事） */
+function repairDoc(raw: unknown, now: number): unknown {
+  const d = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  return {
+    schemaVersion: SCHEMA_VERSION as 1,
+    rev: typeof d.rev === 'number' && Number.isFinite(d.rev) ? d.rev : 0,
+    updatedAt: typeof d.updatedAt === 'number' ? d.updatedAt : now,
+    settings:
+      d.settings && typeof d.settings === 'object' && !Array.isArray(d.settings) ? d.settings : {},
+    categories: Array.isArray(d.categories) ? d.categories : [],
+    links: Array.isArray(d.links) ? d.links : [],
+  };
 }
 
 /** 一次 KV 写：rev+1 + 更新时间 */
@@ -261,8 +284,9 @@ function applyOps(doc: Doc, ops: Op[], now: number): Doc {
   const d: Doc = {
     ...doc,
     settings: { ...doc.settings },
-    categories: doc.categories.map((c) => ({ ...c })),
-    links: doc.links.map((l) => ({ ...l })),
+    // 防御：即便上游校验被绕过（或文档来自其它入口），也绝不因缺数组而崩
+    categories: Array.isArray(doc.categories) ? doc.categories.map((c) => ({ ...c })) : [],
+    links: Array.isArray(doc.links) ? doc.links.map((l) => ({ ...l })) : [],
   };
 
   for (const op of ops) {
@@ -865,7 +889,9 @@ export function createApp(deps: AppDeps): Hono {
       // 服务端先落日志，再把真实错误信息回传给客户端，方便即时定位（不回传只会得到"操作应用失败"黑盒）。
       console.error('[PATCH /api/data] applyOps 未预期异常:', e);
       const detail = e instanceof Error ? e.message : String(e);
-      return jsonResponse({ error: `操作应用失败：${detail}` }, 400);
+      // 把出事的 op 一并回传：否则客户端只看到黑盒文案，无法定位是哪一条 op 崩的
+      const bad = Array.isArray(body?.ops) ? body.ops : null;
+      return jsonResponse({ error: `操作应用失败：${detail}`, op: bad, rev: body?.rev }, 400);
     }
 
     const v = validateDoc(next);

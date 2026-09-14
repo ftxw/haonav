@@ -210,7 +210,9 @@ function logSaveFailure(rev: number | undefined, ops: Op[], e: unknown): void {
           ? e.message
           : String(e);
   console.error(`[HaoNav] PATCH /api/data 失败 (HTTP ${status}): ${serverMsg}`);
-  console.error(`  → 发送 rev=${rev}，ops 数量=${ops.length}`, ops);
+  console.error(`  → 发送 rev=${rev}，ops 数量=${ops.length}`);
+  // ⚠️ 同时打印可读 JSON，避免浏览器把 ops 折叠成 [{…}] 导致看不到具体内容
+  console.error('  → ops 内容(JSON):', JSON.stringify(ops, null, 2));
   if (e instanceof ApiError && e.payload) {
     console.error('  → 服务端原始响应体:', e.payload);
   }
