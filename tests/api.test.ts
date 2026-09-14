@@ -455,6 +455,18 @@ describe('api / icon（逐行对齐 workers.js handleIconProxy）', () => {
     expect(res.headers.get('content-type')).toBe('text/html');
   });
 
+  it('无 ExecutionContext 时不得 500（Hono 的 c.executionCtx 是雷）', async () => {
+    // 回归：Hono 的 c.executionCtx 是 getter，没有 ExecutionContext 时**主动抛异常**
+    // （"This context has no ExecutionContext"），不是返回 undefined。
+    // 早期版本 runLater() 直接读它 → 整个 handler 500；且异常被吞后 cache.put 失去
+    // waitUntil 保护 → 表现为「永远 MISS」。这里锁死：拿不到就报 no，绝不能 500。
+    const { app } = makeApp({}, {}, (async () => imgRes()) as unknown as typeof fetch);
+    const res = await app.request(`/api/icon?url=${encodeURIComponent('https://e.com/')}`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-icon-waituntil')).toBe('no');
+    expect(res.headers.get('x-icon-cache-put')).toBe('no-cache-api');
+  });
+
   it('不判私网：本处理器只跟 api.xinac.net 通信，从不直连 targetUrl', async () => {
     let called = '';
     const { app } = makeApp({}, {}, (async (u: any) => {

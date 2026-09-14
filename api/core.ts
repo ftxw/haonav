@@ -565,19 +565,20 @@ function iconCache(): Cache | null {
   }
 }
 
-/** ctx.waitUntil 兜底：拿不到 executionCtx（EdgeOne onRequest 未透传）时后台跑，绝不影响响应 */
-function runLater(c: Context, task: Promise<unknown>): void {
-  const p = Promise.resolve(task).catch(() => {});
-  const ctx = (c as any).executionCtx;
-  if (ctx && typeof ctx.waitUntil === 'function') {
-    try {
-      ctx.waitUntil(p);
-      return;
-    } catch {
-      /* 落到下面 */
-    }
+/**
+ * waitUntil 是否可用（仅用于诊断）。
+ *
+ * ⚠️ 大坑：Hono 的 `c.executionCtx` 是 **getter，没有 ExecutionContext 时会主动抛异常**
+ *    （实测报错 `Error: This context has no ExecutionContext`，见 hono/dist/context.js）。
+ *    它不是返回 undefined —— 直接读会让整个 handler 500。必须 try/catch 包住。
+ */
+function hasWaitUntil(c: Context): boolean {
+  try {
+    const ctx = (c as any).executionCtx;
+    return !!(ctx && typeof ctx.waitUntil === 'function');
+  } catch {
+    return false;
   }
-  void p;
 }
 
 function isPrivateIpv4(host: string): boolean {
@@ -1063,12 +1064,24 @@ export function createApp(deps: AppDeps): Hono {
         response.headers.set('Cache-Control', 'public, max-age=604800, s-maxage=604800');
         response.headers.set('Access-Control-Allow-Origin', '*');
         response.headers.set('X-Icon-Cache-Status', 'MISS');
+
+        /* ⚠️ 诊断头：caches.default 在 EdgeOne 上是否真能落盘，必须能观测。
+         * 原来的写法 `try { runLater(cache.put(...)) } catch` 是**错的** ——
+         * try/catch 抓不到 Promise 的 rejection，put 失败会被 runLater 的
+         * .catch 静默吞掉，表现为「永远 MISS 且查不到原因」。
+         * 这里改成 await + 把结果写进响应头，一次性拿到：put 成败 + waitUntil 是否可用。
+         * 定位后若 put 正常，可改回 waitUntil（不阻塞响应）。 */
+        response.headers.set('X-Icon-WaitUntil', hasWaitUntil(c) ? 'yes' : 'no');
         if (cache) {
           try {
-            runLater(c, cache.put(cacheKey, response.clone()));
-          } catch {
-            /* 缓存失败不影响本次返回 */
+            await cache.put(cacheKey, response.clone());
+            response.headers.set('X-Icon-Cache-Put', 'ok');
+          } catch (e) {
+            const msg = e && (e as any).message ? (e as any).message : String(e);
+            response.headers.set('X-Icon-Cache-Put', 'err:' + msg.slice(0, 100));
           }
+        } else {
+          response.headers.set('X-Icon-Cache-Put', 'no-cache-api');
         }
       } else {
         response = new Response(DEFAULT_ICON_SVG, {
@@ -1244,7 +1257,10 @@ export function createApp(deps: AppDeps): Hono {
 
   /* ── 兜底 ── */
   app.notFound((c) => jsonResponse({ error: 'Not Found' }, 404));
-  app.onError(() => jsonResponse({ error: 'Internal Server Error' }, 500));
+  app.onError((err) => {
+    console.error('[DEBUG onError]', err);
+    return jsonResponse({ error: 'Internal Server Error' }, 500);
+  });
 
   return app;
 }
