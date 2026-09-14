@@ -158,13 +158,15 @@ curl -sI https://<你的域名>/admin
 
 `platform` 字段会告诉你当前跑在哪个平台（`edgeone` / `cloudflare` / `dev`）。**如果 `/api/health` 返回 404，说明 `edge-functions/` 入口没被识别**（见排障表）。
 
+> `GET /api/health` 在 **KV 未绑定**时仍会返回 `200`，并多一个 `kvBound` 字段（正常绑定时不出现，绑好了就是 `GET /api/data` 等接口能正常用）。所以它是排障第一入口：`kvBound:false` ⇒ 去控制台补 KV 绑定。
+
 ### 故障排查
 
 | 现象 | 原因 | 修法 |
 |---|---|---|
 | 部署成功但打开是 404 / 空白页 | 输出目录填成了 `public`（仓库里不存在），或框架预设被自动选成了 Hono | 输出目录改 `dist`，框架预设改 **Vite**，重新部署 |
 | 页面能打开但一条链接都没有、顶栏报错 | `edge-functions/` 入口没被识别，`/api/*` 全部 404 | 确认 `edge-functions/api/[[default]].ts` 存在且已提交；确认它所在的 `edge-functions/` 是仓库根目录下的（不是 `edgefunctions/`） |
-| `/api/data` 返回 500，日志里 `KV namespace 未绑定` | KV 命名空间没绑定到**这个项目**，或绑定变量名不是 `HAONAV_KV` | 项目设置里绑定命名空间，**变量名填 `HAONAV_KV`**，重新部署 |
+| 页面能打开但顶栏报错，`/api/*` 返回 `{"error":"KV 命名空间未绑定"}`（或旧版只显示 `script error`） | KV 命名空间没绑定到**本项目**，或绑定时变量名不是 `HAONAV_KV` | 控制台 → 项目 → KV 存储 → 绑定命名空间，**变量名填 `HAONAV_KV`**，重新部署。可用 `GET /api/health` 看 `kvBound` 快速判断 |
 | 打不开 `/admin` 或登录不上 | `HAONAV_ADMIN_PASSWORD` / `HAONAV_SESSION_SECRET` 没配 | 补上两个 Secret 后重新部署；改密码也是同样操作 |
 | 登录后一刷新就掉登录态 | 用的是 http 访问，浏览器不保存 `Secure` cookie | 通过 https 域名访问（平台默认域名就是 https） |
 | 前台能看到数据但「保存设置」后几十秒才生效 | KV 最终一致（跨边缘节点最长约 60 s） | 属正常现象，同城/同节点是秒级；刷新前台即可 |

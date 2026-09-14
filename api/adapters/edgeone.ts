@@ -11,6 +11,11 @@
  *    因此这里做三重兜底；core.ts 对此完全无感。
  *
  * 部署入口见 `edge-functions/api/[[default]].ts`（该目录路径即路由）。
+ *
+ * 💡 KV 未绑定时的行为（可自诊断）：`handle()` 先解析 namespace，**解析不到不会裸抛**——
+ *    裸抛会被 EdgeOne 运行时吞成 12 字节的 `script error`，用户无从判断。改为：
+ *      · `/api/health`（不依赖 KV）→ 仍返回 200，body 多一个 `kvBound:false`；
+ *      · 其余 `/api/*`（属配置错误）→ 返回 500 的中文 JSON，写明「变量名填 HAONAV_KV」。
  */
 
 import { createApp, configFromEnv } from '../core';
@@ -43,8 +48,58 @@ function resolveNamespace(env: any): any {
   return undefined;
 }
 
+/** 统一 JSON 响应（V8 运行时没有 `Response.json()`） */
+function json(data: unknown, status: number): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+  });
+}
+
+/** 取 request 的 pathname；解析失败时按「非 health」处理，避免连累正常分支 */
+function pathnameOf(request: Request): string {
+  try {
+    return new URL(request.url).pathname;
+  } catch {
+    return '';
+  }
+}
+
 async function handle(request: Request, env: any, ctx?: any): Promise<Response> {
-  const store = createEdgeOneKVStore(resolveNamespace(env));
+  const ns = resolveNamespace(env);
+
+  // ── KV 缺失：不能裸抛异常 ──
+  // 裸抛会被 EdgeOne 运行时吞成 12 字节的 `script error`，用户完全无从判断哪里错了。
+  // 这里改成「可自诊断」的响应：/api/health 不依赖 KV，降级成 200 且带 kvBound 字段；
+  // 其余 /api/* 是配置错误，返回 500 + 中文修复指引。
+  if (!ns) {
+    if (pathnameOf(request) === '/api/health') {
+      // /api/health 不读 KV，不该被连坐 —— 让它继续当排障入口用。
+      console.error(
+        '[edgeone] KV 命名空间未绑定：/api/health 降级响应（kvBound=false）。请在控制台绑定 KV 并把变量名设为 HAONAV_KV。',
+      );
+      return json(
+        { status: 'ok', platform: 'edgeone', time: Date.now(), kvBound: false },
+        200,
+      );
+    }
+
+    // 日志便于在部署日志里搜索；不回显任何密钥（此处也拿不到）。
+    console.error(
+      '[edgeone] KV 命名空间未绑定：请检查控制台 KV 存储绑定，变量名必须为 HAONAV_KV。',
+    );
+    return json(
+      {
+        error: 'KV 命名空间未绑定',
+        detail:
+          'EdgeOne Makers 的 KV 是绑定命名空间时所填变量名对应的全局变量。请在控制台把 KV 命名空间绑定到本项目，变量名填 HAONAV_KV，然后重新部署。',
+        hint: '详见 README「部署」章节的故障排查表',
+      },
+      500,
+    );
+  }
+
+  const store = createEdgeOneKVStore(ns);
   const app = createApp({ store, config: configFromEnv(env, 'edgeone') });
   return app.fetch(request, env, ctx);
 }
