@@ -256,33 +256,19 @@ node --experimental-strip-types migrate/v0-to-v1.ts --in old-data.json --commit 
 - 图标策略默认 `fetched`（后台可切成 `letter` 走本地字母图标）
 - 架构与实施细节见 [`HaoNav-改造方案.md`](./HaoNav-改造方案.md)
 
-### ⚠️ 图标接口的缓存路径（Makers 平台约束，已实测）
+### ⚠️ 图标方案：前端直连 api.xinac.net（方案 B，已实测定稿）
 
-图标代理按 `workers.js` 的 `handleIconProxy` 逐行对齐，但 **Makers 的默认缓存策略对
-`URI Path starts with /api/` 一律 `Bypass Cache`**（官方文档原话），带来两个实测后果：
+图标**不再经本站边缘函数代理**。早期曾按 `workers.js` 的 `handleIconProxy` 在 `/api/icon`、`/icon`
+做代理 + `caches.default` 缓存，但 **Makers 对所有边缘函数响应一律禁止写 CDN 缓存**：
+`cache.put()` 抛 `err:forbidden cdn cache`，`/api/*` 与 `/icon` 两条路径都实测复现；而静态资源
+能正常 CDN 缓存（`Age` 头递增），说明被禁的是「边缘函数响应」而非路径前缀。代理既拿不到缓存、
+又徒增每次图标的边缘计算，是净亏。
 
-1. `/api/*` 的响应永不进 CDN（响应无 `Age` 头）；
-2. 边缘函数里调 `cache.put()` 直接抛 `err:forbidden cdn cache`
-   （预览域名 `*.edgeone.cool` 与绑定的正式域名均复现，与代码 / 响应头 / 域名无关）。
+**最终方案（方案 B）**：前端直接拼 `https://api.xinac.net/icon/?url=<encodeURIComponent(完整网址)>`。
+- `fetched` 策略：自定义 http(s) 图标优先，其次直连 xinac，失败由 `@error` 回退本地字母图标；
+- `letter` 策略：纯本地字母图标，零请求；
+- xinac 本身返回 `Cache-Control: public, max-age=604800, stale-while-revalidate=2592000` 且
+  `Access-Control-Allow-Origin: *`，**浏览器缓存 7 天**，零 KV、零边缘函数开销。
+- 已删除：`api/core.ts` 的 `handleIcon`、`api/iconFallback.ts`、`edge-functions/icon.ts`、
+  `/api/icon` 与 `/icon` 路由、`keys.ts` 的 `ICON_PREFIX`。
 
-→ 只要图标接口顶着 `/api/` 前缀，`caches.default` 就**永远写不进去**，表现为「一直 MISS」。
-
-**对策（方案 A）**：把图标接口从 `/api/icon` 挪到 `/icon`（非 `/api/` 路径）。
-Makers 只对 `/api/*` 强制 Bypass Cache，非 api 路径不走该策略，因此 `/icon` 有望解锁
-CDN 缓存与 Cache API 写入。旧路径 `/api/icon` 保留向后兼容（仍处 `/api/*` 下，天然不缓存）。
-前端 `LinkCard`、后台列表等已全部切到 `/icon`。新的边缘函数入口：`edge-functions/icon.ts`
-（只把 `api/adapters/edgeone` 的两种导出透出去，逻辑仍在 `api/core.ts`，零平台耦合）。
-
-**实时诊断**（看响应头即可，无需查日志）：
-- `X-Icon-Cache-Status`：`HIT`(命中边缘缓存) / `MISS`(已回源并写入) / `DEFAULT`(上游失败，回退内置 SVG)
-- `X-Icon-Cache-Put`：`ok`(caches.default 写入成功) / `err:<msg>`(被平台拒绝) / `no-cache-api`(运行时未注入 caches)
-- `X-Icon-WaitUntil`：`yes` / `no`（waitUntil 是否可用）
-
-**部署后实测结论**（curl 复验，见 `X-Icon-Cache-Put`）：
-- `/icon` 路由本身可达：✅（确认 `edge-functions/icon.ts` 被 Makers 按 path=route 正确挂载）
-- `/icon` 下的 `cache.put`：⏳ 以本轮部署的 curl 实测为准
-
-> 若 `/icon` 下 Makers **仍**禁止 `cache.put`，则退化为 **方案 B：直连 `api.xinac.net`**
-> （去掉代理，前端直接 `<img src="https://api.xinac.net/icon/?url=...">`）。该服务本身返回
-> `Cache-Control: public, max-age=604800, stale-while-revalidate=2592000`，浏览器缓存 7 天，
-> 零 KV、零边缘函数开销 —— 对个人站体验无差别。

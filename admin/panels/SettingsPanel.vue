@@ -162,7 +162,7 @@ const miniBtn = BTN_SECONDARY;
           <span :class="labelCls">链接卡片图标来源</span>
           <select :value="settings.iconStrategy" :class="inputCls" @change="setIconStrategy(($event.target as HTMLSelectElement).value)">
             <option value="letter">字母色块（零请求，推荐）</option>
-            <option value="fetched">抓取站点图标（走 /icon）</option>
+            <option value="fetched">抓取站点图标（直连 api.xinac.net）</option>
           </select>
         </label>
       </div>

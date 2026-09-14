@@ -12,12 +12,6 @@ export const KV = {
   SNAPSHOT_INDEX: 'nav:snap:index',
   /** 快照 key 前缀：nav:snap:<ISO 时间> */
   SNAPSHOT_PREFIX: 'nav:snap:',
-  /**
-   * 图标 key 前缀：nav:icon:<domain>
-   * ⚠️ 已废弃：/api/icon 现按 workers.js 改用 Cache API（`caches.default`），不再写 KV。
-   *    保留常量只为标记存量 key（老部署里可能还有 `nav:icon:*` 残留，可忽略或手工清理）。
-   */
-  ICON_PREFIX: 'nav:icon:',
 } as const;
 
 export const SCHEMA_VERSION = 1;

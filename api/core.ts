@@ -36,7 +36,6 @@ import {
 import { appendOrder, between, ORDER_DIGITS } from './order';
 import { normalizeUrl, hostOf } from './urlKey';
 import { validateDoc } from './validate';
-import { DEFAULT_ICON_SVG } from './iconFallback';
 
 /* ------------------------------------------------------------------ *
  * 配置与依赖（全部注入，零平台耦合）
@@ -538,48 +537,10 @@ function retentionOf(doc: Doc): number {
   return typeof r === 'number' && r >= 1 && r <= 30 ? r : 7;
 }
 
+
 /* ------------------------------------------------------------------ *
- * /api/icon：逐行对齐 E:/CC/workers.js 的 handleIconProxy()
- *
- * ⚠️ 本节**不做任何"优化"**：缓存用 Cache API（不是 KV）、失败返回默认 SVG
- *    （不是 404）、响应头与 workers.js 完全一致。要改请先改 workers.js 再同步。
+ * SSRF 黑名单 + 请求超时（死链批量探测 probeUrl 复用）
  * ------------------------------------------------------------------ */
-
-/** 第三方 favicon 服务（= workers.js:2170 DEFAULT_IMGAPI）；USE_DEFAULT_IMGAPI 恒为 true */
-const XINAC_ICON_API = 'https://api.xinac.net/icon/?url=';
-/** 传给上游的 UA（workers.js:2361 原样携带，未改动） */
-const ICON_UPSTREAM_UA =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-
-/**
- * Cache API（= workers.js 的 `caches.default`）。
- * EdgeOne / Cloudflare 边缘运行时均已实现；本地 Node 没有 → 返回 null（退化为不缓存）。
- */
-function iconCache(): Cache | null {
-  try {
-    const c = (globalThis as any).caches;
-    const d = c && c.default;
-    return d && typeof d.match === 'function' ? (d as Cache) : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * waitUntil 是否可用（仅用于诊断）。
- *
- * ⚠️ 大坑：Hono 的 `c.executionCtx` 是 **getter，没有 ExecutionContext 时会主动抛异常**
- *    （实测报错 `Error: This context has no ExecutionContext`，见 hono/dist/context.js）。
- *    它不是返回 undefined —— 直接读会让整个 handler 500。必须 try/catch 包住。
- */
-function hasWaitUntil(c: Context): boolean {
-  try {
-    const ctx = (c as any).executionCtx;
-    return !!(ctx && typeof ctx.waitUntil === 'function');
-  } catch {
-    return false;
-  }
-}
 
 function isPrivateIpv4(host: string): boolean {
   const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
@@ -720,12 +681,6 @@ export function createApp(deps: AppDeps): Hono {
       status: 'ok',
       platform: config.platform,
       time: now(),
-      /**
-       * 运行时是否提供 Cache API（caches.default）。
-       * 排障用：/api/icon 的缓存依赖它。false = 该运行时没注入 caches，
-       * 图标仍会正常返回（每次回源），只是没有边缘缓存。
-       */
-      cacheApi: iconCache() !== null,
     }),
   );
 
@@ -1009,103 +964,7 @@ export function createApp(deps: AppDeps): Hono {
     });
   });
 
-  /* ── GET /api/icon?url=<完整网址>：favicon 代理 ──
-   * 逐行对齐 workers.js 的 handleIconProxy()（workers.js:2342-2391）：
-   *   · 参数：`?url=<完整网址>`；缺失 → 400 'Missing URL'
-   *   · 抓取：`${DEFAULT_IMGAPI}${encodeURIComponent(targetUrl)}` + Chrome UA
-   *   · 缓存：`caches.default`（**不是 KV**），命中加 `X-Icon-Cache-Status: HIT`
-   *   · 缓存头：`Cache-Control: public, max-age=604800, s-maxage=604800`
-   *   · 兜底：上游失败 → **200 + 内联默认 SVG**（不是 404），状态 `DEFAULT`
-   *   · 跨域：`Access-Control-Allow-Origin: *`
-   *
-   * ⚠️ 这里刻意**不做**任何"优化"：不判私网、不判 content-type、不加超时。
-   *    原因：本处理器只跟 api.xinac.net 通信，**从不直接请求 targetUrl**，
-   *    所以没有 SSRF 面（想加校验前请先想清楚这个前提是否还成立）。
-   */
-  const handleIcon = async (c: Context): Promise<Response> => {
-    const url = new URL(c.req.url);
-    const targetUrl = url.searchParams.get('url');
-
-    if (!targetUrl) return new Response('Missing URL', { status: 400 });
-
-    let cacheKey: Request;
-    try {
-      cacheKey = new Request(url.toString(), c.req.raw);
-    } catch {
-      cacheKey = new Request(url.toString());
-    }
-    const cache = iconCache();
-
-    let response: Response | null = null;
-    if (cache) {
-      try {
-        response = (await cache.match(cacheKey)) || null;
-      } catch {
-        response = null;
-      }
-    }
-
-    if (response) {
-      response = new Response(response.body, response);
-      response.headers.set('X-Icon-Cache-Status', 'HIT');
-    } else {
-      let upstreamResponse: Response | null = null;
-      try {
-        upstreamResponse = await fetchImpl(
-          `${XINAC_ICON_API}${encodeURIComponent(targetUrl)}`,
-          { headers: { 'User-Agent': ICON_UPSTREAM_UA } },
-        );
-      } catch {
-        upstreamResponse = null;
-      }
-
-      if (upstreamResponse) {
-        response = new Response(upstreamResponse.body, upstreamResponse);
-        response.headers.set('Cache-Control', 'public, max-age=604800, s-maxage=604800');
-        response.headers.set('Access-Control-Allow-Origin', '*');
-        response.headers.set('X-Icon-Cache-Status', 'MISS');
-
-        /* ⚠️ 诊断头：caches.default 在 EdgeOne 上是否真能落盘，必须能观测。
-         * 原来的写法 `try { runLater(cache.put(...)) } catch` 是**错的** ——
-         * try/catch 抓不到 Promise 的 rejection，put 失败会被 runLater 的
-         * .catch 静默吞掉，表现为「永远 MISS 且查不到原因」。
-         * 这里改成 await + 把结果写进响应头，一次性拿到：put 成败 + waitUntil 是否可用。
-         * 定位后若 put 正常，可改回 waitUntil（不阻塞响应）。 */
-        response.headers.set('X-Icon-WaitUntil', hasWaitUntil(c) ? 'yes' : 'no');
-        if (cache) {
-          try {
-            await cache.put(cacheKey, response.clone());
-            response.headers.set('X-Icon-Cache-Put', 'ok');
-          } catch (e) {
-            const msg = e && (e as any).message ? (e as any).message : String(e);
-            response.headers.set('X-Icon-Cache-Put', 'err:' + msg.slice(0, 100));
-          }
-        } else {
-          response.headers.set('X-Icon-Cache-Put', 'no-cache-api');
-        }
-      } else {
-        response = new Response(DEFAULT_ICON_SVG, {
-          status: 200,
-          headers: {
-            'Content-Type': 'image/svg+xml',
-            'Cache-Control': 'public, max-age=3600',
-          },
-        });
-        response.headers.set('X-Icon-Cache-Status', 'DEFAULT');
-      }
-      response.headers.set('Access-Control-Allow-Origin', '*');
-    }
-
-    return response;
-  };
-
-  /* 两个路径共用一个 handler：
-   * · `/icon`     —— **生产使用**。Makers/EdgeOne 对 `/api/*` 强制 Bypass Cache，
-   *                  所以必须把图标接口挪出 `/api/`，否则 CDN 不缓存、
-   *                  caches.default 也会抛 `forbidden cdn cache`。
-   * · `/api/icon` —— 旧路径，保留向后兼容（仍在 /api/* 下，天然不缓存）。 */
-  app.get('/icon', handleIcon);
-  app.get('/api/icon', handleIcon);
+  
 
   /* ── GET /api/backup/snapshots：快照列表（index-aside，一次 KV 读） ── */
   app.get('/api/backup/snapshots', async (c) => {

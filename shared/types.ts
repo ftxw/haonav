@@ -46,7 +46,7 @@ export interface LinkItem {
   pinned?: boolean;
   /**
    * 自定义图标 URL（http(s)）。留空则按 `iconStrategy` 处理：
-   * `fetched` 走 `/icon` 自动抓取站点图标；`letter` 使用本地字母图标（自定义值被忽略）。
+   * `fetched` 直连 api.xinac.net 抓取站点图标；`letter` 使用本地字母图标（自定义值被忽略）。
    */
   icon?: string;
   createdAt: number;

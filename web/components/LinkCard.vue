@@ -26,12 +26,15 @@ const custom = computed(() => {
 });
 
 /**
- * 自动抓取：**传完整网址**（与 workers.js 一致）。
- * 服务端据此代理第三方图标服务并按 host 永久缓存；
- * 早期版本传的是 `?u=<host>`，服务端仍兼容，但新代码统一用 url。
+ * 自动抓取：直连第三方图标服务 api.xinac.net（方案 B）。
+ * Makers 边缘函数禁止写 CDN 缓存（caches.default 抛 forbidden cdn cache），
+ * 代理既拿不到缓存、又徒增边缘计算，故改浏览器直连。
+ * xinac 自带 `Cache-Control: public, max-age=604800` + CORS `*`，浏览器缓存 7 天。
+ * 加载失败由下方 @error 切到字母图标兜底。
  */
+const XINAC_ICON_API = 'https://api.xinac.net/icon/?url=';
 const auto = computed(() =>
-  props.link.url ? `/icon?url=${encodeURIComponent(props.link.url)}` : '',
+  props.link.url ? XINAC_ICON_API + encodeURIComponent(props.link.url) : '',
 );
 
 /**
@@ -40,7 +43,7 @@ const auto = computed(() =>
  *    自定义 URL 只在 `fetched` 模式下才优先于自动抓取。
  *  - `fetched`：自定义 URL 优先，其次自动抓取，最后字母回退。
  *  - `failed`（当前图标加载失败）→ 回退字母图标，避免破图。
- * 不追加 `v=<hash>` 之类的 cache-buster：服务端按 domain 缓存一年（immutable）。
+ * 不追加 `v=<hash>` 之类的 cache-buster：xinac 自带 Cache-Control 一年，浏览器缓存，无需 cache-buster。
  */
 const src = computed(() => {
   if (props.iconStrategy !== 'fetched' || failed.value) return letterSrc.value;
