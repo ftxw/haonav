@@ -141,7 +141,11 @@ Git 连接部署和 CLI 部署都依赖它。仓库里若出现名字相似的�
 4. 项目设置 → 环境变量（加密）添加两个 Secret：`HAONAV_ADMIN_PASSWORD`、`HAONAV_SESSION_SECRET`
 5. 重新部署。入口为 [`api/adapters/cloudflare.ts`](./api/adapters/cloudflare.ts)（`export default { fetch }`）
 
-> ⚠️ **Cloudflare Pages 特别注意**：仓库里还留着**旧版遗留的 `functions/` 目录**（`functions/api/*.ts`，那是上一代后端）。Cloudflare Pages 会把 `functions/` 自动当成 Pages Functions 注册，与新的 `/api/*` 冲突。用 Cloudflare 部署前，请先删除或改名 `functions/` 与 `edgefunctions/` 这两个遗留目录（同样建议清理根目录遗留的 `App.tsx` / `components/` / `services/` / `types.ts`）。
+> ⚠️ **Cloudflare 路径的 API 目前还没接线 —— 建议现阶段优先用 EdgeOne Makers。**
+>
+> 仓库里只有一个函数入口目录 `edge-functions/`，那是 **EdgeOne Makers 的约定**。Cloudflare Pages 认的是 `functions/` 目录，两者不通用。所以直接拿这份代码去 Cloudflare 部署，得到的是一个**纯静态站点**：前台页面能打开，但 `/api/*` 全部 404，读不到数据。
+>
+> 要在 Cloudflare 上跑通，需要把 [`api/adapters/cloudflare.ts`](./api/adapters/cloudflare.ts) 接到 Cloudflare 自己的入口约定上（例如新增 `functions/api/[[path]].ts` 转调它，与 `edge-functions/api/[[default]].ts` 的做法一致），并把 `HAONAV_KV` 以 **Binding** 形式绑到 Pages 项目。
 
 ### 部署后自检
 
