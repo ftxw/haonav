@@ -30,14 +30,32 @@ npm run dev        # http://127.0.0.1:5173   后台在 /admin
 - 本地数据存放在 `.data/`（已 gitignore），删除即回到全新空态
 
 ```bash
-npm run typecheck  # tsc --noEmit
-npm test           # vitest
-npm run build      # 产出 dist/（前台 + 后台两个入口）
+npm run typecheck  # vue-tsc --noEmit -p tsconfig.json
+npm test           # vitest run
+npm run build      # 产出 dist/（前台 index.html + 后台 admin.html 两个入口）
 ```
 
 ---
 
 ## 部署
+
+### ⚠️ 部署前必读：控制台会自动识别错这两项
+
+在 EdgeOne Makers 控制台里连接 Git 仓库后，平台会**自动识别**构建配置。**它一定会认错**，必须在部署前手动改正，否则站点打不开：
+
+| 字段 | 控制台自动识别（❌ 错的） | 必须改成（✅） |
+|---|---|---|
+| **框架预设** | `Hono` | **`Vite`** |
+| **输出目录** | `public` | **`dist`** |
+| 根目录 | `./` | `./`（保持默认） |
+| 编译命令 | `npm run build` | `npm run build`（保持默认） |
+| 安装命令 | `npm install` | `npm install`（保持默认） |
+
+**为什么平台会认错**：它在 `package.json` 的 dependencies 里看到 `hono`，就猜成 Hono 预设，并把输出目录默认成 `public`。
+
+**为什么填错就打不开**：本项目是 **Vite 多入口**（`index.html` 前台 + `admin.html` 后台），`vite build` 的产物在 **`dist/`**。仓库里**根本没有 `public/` 这个目录** —— 上传一个空目录，站点自然 404 / 空白页。
+
+> 💡 仓库根目录的 [`edgeone.json`](./edgeone.json) 已经把正确值写好了（`framework: vite` / `outputDirectory: dist`）。但**如果控制台里已经保存过 `public` / `Hono`，控制台的值优先级更高，必须手动改回来**。改完重新部署。
 
 ### 需要配置的东西（共 1 个绑定 + 2 个 Secret）
 
@@ -57,20 +75,99 @@ openssl rand -hex 32
 >
 > ⚠️ 密码只能放在平台 Secret 里，**不要**写进 `site.config.json`（那个文件会提交进仓库）。
 
-### 方式一：EdgeOne Makers
+### 方式一：EdgeOne Makers（国内首选）
 
-1. 控制台 → Pages → 创建应用 → 连接 Git 仓库
-2. 构建命令 `npm run build`，输出目录 `dist`
-3. 「存储 - KV」创建命名空间 → 在项目里**绑定**，变量名 `HAONAV_KV`
-4. 项目「环境变量」添加上面两个 Secret
-5. 重新部署。Edge Functions 入口为 `api/adapters/edgeone.ts`
+1. 控制台 → Pages / Makers → **创建应用** → **连接 Git 仓库**，选中本仓库
+2. **展开构建配置，逐项核对上面那张表**（这一步最容易漏）：
+   - 框架预设：**`Vite`**（不是 Hono）
+   - 根目录：`./`
+   - 输出目录：**`dist`**（不是 public）
+   - 编译命令：`npm run build`
+   - 安装命令：`npm install`
+3. 「存储 → KV」**创建命名空间**
+4. 回到项目 → 「绑定 / Bindings」→ **绑定**该命名空间，**变量名填 `HAONAV_KV`**
+5. 项目「环境变量 / Secrets」添加两个 Secret：`HAONAV_ADMIN_PASSWORD`、`HAONAV_SESSION_SECRET`
+6. **部署**
+7. **部署后自检**（见下方「部署后自检」一节）—— 务必实际请求一次 `/api/health`
+
+#### 关于 KV 绑定：它是一个「全局变量」，不是环境变量
+
+这是本项目最容易踩的坑，单独说明：
+
+- 在控制台绑定命名空间时填的**变量名 `HAONAV_KV`，会变成 Edge Function 里的一个全局变量**。
+- 它**不是**环境变量，**不能**从 `context.env` 读。即：
+
+  ```js
+  // ❌ 错：const KV = context.env.HAONAV_KV;
+  // ✅ 对：await HAONAV_KV.get('key')      // 变量名 = 你在控制台填的名字
+  ```
+
+- 同一条原理适用于 Cloudflare：也是**绑定（Binding）**，不是 Secret。两个平台的「绑定」区和「环境变量/Secret」区在不同位置，别找错地方。
+
+本项目已经在 [`api/adapters/edgeone.ts`](./api/adapters/edgeone.ts) 里做了**三重兜底**（`env` → `globalThis` → 裸标识符），所以只要控制台里变量名填对 `HAONAV_KV` 就行，不需要你改代码。
+
+#### API 入口：`edge-functions/api/[[default]].ts`
+
+EdgeOne Makers **只扫描约定目录 `edge-functions/`，路径即路由**：
+
+```
+edge-functions/api/hello.js        →  GET /api/hello
+edge-functions/api/[[default]].ts  →  /api/* 下所有未单独定义的路由（catch-all）
+```
+
+前台与后台的所有请求都打 `/api/*`（例如 `/api/data`、`/api/login`），因此全部由这个 catch-all 接住，再转调真正的实现 [`api/adapters/edgeone.ts`](./api/adapters/edgeone.ts)（该文件里同时导出 `export default { fetch }` 与 `onRequest`，两种入口形式平台都能识别）。
+
+> ⚠️ 官方提示：dev server 比部署时的 builder 更宽松 —— catch-all 这类路由**部署后必须实际请求复验**一次。
+
+#### `edgeone.json`
+
+仓库根目录的 [`edgeone.json`](./edgeone.json) 就是给平台读的构建配置，**不要改文件名、不要删**：
+
+```json
+{
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist"
+}
+```
+
+Git 连接部署和 CLI 部署都依赖它。仓库里若出现名字相似的另一份配置（如已删除的 `eop-config.json`），一律以 `edgeone.json` 为准。
 
 ### 方式二：Cloudflare Pages / Workers
 
-1. Workers & Pages → 创建 → 连接 Git 仓库，构建命令 `npm run build`，输出目录 `dist`
-2. Workers & Pages → KV → 创建命名空间 → 在项目 Bindings 里添加，变量名 `HAONAV_KV`
-3. 项目设置 → 环境变量（加密）添加两个 Secret
-4. 重新部署。入口为 `api/adapters/cloudflare.ts`（`export default { fetch }`）
+1. Workers & Pages → 创建 → 连接 Git 仓库
+2. 构建命令 `npm run build`，**输出目录 `dist`**
+3. Workers & Pages → KV → 创建命名空间 → 在项目 **Bindings** 里添加，变量名 **`HAONAV_KV`**
+4. 项目设置 → 环境变量（加密）添加两个 Secret：`HAONAV_ADMIN_PASSWORD`、`HAONAV_SESSION_SECRET`
+5. 重新部署。入口为 [`api/adapters/cloudflare.ts`](./api/adapters/cloudflare.ts)（`export default { fetch }`）
+
+> ⚠️ **Cloudflare Pages 特别注意**：仓库里还留着**旧版遗留的 `functions/` 目录**（`functions/api/*.ts`，那是上一代后端）。Cloudflare Pages 会把 `functions/` 自动当成 Pages Functions 注册，与新的 `/api/*` 冲突。用 Cloudflare 部署前，请先删除或改名 `functions/` 与 `edgefunctions/` 这两个遗留目录（同样建议清理根目录遗留的 `App.tsx` / `components/` / `services/` / `types.ts`）。
+
+### 部署后自检
+
+```bash
+# 1) API 是否挂上（最关键）—— 期望 {"status":"ok","platform":"edgeone",...}
+curl -s https://<你的域名>/api/health
+
+# 2) 前台是否出得来（期望 200 + HTML）
+curl -sI https://<你的域名>/
+
+# 3) 后台入口是否存在（期望 200 + HTML；登录功能需要两个 Secret 已配）
+curl -sI https://<你的域名>/admin
+```
+
+`platform` 字段会告诉你当前跑在哪个平台（`edgeone` / `cloudflare` / `dev`）。**如果 `/api/health` 返回 404，说明 `edge-functions/` 入口没被识别**（见排障表）。
+
+### 故障排查
+
+| 现象 | 原因 | 修法 |
+|---|---|---|
+| 部署成功但打开是 404 / 空白页 | 输出目录填成了 `public`（仓库里不存在），或框架预设被自动选成了 Hono | 输出目录改 `dist`，框架预设改 **Vite**，重新部署 |
+| 页面能打开但一条链接都没有、顶栏报错 | `edge-functions/` 入口没被识别，`/api/*` 全部 404 | 确认 `edge-functions/api/[[default]].ts` 存在且已提交；确认它所在的 `edge-functions/` 是仓库根目录下的（不是 `edgefunctions/`） |
+| `/api/data` 返回 500，日志里 `KV namespace 未绑定` | KV 命名空间没绑定到**这个项目**，或绑定变量名不是 `HAONAV_KV` | 项目设置里绑定命名空间，**变量名填 `HAONAV_KV`**，重新部署 |
+| 打不开 `/admin` 或登录不上 | `HAONAV_ADMIN_PASSWORD` / `HAONAV_SESSION_SECRET` 没配 | 补上两个 Secret 后重新部署；改密码也是同样操作 |
+| 登录后一刷新就掉登录态 | 用的是 http 访问，浏览器不保存 `Secure` cookie | 通过 https 域名访问（平台默认域名就是 https） |
+| 前台能看到数据但「保存设置」后几十秒才生效 | KV 最终一致（跨边缘节点最长约 60 s） | 属正常现象，同城/同节点是秒级；刷新前台即可 |
 
 ### 首次使用
 
@@ -99,14 +196,37 @@ openssl rand -hex 32
 
 ## 从 v1 旧版迁移
 
-旧版数据分散在两个 KV key（网页端写 `haonav_*`、扩展写 `app_data`）。
+旧版数据分散在两个 KV key（网页端写 `haonav_*`、扩展写 `app_data`）。迁移脚本是一个**离线转换器**：把旧数据的导出文件转成新的 `nav:v1` 文档，人工确认后再导入 KV。
 
-```bash
-npx tsx migrate/v0-to-v1.ts --dry-run   # 默认干跑：输出迁移前后对比报告，不写库
-npx tsx migrate/v0-to-v1.ts --commit    # 确认无误后写入新 key nav:v1（旧 key 保留不动）
+**准备**：在旧版控制台把下列 key 的值导出成一个 JSON 文件（值可以是字符串或已解析的 JSON）：
+
+```json
+{
+  "haonav_links": "...",
+  "haonav_categories": "...",
+  "haonav_settings": "...",
+  "haonav_search_engines": "...",
+  "app_data": "..."
+}
 ```
 
-脚本会合并两个来源、按规范化 URL 去重（字段级合并 desc/icon/pinned）、重新分配重复 ID、并**移除旧版的分类密码锁**（报告里会列出）。执行前建议先在旧版导出一份 HTML 书签作为兜底。
+> 只导 `haonav_*` 或只导 `app_data` 都会丢一半数据 —— 两个来源都要导。
+
+**干跑（默认，不写任何东西，只打印对比报告）**：
+
+```bash
+node --experimental-strip-types migrate/v0-to-v1.ts --in old-data.json
+```
+
+**确认无误后提交**（把结果写进内存库并导出为新文档文件）：
+
+```bash
+node --experimental-strip-types migrate/v0-to-v1.ts --in old-data.json --commit --out new-doc.json
+```
+
+然后把 `new-doc.json` 的内容作为 KV key **`nav:v1`** 写入新项目的 KV（旧 key 一律不动，随时可回滚）。
+
+脚本会合并两个来源、按规范化 URL 去重（**字段级合并** `desc` / `icon` / `pinned`）、重新分配重复 ID、并把旧版的分类密码锁**移除**（报告里会逐条列出）。报告同时给出「迁移前 vs 迁移后」的链接数 / 分类数、只在 `app_data` 里出现的条数（即"扩展存的书签"救回了多少）。执行前建议先在旧版导出一份 HTML 书签作为兜底。
 
 ---
 
@@ -115,4 +235,5 @@ npx tsx migrate/v0-to-v1.ts --commit    # 确认无误后写入新 key nav:v1（
 - 备份支持**自动**（可在后台配置频率与保留份数，默认每天 / 保留 7 份）与**手动**两种模式
 - 快照枚举使用 index-aside（索引存单个 key），不消耗平台的 List 请求额度
 - 前台不含任何编辑功能与登录界面；所有写操作由后台会话（HttpOnly cookie，30 天）保护
+- 图标策略默认 `letter`（零请求）；切到 `fetched` 后首次访问按域名抓取一次 favicon 并长缓存
 - 架构与实施细节见 [`HaoNav-改造方案.md`](./HaoNav-改造方案.md)
