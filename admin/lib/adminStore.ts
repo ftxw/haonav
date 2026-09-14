@@ -65,15 +65,19 @@ export async function boot(): Promise<void> {
   state.booted = true;
   state.checking = true;
   try {
-    const doc = await api.tryGetData();
-    if (doc) {
-      adopt(doc);
+    // 必须先用「会话探针」判断是否登录：/api/data 是公开只读接口，
+    // 未登录同样返回 200，用它当探针会让后台在无会话时照常打开，
+    // 直到第一次保存被 401 挡下才跳回登录页（即「点保存就退出登录」）。
+    const ok = await api.session();
+    if (ok) {
+      adopt(await api.getData());
       state.authed = true;
     } else {
       state.authed = false;
     }
   } catch (e) {
-    state.error = e instanceof Error ? e.message : '加载失败';
+    if (e instanceof AuthError) state.authed = false;
+    else state.error = e instanceof Error ? e.message : '加载失败';
   } finally {
     state.checking = false;
   }

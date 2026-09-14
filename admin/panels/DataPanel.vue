@@ -98,7 +98,7 @@ async function restoreFromJson(file: File): Promise<void> {
 /** 分批（≤200）调用 /api/import/parse 聚合 diff，不落库 */
 async function diffItems(items: ParsedItem[]): Promise<void> {
   phase.value = 'diffing';
-  const catIds = new Map<string, string>(state.doc?.categories.map((c) => [c.name, c.id]) ?? []);
+  const catIds = new Map<string, string>(state.doc?.categories?.map((c) => [c.name, c.id]) ?? []);
   const withIds = items.map((it) => {
     const name = it.cat;
     let id = name ? catIds.get(name) : undefined;

@@ -196,6 +196,32 @@ async function commitDoc(store: Store, doc: Doc, now: number): Promise<string> {
 
 class OpError extends Error {}
 
+/* ── link.icon 清洗（唯一入口，语义：自定义图标 URL，仅 http/https） ──
+ * 规则：非字符串 / trim 后不匹配 ^https?:// / 长度 > 2048 → undefined（等于删除该字段）。
+ * 前端取值规则见 workers.js:1203 —— 只有 icon 以 http 开头才直链，否则回退本地字母图标。
+ */
+const ICON_URL_RE = /^https?:\/\//i;
+const MAX_ICON_URL = 2048;
+
+function sanitizeIcon(v: unknown): string | undefined {
+  if (typeof v !== 'string') return undefined;
+  const s = v.trim();
+  if (!s || s.length > MAX_ICON_URL || !ICON_URL_RE.test(s)) return undefined;
+  return s;
+}
+
+/* ── link.desc 清洗 ──
+ * ⚠️ 为什么必须有：清除描述时客户端发的是 `desc: null`（JSON.stringify 会丢掉 undefined 的键，
+ *    见 admin/lib/diffOps.ts），若不在这里归一，`null` 会原样写进库 —— 文档里留下 `desc: null`
+ *    而不是「没有这个字段」，与 `desc?: string` 的类型约定不符，且会在文档体积/diff 里留垃圾。
+ * 规则：null / 非字符串 / trim 后为空 → undefined（等于删除该字段）。
+ */
+function sanitizeDesc(v: unknown): string | undefined {
+  if (typeof v !== 'string') return undefined;
+  const s = v.trim();
+  return s ? s : undefined;
+}
+
 function hydrateLink(link: LinkItem, now: number): LinkItem {
   const url = typeof link.url === 'string' ? link.url : '';
   return {
@@ -207,6 +233,10 @@ function hydrateLink(link: LinkItem, now: number): LinkItem {
     cat: typeof link.cat === 'string' ? link.cat : '',
     order: typeof link.order === 'string' && link.order ? link.order : between(null, null),
     createdAt: typeof link.createdAt === 'number' ? link.createdAt : now,
+    // 统一清洗：非法 icon 一律丢弃（不能进库）
+    icon: sanitizeIcon(link.icon),
+    // 同理：导入的来源可能给 desc: null，归一为「无此字段」
+    desc: sanitizeDesc(link.desc),
   };
 }
 
@@ -230,6 +260,10 @@ function applyOps(doc: Doc, ops: Op[], now: number): Doc {
         if (i < 0) throw new OpError(`link.update: 未找到 ${op.id}`);
         const patch = { ...op.patch };
         if (typeof patch.url === 'string') patch.urlKey = normalizeUrl(patch.url);
+        // icon 走统一清洗：非法 → undefined（即删除该字段），避免脏值进库
+        if ('icon' in patch) patch.icon = sanitizeIcon(patch.icon);
+        // desc 同理：客户端清空描述时发的是 null，必须归一，否则库里会留 desc: null
+        if ('desc' in patch) patch.desc = sanitizeDesc(patch.desc);
         d.links[i] = { ...d.links[i], ...patch };
         break;
       }
@@ -350,7 +384,7 @@ function coerceItems(raw: unknown): ImportItem[] {
       desc: typeof o.desc === 'string' ? o.desc : undefined,
       cat: typeof o.cat === 'string' ? o.cat : undefined,
       pinned: typeof o.pinned === 'boolean' ? o.pinned : undefined,
-      icon: typeof o.icon === 'string' ? o.icon : undefined,
+      icon: sanitizeIcon(o.icon),
     });
   }
   return out;
@@ -540,6 +574,69 @@ async function fetchWithTimeout(
   }
 }
 
+/* ── /api/icon：首页 HTML 解析（无 DOM、无 HTMLRewriter、无 Node 内建） ──
+ * ⚠️ CPU 只有 10 ms：只读前 64 KB 就必须停（见 readTextBounded），只用一条线性正则扫描
+ *    （无嵌套量词 → 无灾难性回溯）。HTMLRewriter 是 Cloudflare 专有 API，EdgeOne V8 没有 —— 禁用。
+ */
+const HTML_SCAN_BYTES = 64 * 1024;
+
+/**
+ * 只读前 maxBytes 字节的文本（超限即 cancel，绝不无上限缓冲整页）。
+ * 网络等待不计 CPU；读取本身是流式，避免 res.text() 把整页拉进内存。
+ */
+async function readTextBounded(res: Response, maxBytes: number): Promise<string> {
+  const body = res.body;
+  if (!body) return '';
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let out = '';
+  let total = 0;
+  try {
+    while (total < maxBytes) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      out += decoder.decode(value, { stream: true });
+      if (total >= maxBytes) break; // 到上限立刻停，不再多读一字节
+    }
+    out += decoder.decode();
+  } catch {
+    /* 读取中断：用已读到的部分尽力解析 */
+  } finally {
+    try {
+      await reader.cancel();
+    } catch {
+      /* 已读完 / 已被取消 */
+    }
+  }
+  // 单个 chunk 可能 > maxBytes：再按字符截断一次，确保正则只见到前 ≤64 KB
+  return out.length > maxBytes ? out.slice(0, maxBytes) : out;
+}
+
+/**
+ * 仅一条正则（无 DOM、无 HTMLRewriter）：匹配 <link ...> 且 rel 含 "icon"，捕获 rel 与 href。
+ * ⚠️ rel 用**贪婪**捕获 ([^"'>]*)：若改成惰性 *?，`["']?` 会先吞掉起始引号、导致 rel 捕获成空串
+ *    —— 实测会漏掉 apple-touch-icon（务必别改回 *?）。href 用惰性 + 排除引号/空白。
+ * 返回时优先 apple-touch-icon，其次第一个任意 *icon*（含 shortcut icon / mask-icon）。
+ * ⚠️ 同步执行、无 await —— 模块级正则的 lastIndex 不会被并发请求交错污染。
+ */
+const ICON_LINK_RE =
+  /<link\b[^>]*?\brel\s*=\s*["']?([^"'>]*)["']?[^>]*?\bhref\s*=\s*["']?([^"'>\s]+)["']?/gi;
+
+function pickIconHref(html: string): string | null {
+  ICON_LINK_RE.lastIndex = 0;
+  let fallback: string | null = null;
+  let m: RegExpExecArray | null;
+  while ((m = ICON_LINK_RE.exec(html)) !== null) {
+    const rel = (m[1] || '').toLowerCase();
+    const href = m[2];
+    if (!href) continue;
+    if (rel.includes('apple-touch-icon')) return href; // 高质量档：命中即止
+    if (fallback === null && rel.includes('icon')) fallback = href;
+  }
+  return fallback;
+}
+
 /* ------------------------------------------------------------------ *
  * 死链批量探测
  * ------------------------------------------------------------------ */
@@ -701,6 +798,18 @@ export function createApp(deps: AppDeps): Hono {
       'Set-Cookie': clearSessionCookie(isSecure(config)),
     }),
   );
+
+  /* ── GET /api/session：真正的会话探针（后台据此判断"是否已登录"） ──
+   * ⚠️ GET /api/data 是公开只读路由，绝不能拿它当登录探针（否则无会话也显示已登录，
+   *    直到第一次 PATCH 被 401 打回、客户端才跳登录页 —— 即本次报的"保存失败并退出登录"）。
+   * ⚠️ 本路由**不得**带 ETag / 协商缓存：客户端若命中 304 会拿到空响应体，
+   *    被误判为"未登录"而踢回登录页。故显式 no-store，每次都回真实会话状态。
+   */
+  app.get('/api/session', async (c) => {
+    const denied = await requireSession(c, config);
+    if (denied) return denied;
+    return jsonResponse({ ok: true, sub: 'admin' }, 200, { 'Cache-Control': 'no-store' });
+  });
 
   /* ── PATCH /api/data：乐观并发 ── */
   app.patch('/api/data', async (c) => {
@@ -929,7 +1038,16 @@ export function createApp(deps: AppDeps): Hono {
     });
   });
 
-  /* ── GET /api/icon?u=<domain>&v=<hash>：favicon 代理 ── */
+  /* ── GET /api/icon?u=<domain>&v=<hash>：favicon 代理 ──
+   * 契约：客户端传 u = hostname（小写、保留 www），必须与 api/urlKey.ts 的 hostOf()
+   *       一致 —— collectHosts() 用它建 allow-list，不一致会静默 404。
+   *       （自定义图标 URL 前端直接热链，不走本接口，故无需扩 allow-list。）
+   * 三档按质量排序，命中即返回：
+   *   1) 抓站点首页 HTML 解析 apple-touch-icon / rel~=icon 指向的图标（最佳质量）
+   *   2) https://<domain>/favicon.ico
+   *   3) DuckDuckGo ip3/<domain>.ico
+   * 全部失败仍返回 404 → 前端回退本地字母图标（比通用占位 SVG 更好，勿改占位图）。
+   */
   app.get('/api/icon', async (c) => {
     const domain = (c.req.query('u') || '').trim().toLowerCase();
     if (!domain || isPrivateHost(domain)) {
@@ -965,6 +1083,8 @@ export function createApp(deps: AppDeps): Hono {
     }
     if (!allowed.has(domain)) return new Response(null, { status: 404 });
 
+    // SSRF 闸门：每一跳都必须过这里，只允许 https 且 host 只能是 domain 或 DDG_HOST。
+    // ⚠️ 不得放宽 allow-list（含首页解析出的图标 URL —— 第三方 CDN 主机一律拒绝，落到 2/3 档）。
     const validate = (u: string): boolean => {
       let parsed: URL;
       try {
@@ -978,22 +1098,17 @@ export function createApp(deps: AppDeps): Hono {
       return h === domain || h === DDG_HOST;
     };
 
-    const upstreams = [`https://${domain}/favicon.ico`, `https://${DDG_HOST}/ip3/${domain}.ico`];
-
-    for (const up of upstreams) {
-      const res = await safeFetch(up, fetchImpl, validate);
-      if (!res || !res.ok) continue;
+    // 命中即返回：仅接受 image/*，≤100 KB 才写缓存（避免 KV 单值与额度被滥用）
+    const serveImage = async (res: Response): Promise<Response | null> => {
       const ct = res.headers.get('content-type') || 'image/x-icon';
-      if (!ct.startsWith('image/')) continue;
+      if (!ct.startsWith('image/')) return null;
       let buf: Uint8Array;
       try {
         buf = new Uint8Array(await res.arrayBuffer());
       } catch {
-        continue;
+        return null;
       }
-      if (buf.length === 0) continue;
-
-      // 只在 ≤100 KB 时写缓存（避免 KV 单值与额度被滥用）
+      if (buf.length === 0) return null;
       if (buf.length <= 100 * 1024) {
         try {
           await store.putText(
@@ -1011,6 +1126,42 @@ export function createApp(deps: AppDeps): Hono {
           'Cache-Control': 'public, max-age=31536000, immutable',
         },
       });
+    };
+
+    // ── 1 档：首页 HTML → <link rel="apple-touch-icon"/rel~="icon" href> 图标 ──
+    const homeUrl = `https://${domain}/`;
+    const home = await safeFetch(homeUrl, fetchImpl, validate);
+    if (home && home.ok) {
+      const pct = (home.headers.get('content-type') || '').toLowerCase();
+      // 只解析 HTML/XML，避免对二进制做正则（省 CPU）
+      if (!pct || pct.includes('html') || pct.includes('xml')) {
+        const html = await readTextBounded(home, HTML_SCAN_BYTES);
+        const href = html ? pickIconHref(html) : null;
+        if (href) {
+          let abs: string | null = null;
+          try {
+            abs = new URL(href, homeUrl).toString();
+          } catch {
+            abs = null;
+          }
+          if (abs && validate(abs)) {
+            const iconRes = await safeFetch(abs, fetchImpl, validate);
+            if (iconRes && iconRes.ok) {
+              const served = await serveImage(iconRes);
+              if (served) return served;
+            }
+          }
+        }
+      }
+    }
+
+    // ── 2 / 3 档：favicon.ico → DuckDuckGo ip3 ──
+    const upstreams = [`https://${domain}/favicon.ico`, `https://${DDG_HOST}/ip3/${domain}.ico`];
+    for (const up of upstreams) {
+      const res = await safeFetch(up, fetchImpl, validate);
+      if (!res || !res.ok) continue;
+      const served = await serveImage(res);
+      if (served) return served;
     }
 
     // 失败 → 404（前端据此回退本地字母图标）

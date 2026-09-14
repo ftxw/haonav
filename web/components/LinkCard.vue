@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { CardStyle, IconStrategy } from '../lib/models';
 import { linkLetterIcon } from '../lib/brandIcon';
 import { CARD_FRAME, CARD_MIN_H, ICON_RADIUS, TITLE_HOVER } from '../lib/ui';
@@ -16,12 +16,54 @@ const emit = defineEmits<{ context: [payload: { link: IndexedLink; x: number; y:
 
 const failed = ref(false);
 
-/** 图标零请求：letter 策略用本地生成的字母 SVG；fetched 才走 /api/icon 并在失败时回退 */
+/**
+ * 与 `api/urlKey.ts` 的 `hostOf()` **完全一致**：小写、**保留 `www.`**。
+ * 服务端 `collectHosts()` 用它建 `GET /api/icon` 的 SSRF 白名单；
+ * 这里若剥掉 `www.` 会与白名单不匹配 → 静默 404、永远只有字母图标。
+ * 注意：`web/lib/brandIcon.ts` 与 `admin/lib/util.ts` 里的 hostOf 会剥 `www.`，**不可复用**。
+ */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.toLowerCase();
+  } catch {
+    return '';
+  }
+}
+
+/** 本地字母图标（data URI，零请求） */
 const letterSrc = computed(() => linkLetterIcon(props.link.title, props.link.url));
-const src = computed(() =>
-  props.iconStrategy === 'fetched' && props.link.icon && !failed.value ? props.link.icon : letterSrc.value,
-);
+
+/** 自定义图标：对齐 workers.js —— icon 非空且以 http(s) 开头才采用 */
+const custom = computed(() => {
+  const v = props.link.icon;
+  return v && /^https?:\/\//i.test(v) ? v : '';
+});
+
+/** 自动抓取：/api/icon?u=<host>；URL 非法则取不到 */
+const auto = computed(() => {
+  const host = hostOf(props.link.url);
+  return host ? `/api/icon?u=${encodeURIComponent(host)}` : '';
+});
+
+/**
+ * 图标取值优先级（对齐 `workers.js`：`(!icon || !icon.startsWith('http')) ? imgApi + url : icon`）：
+ *  - `letter` 策略的语义是「只用本地字母图标、零请求」→ **刻意忽略自定义图标**；
+ *    自定义 URL 只在 `fetched` 模式下才优先于自动抓取。
+ *  - `fetched`：自定义 URL 优先，其次自动抓取，最后字母回退。
+ *  - `failed`（当前图标加载失败）→ 回退字母图标，避免破图。
+ * 不追加 `v=<hash>` 之类的 cache-buster：服务端按 domain 缓存一年（immutable）。
+ */
+const src = computed(() => {
+  if (props.iconStrategy !== 'fetched' || failed.value) return letterSrc.value;
+  return custom.value || auto.value || letterSrc.value;
+});
+
 const loading = computed(() => (props.iconStrategy === 'fetched' ? 'lazy' : undefined));
+
+/** 链接或图标变化 → 重置失败态，让编辑后的新图标重新尝试加载 */
+watch([() => props.link.url, () => props.link.icon], () => {
+  failed.value = false;
+});
 
 function onContext(e: MouseEvent): void {
   e.preventDefault();

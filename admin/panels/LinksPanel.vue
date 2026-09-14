@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import Modal from '../components/Modal.vue';
 import { between, appendOrder, orderForIndex } from '../lib/order';
 import { newId, hostOf, maxOrderOf } from '../lib/util';
@@ -180,19 +180,35 @@ function reflowCategory(d: import('../../shared/types').Doc, catId: string): voi
 /* ───────── 新增 / 编辑 ───────── */
 const editing = ref<LinkItem | null>(null);
 const isAdd = ref(false);
-const form = ref({ title: '', url: '', desc: '', cat: '', pinned: false });
+const form = ref({ title: '', url: '', desc: '', icon: '', cat: '', pinned: false });
 const formError = ref('');
+
+/** 图标预览：只接受 http(s)；加载失败则隐藏图片并提示 */
+const iconPreviewFailed = ref(false);
+const iconPreview = computed(() => {
+  const v = form.value.icon.trim();
+  return /^https?:\/\//i.test(v) && !iconPreviewFailed.value ? v : '';
+});
+watch(
+  () => form.value.icon,
+  () => {
+    iconPreviewFailed.value = false;
+  },
+);
 
 function openAdd(): void {
   isAdd.value = true;
-  form.value = { title: '', url: '', desc: '', cat: state.doc?.categories[0]?.id ?? '', pinned: false };
+  // categories 可能为 undefined（旧/残破文档），可选链要一路护住到下标访问
+  form.value = { title: '', url: '', desc: '', icon: '', cat: state.doc?.categories?.[0]?.id ?? '', pinned: false };
   formError.value = '';
+  iconPreviewFailed.value = false;
   editing.value = {} as LinkItem;
 }
 function openEdit(l: LinkItem): void {
   isAdd.value = false;
-  form.value = { title: l.title, url: l.url, desc: l.desc ?? '', cat: l.cat, pinned: !!l.pinned };
+  form.value = { title: l.title, url: l.url, desc: l.desc ?? '', icon: l.icon ?? '', cat: l.cat, pinned: !!l.pinned };
   formError.value = '';
+  iconPreviewFailed.value = false;
   editing.value = l;
 }
 function closeForm(): void {
@@ -210,6 +226,8 @@ function submitForm(): void {
     formError.value = '请填写标题';
     return;
   }
+  // 只接受 http(s) 的自定义图标，其余（含留空）一律 undefined → 交给 iconStrategy 决定
+  const icon = /^https?:\/\//i.test(f.icon.trim()) ? f.icon.trim() : undefined;
   if (isAdd.value) {
     mutate((d) => {
       const last = maxOrderOf(d.links.filter((l) => l.cat === f.cat).map((l) => l.order));
@@ -217,11 +235,14 @@ function submitForm(): void {
         id: newId(),
         title: f.title.trim(),
         url,
-        urlKey: url,
+        // 交给服务端 normalizeUrl（hydrateLink 只在 urlKey 为空时计算）：
+        // 前端若塞原始 url 会让去重失效（'https://a.com/' 与 'https://a.com' 判为不同）
+        urlKey: '',
         desc: f.desc.trim() || undefined,
         cat: f.cat,
         order: appendOrder(last),
         pinned: f.pinned || undefined,
+        icon,
         createdAt: Date.now(),
       });
     });
@@ -234,6 +255,7 @@ function submitForm(): void {
       l.title = f.title.trim();
       l.url = url;
       l.desc = f.desc.trim() || undefined;
+      l.icon = icon;
       if (l.cat !== f.cat) {
         const last = maxOrderOf(d.links.filter((x) => x.id !== id && x.cat === f.cat).map((x) => x.order));
         l.cat = f.cat;
@@ -374,6 +396,23 @@ const tdCls = TD;
         <label class="block">
           <span class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">标题</span>
           <input v-model="form.title" type="text" :class="inputCls" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">图标 URL（可选）</span>
+          <div class="flex items-center gap-2">
+            <input v-model="form.icon" type="url" placeholder="留空自动获取" :class="inputCls + ' min-w-0 flex-1'" />
+            <img
+              v-if="iconPreview"
+              :src="iconPreview"
+              width="28"
+              height="28"
+              alt=""
+              class="h-7 w-7 shrink-0 rounded-md border border-slate-200 object-contain dark:border-slate-700"
+              @error="iconPreviewFailed = true"
+            />
+          </div>
+          <span v-if="iconPreviewFailed" class="mt-1 block text-xs text-slate-400">无法加载该图片</span>
+          <span class="mt-1 block text-xs text-slate-400">仅「抓取站点图标」模式下生效；留空则自动抓取该站点图标</span>
         </label>
         <label class="block">
           <span class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">描述（可选）</span>

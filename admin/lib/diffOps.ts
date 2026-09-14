@@ -42,8 +42,19 @@ export function diffOps(prev: Doc, next: Doc): Op[] {
     const patch: Partial<LinkItem> = {};
     if (p.title !== l.title) patch.title = l.title;
     if (p.url !== l.url) patch.url = l.url; // 服务端会据此重算 urlKey
-    if ((p.desc ?? undefined) !== (l.desc ?? undefined)) patch.desc = l.desc;
-    if ((p.icon ?? undefined) !== (l.icon ?? undefined)) patch.icon = l.icon;
+    if ((p.desc ?? undefined) !== (l.desc ?? undefined)) {
+      // ⚠️ 同 icon：清空描述必须显式发 null。undefined 会被 JSON.stringify 丢弃，
+      //    服务端看不到「删除 desc」的意图 —— 表现为「描述清空后保存无效」。
+      //    服务端 api/core.ts applyOps 用 sanitizeDesc(null) → undefined 归一。
+      (patch as { desc?: string | null }).desc = l.desc ?? null;
+    }
+    if ((p.icon ?? undefined) !== (l.icon ?? undefined)) {
+      // ⚠️ 清除图标必须显式发 null，不能发 undefined：
+      // JSON.stringify 会丢弃值为 undefined 的键，服务端便看不到「删除 icon」的意图
+      // （api/core.ts applyOps：`if ('icon' in patch) patch.icon = sanitizeIcon(patch.icon)`，
+      //   而 sanitizeIcon(null) → undefined → 写库时该字段被移除）。
+      (patch as { icon?: string | null }).icon = l.icon ?? null;
+    }
     if (Object.keys(patch).length) ops.push({ t: 'link.update', id: l.id, patch });
     if (p.cat !== l.cat || p.order !== l.order) {
       ops.push({

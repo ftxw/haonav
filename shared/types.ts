@@ -44,7 +44,10 @@ export interface LinkItem {
   cat: string;
   order: string;
   pinned?: boolean;
-  /** fetched 模式下存 '/api/icon?u=<domain>&v=<hash>' */
+  /**
+   * 自定义图标 URL（http(s)）。留空则按 `iconStrategy` 处理：
+   * `fetched` 走 `/api/icon` 自动抓取站点图标；`letter` 使用本地字母图标（自定义值被忽略）。
+   */
   icon?: string;
   createdAt: number;
 }

@@ -21,14 +21,23 @@ export class ApiError extends Error {
 }
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
+  // 后台所有请求一律禁用 HTTP 缓存。`GET /api/data` 是公开只读 + `Cache-Control: no-cache`
+  // + ETag 协商：一旦走协商缓存，服务端可能返回 304（响应体 0 字节），
+  // 而 304 绝不能等同于「没有数据」——那会把「未取到文档」误判成「未登录」。
+  // init 在后，允许调用方覆盖（当前无人覆盖 cache）。
+  const base: RequestInit = { credentials: 'same-origin', cache: 'no-store', ...init };
   let res: Response;
   try {
-    res = await fetch(url, { credentials: 'same-origin', ...init });
+    res = await fetch(url, base);
   } catch (e) {
     throw new Error('网络请求失败，请检查连接');
   }
   if (res.status === 401) throw new AuthError();
-  if (res.status === 304) return null as T;
+  if (res.status === 304) {
+    // 已显式 no-store，正常链路不可能出现 304；真出现说明中间层异常，
+    // 此时必须显式报错，绝不静默返回 null（否则「没数据」与「没登录」混为一谈）
+    throw new ApiError(304, { error: '意外的 304（不应发生，请求已禁用缓存）' });
+  }
   const text = await res.text();
   let body: any = null;
   if (text) {
@@ -45,12 +54,19 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 export const api = {
-  /** 未登录时返回 null（401 交由调用方判断） */
-  async tryGetData(): Promise<Doc | null> {
+  /**
+   * 会话探针：`GET /api/session`（服务端走 requireSession，未登录 401）。
+   * 200 → 已登录；401（AuthError）→ 未登录；其它错误照常抛出。
+   *
+   * ⚠️ 不要用 `GET /api/data` 当会话探针：它是公开只读接口，未登录也返回 200，
+   * 会让后台在「完全没有会话」时误判为已登录。
+   */
+  async session(): Promise<boolean> {
     try {
-      return await request<Doc>('/api/data');
+      await request<{ ok: boolean; sub: string }>('/api/session');
+      return true;
     } catch (e) {
-      if (e instanceof AuthError) return null;
+      if (e instanceof AuthError) return false;
       throw e;
     }
   },
