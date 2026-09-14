@@ -1022,7 +1022,7 @@ export function createApp(deps: AppDeps): Hono {
    *    原因：本处理器只跟 api.xinac.net 通信，**从不直接请求 targetUrl**，
    *    所以没有 SSRF 面（想加校验前请先想清楚这个前提是否还成立）。
    */
-  app.get('/api/icon', async (c) => {
+  const handleIcon = async (c: Context): Promise<Response> => {
     const url = new URL(c.req.url);
     const targetUrl = url.searchParams.get('url');
 
@@ -1097,7 +1097,15 @@ export function createApp(deps: AppDeps): Hono {
     }
 
     return response;
-  });
+  };
+
+  /* 两个路径共用一个 handler：
+   * · `/icon`     —— **生产使用**。Makers/EdgeOne 对 `/api/*` 强制 Bypass Cache，
+   *                  所以必须把图标接口挪出 `/api/`，否则 CDN 不缓存、
+   *                  caches.default 也会抛 `forbidden cdn cache`。
+   * · `/api/icon` —— 旧路径，保留向后兼容（仍在 /api/* 下，天然不缓存）。 */
+  app.get('/icon', handleIcon);
+  app.get('/api/icon', handleIcon);
 
   /* ── GET /api/backup/snapshots：快照列表（index-aside，一次 KV 读） ── */
   app.get('/api/backup/snapshots', async (c) => {

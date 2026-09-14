@@ -381,6 +381,18 @@ describe('api / icon（逐行对齐 workers.js handleIconProxy）', () => {
   });
   afterEach(() => restore?.());
 
+  it('/icon 新路由可用（Makers 对 /api/* 强制 Bypass Cache）', async () => {
+    // 生产改用 /icon：Makers/EdgeOne 对 `/api/*` 一律 Bypass Cache，
+    // 导致 CDN 不缓存 + cache.put 抛 forbidden cdn cache。旧路径保留兼容。
+    const { app } = makeApp({}, {}, (async () => imgRes()) as unknown as typeof fetch);
+    const res = await app.request(`/icon?url=${encodeURIComponent('https://f.com/')}`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('image/png');
+    expect(res.headers.get('x-icon-cache-status')).toBe('MISS');
+    // 旧路径仍在
+    expect((await app.request(`/api/icon?url=${encodeURIComponent('https://f.com/')}`)).status).toBe(200);
+  });
+
   it('缺 url → 400 Missing URL（与 workers.js 一致，不再静默 404）', async () => {
     const { app } = makeApp();
     const res = await app.request('/api/icon');

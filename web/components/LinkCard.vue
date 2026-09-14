@@ -31,7 +31,7 @@ const custom = computed(() => {
  * 早期版本传的是 `?u=<host>`，服务端仍兼容，但新代码统一用 url。
  */
 const auto = computed(() =>
-  props.link.url ? `/api/icon?url=${encodeURIComponent(props.link.url)}` : '',
+  props.link.url ? `/icon?url=${encodeURIComponent(props.link.url)}` : '',
 );
 
 /**
