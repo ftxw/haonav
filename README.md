@@ -55,7 +55,14 @@ npm run build      # 产出 dist/（前台 index.html + 后台 admin.html 两个
 
 **为什么填错就打不开**：本项目是 **Vite 多入口**（`index.html` 前台 + `admin.html` 后台），`vite build` 的产物在 **`dist/`**。仓库里**根本没有 `public/` 这个目录** —— 上传一个空目录，站点自然 404 / 空白页。
 
-> 💡 仓库根目录的 [`edgeone.json`](./edgeone.json) 已经把正确值写好了（`framework: vite` / `outputDirectory: dist`）。但**如果控制台里已经保存过 `public` / `Hono`，控制台的值优先级更高，必须手动改回来**。改完重新部署。
+> 💡 仓库根目录的 [`edgeone.json`](./edgeone.json) 已经把 `buildCommand` / `outputDirectory` 写好了。
+> 但**如果控制台里已经保存过 `public` / `Hono`，控制台的值优先级更高，必须手动改回来**。改完重新部署。
+>
+> ⚠️ 框架标签（那个"Hono"字样）**不在 `edgeone.json` 里改**，该字段平台不支持；它来自平台对
+> `package.json` 依赖的自动检测。要改只有两条路：① 在控制台「项目设置 → 构建与部署配置」里手动覆盖；
+> ② 让生产依赖里不再出现 `hono`（见下方「关于 Hono 标签」）。
+> 好消息是：**这个标签只影响显示，不影响构建** —— 真正的构建行为由 `edgeone.json` 的
+> `buildCommand` + `outputDirectory` 决定，这两项是官方支持的字段。
 
 ### 需要配置的东西（共 1 个绑定 + 2 个 Secret）
 
@@ -125,13 +132,18 @@ edge-functions/api/[[default]].ts  →  /api/* 下所有未单独定义的路由
 
 ```json
 {
-  "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist"
 }
 ```
 
 Git 连接部署和 CLI 部署都依赖它。仓库里若出现名字相似的另一份配置（如已删除的 `eop-config.json`），一律以 `edgeone.json` 为准。
+
+> ⚠️ **没有顶层 `framework` 字段**。官方文档（[edgeone.json](https://edgeone.ai/document/162316940304400384)）
+> 支持的顶层键只有：`name` / `buildCommand` / `installCommand` / `outputDirectory` /
+> `nodeVersion` / `redirects` / `rewrites` / `headers` / `cloudFunctions` / `schedules` / `agents`。
+> 曾经写过的 `"framework": "vite"` 是**无效配置**，平台直接忽略 —— 这正是它一直显示 Hono 的原因。
+> `framework` 只作为 `agents.framework` 存在，且仅用于 AI Agent 的 `context.store` / `context.tools` 适配。
 
 ### 方式二：Cloudflare Pages / Workers
 
