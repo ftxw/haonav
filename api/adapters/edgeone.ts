@@ -105,7 +105,8 @@ async function handle(request: Request, env: any, ctx?: any): Promise<Response> 
 }
 
 export async function onRequest(context: { request: Request; env: any }): Promise<Response> {
-  return handle(context.request, context.env);
+  // 第 3 个参数透传 context：Hono 据此填 c.executionCtx.waitUntil（/api/icon 写缓存要用）
+  return handle(context.request, context.env, context);
 }
 
 export default {

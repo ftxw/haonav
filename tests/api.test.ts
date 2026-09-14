@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createApp, type ServerConfig } from '../api/core';
 import { createMemoryStore } from '../api/store';
 import { createRateLimiter } from '../api/auth';
@@ -338,76 +338,133 @@ describe('api / 快照', () => {
   });
 });
 
-describe('api / icon（代理第三方，与 workers.js 对齐）', () => {
+describe('api / icon（逐行对齐 workers.js handleIconProxy）', () => {
   const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
   const imgRes = (): Response =>
     new Response(png, { status: 200, headers: { 'Content-Type': 'image/png' } });
 
-  it('私网 / 本地 → 404（不发请求）', async () => {
+  /** 内存版 caches.default：Node 没有 Cache API，用它验证 HIT/MISS 分支 */
+  function installMemCache() {
+    const map = new Map<string, { body: ArrayBuffer; status: number; headers: [string, string][] }>();
+    const keyOf = (req: any) => String(req?.url ?? req);
+    (globalThis as any).caches = {
+      default: {
+        async match(req: any) {
+          const e = map.get(keyOf(req));
+          if (!e) return undefined;
+          return new Response(e.body, { status: e.status, headers: e.headers });
+        },
+        async put(req: any, res: Response) {
+          map.set(keyOf(req), {
+            body: await res.arrayBuffer(),
+            status: res.status,
+            headers: [...res.headers.entries()] as [string, string][],
+          });
+        },
+      },
+    };
+    return {
+      size: () => map.size,
+      /** waitUntil 未被挂起时 cache.put 是浮动的 → 让出事件循环等它落地 */
+      flush: () => new Promise((r) => setTimeout(r, 5)),
+    };
+  }
+
+  let restore: (() => void) | null = null;
+  beforeEach(() => {
+    const had = 'caches' in globalThis;
+    const prev = (globalThis as any).caches;
+    restore = () => {
+      if (had) (globalThis as any).caches = prev;
+      else delete (globalThis as any).caches;
+    };
+  });
+  afterEach(() => restore?.());
+
+  it('缺 url → 400 Missing URL（与 workers.js 一致，不再静默 404）', async () => {
     const { app } = makeApp();
-    expect((await app.request('/api/icon?url=https://127.0.0.1/')).status).toBe(404);
-    expect((await app.request('/api/icon?url=https://10.0.0.1/')).status).toBe(404);
-    expect((await app.request('/api/icon?url=https://localhost/')).status).toBe(404);
+    const res = await app.request('/api/icon');
+    expect(res.status).toBe(400);
+    expect(await res.text()).toBe('Missing URL');
   });
 
-  it('非 http(s) → 404', async () => {
-    const { app } = makeApp();
-    const res = await app.request(`/api/icon?url=${encodeURIComponent('ftp://a.com/')}`);
-    expect(res.status).toBe(404);
-  });
-
-  it('代理第三方成功 → 200 + image + immutable 一年', async () => {
+  it('代理第三方：URL / UA / 响应头全部对齐 workers.js', async () => {
     let called = '';
-    const { app } = makeApp({}, {}, (async (u: any) => {
+    let ua = '';
+    const { app } = makeApp({}, {}, (async (u: any, init: any) => {
       called = String(u);
+      ua = init?.headers?.['User-Agent'] ?? '';
       return imgRes();
     }) as unknown as typeof fetch);
     const res = await app.request(`/api/icon?url=${encodeURIComponent('https://a.com/x')}`);
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toBe('image/png');
-    expect(res.headers.get('cache-control')).toContain('immutable');
-    expect(called).toContain('api.xinac.net/icon/?url=');
+    expect(called).toBe(
+      `https://api.xinac.net/icon/?url=${encodeURIComponent('https://a.com/x')}`,
+    );
+    expect(ua).toContain('Chrome/120.0.0.0');
+    expect(res.headers.get('cache-control')).toBe('public, max-age=604800, s-maxage=604800');
+    expect(res.headers.get('access-control-allow-origin')).toBe('*');
+    expect(res.headers.get('x-icon-cache-status')).toBe('MISS');
   });
 
-  it('结果写入 KV，二次请求命中缓存不再打上游', async () => {
+  it('二次请求命中 caches.default（HIT），上游只打一次，且不写 KV', async () => {
+    const mem = installMemCache();
     let n = 0;
     const { app, store } = makeApp({}, {}, (async () => {
       n++;
       return imgRes();
     }) as unknown as typeof fetch);
+
     const q = `/api/icon?url=${encodeURIComponent('https://b.com/')}`;
-    expect((await app.request(q)).status).toBe(200);
-    expect((await app.request(q)).status).toBe(200);
-    expect(n).toBe(1); // 每个域名全局只抓一次
-    expect(await store.getText('nav:icon:b.com')).toBeTruthy();
+    const first = await app.request(q);
+    expect(first.headers.get('x-icon-cache-status')).toBe('MISS');
+    await first.arrayBuffer();
+    await mem.flush();
+
+    const second = await app.request(q);
+    expect(second.status).toBe(200);
+    expect(second.headers.get('x-icon-cache-status')).toBe('HIT');
+    expect(n).toBe(1); // 缓存生效
+    expect(mem.size()).toBe(1);
+    // 关键回归：图标不再占用 KV 写配额
+    expect(await store.getText('nav:icon:b.com')).toBeNull();
   });
 
-  it('上游返回非图 → 404（前端据此回退字母图标）', async () => {
+  it('上游异常 → 200 + 内联默认 SVG（DEFAULT），不是 404', async () => {
+    const { app } = makeApp({}, {}, (async () => {
+      throw new Error('boom');
+    }) as unknown as typeof fetch);
+    const res = await app.request(`/api/icon?url=${encodeURIComponent('https://d.com/')}`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('image/svg+xml');
+    expect(res.headers.get('cache-control')).toBe('public, max-age=3600');
+    expect(res.headers.get('x-icon-cache-status')).toBe('DEFAULT');
+    expect(res.headers.get('access-control-allow-origin')).toBe('*');
+    expect(await res.text()).toContain('<svg');
+  });
+
+  it('上游返回非图 → 原样透传（workers.js 不校验 content-type）', async () => {
     const { app } = makeApp({}, {}, (async () =>
       new Response('nope', {
         status: 200,
         headers: { 'Content-Type': 'text/html' },
       })) as unknown as typeof fetch);
     const res = await app.request(`/api/icon?url=${encodeURIComponent('https://c.com/')}`);
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('text/html');
   });
 
-  it('上游超时/异常 → 404，不抛到客户端', async () => {
-    const { app } = makeApp({}, {}, (async () => {
-      throw new Error('boom');
-    }) as unknown as typeof fetch);
-    const res = await app.request(`/api/icon?url=${encodeURIComponent('https://d.com/')}`);
-    expect(res.status).toBe(404);
-  });
-
-  it('兼容旧参数 u=<host>（等价 url=https://<host>/）', async () => {
+  it('不判私网：本处理器只跟 api.xinac.net 通信，从不直连 targetUrl', async () => {
     let called = '';
     const { app } = makeApp({}, {}, (async (u: any) => {
       called = String(u);
       return imgRes();
     }) as unknown as typeof fetch);
-    expect((await app.request('/api/icon?u=d.com')).status).toBe(200);
-    expect(called).toContain(encodeURIComponent('https://d.com/'));
+    const res = await app.request(`/api/icon?url=${encodeURIComponent('http://127.0.0.1/')}`);
+    expect(res.status).toBe(200);
+    // 请求打给的是 xinac，127.0.0.1 只是编码后的查询参数
+    expect(called.startsWith('https://api.xinac.net/icon/?url=')).toBe(true);
   });
 });
 

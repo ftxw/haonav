@@ -36,6 +36,7 @@ import {
 import { appendOrder, between, ORDER_DIGITS } from './order';
 import { normalizeUrl, hostOf } from './urlKey';
 import { validateDoc } from './validate';
+import { DEFAULT_ICON_SVG } from './iconFallback';
 
 /* ------------------------------------------------------------------ *
  * 配置与依赖（全部注入，零平台耦合）
@@ -538,23 +539,45 @@ function retentionOf(doc: Doc): number {
 }
 
 /* ------------------------------------------------------------------ *
- * /api/icon：第三方图标服务（与 workers.js 的 DEFAULT_IMGAPI 对齐）
+ * /api/icon：逐行对齐 E:/CC/workers.js 的 handleIconProxy()
+ *
+ * ⚠️ 本节**不做任何"优化"**：缓存用 Cache API（不是 KV）、失败返回默认 SVG
+ *    （不是 404）、响应头与 workers.js 完全一致。要改请先改 workers.js 再同步。
  * ------------------------------------------------------------------ */
 
-/** 第三方 favicon 服务：传完整网址，返回 image/*（自身带默认图标兜底） */
+/** 第三方 favicon 服务（= workers.js:2170 DEFAULT_IMGAPI）；USE_DEFAULT_IMGAPI 恒为 true */
 const XINAC_ICON_API = 'https://api.xinac.net/icon/?url=';
-/** 网络等待不计 CPU，可给得宽一些（单次且结果会永久缓存） */
-const ICON_TIMEOUT_MS = 8000;
+/** 传给上游的 UA（workers.js:2361 原样携带，未改动） */
+const ICON_UPSTREAM_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-/** 上游闸门：只走 https 且不得指向私网（跟随重定向时逐跳校验） */
-function allowPublicHttps(u: string): boolean {
+/**
+ * Cache API（= workers.js 的 `caches.default`）。
+ * EdgeOne / Cloudflare 边缘运行时均已实现；本地 Node 没有 → 返回 null（退化为不缓存）。
+ */
+function iconCache(): Cache | null {
   try {
-    const p = new URL(u);
-    if (p.protocol !== 'https:') return false;
-    return !isPrivateHost(p.hostname.toLowerCase().replace(/^\[|\]$/g, ''));
+    const c = (globalThis as any).caches;
+    const d = c && c.default;
+    return d && typeof d.match === 'function' ? (d as Cache) : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+/** ctx.waitUntil 兜底：拿不到 executionCtx（EdgeOne onRequest 未透传）时后台跑，绝不影响响应 */
+function runLater(c: Context, task: Promise<unknown>): void {
+  const p = Promise.resolve(task).catch(() => {});
+  const ctx = (c as any).executionCtx;
+  if (ctx && typeof ctx.waitUntil === 'function') {
+    try {
+      ctx.waitUntil(p);
+      return;
+    } catch {
+      /* 落到下面 */
+    }
+  }
+  void p;
 }
 
 function isPrivateIpv4(host: string): boolean {
@@ -588,22 +611,6 @@ function isPrivateHost(host: string): boolean {
     return false;
   }
   return isPrivateIpv4(h);
-}
-
-function bytesToBase64(bytes: Uint8Array): string {
-  let bin = '';
-  const CHUNK = 0x8000;
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
-  }
-  return btoa(bin);
-}
-
-function base64ToBytes(b64: string): Uint8Array {
-  const bin = atob(b64);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
 }
 
 async function fetchWithTimeout(
@@ -678,42 +685,6 @@ async function probeUrls(urls: string[], fetchImpl: typeof fetch): Promise<Check
   return results;
 }
 
-/**
- * 带重定向次数限制的抓取，每跳都重新校验目标（防 DNS rebinding / 302 绕行）。
- * ⚠️ Workers V8 无 DNS 解析 API，无法在 fetch 前拿到解析后的 IP ——
- *    因此第一道防线是"只允许抓取文档中已登记的域名"，第二道是 IP 字面量 / 本地域名黑名单。
- */
-async function safeFetch(
-  startUrl: string,
-  fetchImpl: typeof fetch,
-  validate: (u: string) => boolean,
-  maxRedirects = 2,
-  timeoutMs = 3000,
-): Promise<Response | null> {
-  let url = startUrl;
-  for (let hop = 0; hop <= maxRedirects; hop++) {
-    if (!validate(url)) return null;
-    let res: Response;
-    try {
-      res = await fetchWithTimeout(url, fetchImpl, timeoutMs);
-    } catch {
-      return null;
-    }
-    if (res.status >= 300 && res.status < 400) {
-      const loc = res.headers.get('location');
-      if (!loc) return res;
-      try {
-        url = new URL(loc, url).toString();
-      } catch {
-        return null;
-      }
-      continue;
-    }
-    return res;
-  }
-  return null; // 重定向过多
-}
-
 /* ------------------------------------------------------------------ *
  * 应用工厂
  * ------------------------------------------------------------------ */
@@ -744,7 +715,17 @@ export function createApp(deps: AppDeps): Hono {
 
   /* ── GET /api/health ── */
   app.get('/api/health', (c) =>
-    jsonResponse({ status: 'ok', platform: config.platform, time: now() }),
+    jsonResponse({
+      status: 'ok',
+      platform: config.platform,
+      time: now(),
+      /**
+       * 运行时是否提供 Cache API（caches.default）。
+       * 排障用：/api/icon 的缓存依赖它。false = 该运行时没注入 caches，
+       * 图标仍会正常返回（每次回源），只是没有边缘缓存。
+       */
+      cacheApi: iconCache() !== null,
+    }),
   );
 
   /* ── POST /api/login ── */
@@ -1027,99 +1008,82 @@ export function createApp(deps: AppDeps): Hono {
     });
   });
 
-  /* ── GET /api/icon?url=<完整网址>：favicon 代理（与 workers.js 方案对齐）──
-   * 不再自建抓取，直接代理第三方图标服务（同 workers.js 的 DEFAULT_IMGAPI）。
+  /* ── GET /api/icon?url=<完整网址>：favicon 代理 ──
+   * 逐行对齐 workers.js 的 handleIconProxy()（workers.js:2342-2391）：
+   *   · 参数：`?url=<完整网址>`；缺失 → 400 'Missing URL'
+   *   · 抓取：`${DEFAULT_IMGAPI}${encodeURIComponent(targetUrl)}` + Chrome UA
+   *   · 缓存：`caches.default`（**不是 KV**），命中加 `X-Icon-Cache-Status: HIT`
+   *   · 缓存头：`Cache-Control: public, max-age=604800, s-maxage=604800`
+   *   · 兜底：上游失败 → **200 + 内联默认 SVG**（不是 404），状态 `DEFAULT`
+   *   · 跨域：`Access-Control-Allow-Origin: *`
    *
-   * 为什么放弃自建三档：国内实测几乎全失败 ——
-   *   1 档抓首页：图标多在 CDN，被精确白名单拒绝；
-   *   2 档 /favicon.ico：大量站点 301 跳 www，同样被拒；
-   *   3 档 DuckDuckGo：国内 10 秒超时，等于没有兜底。
-   *
-   * 缓存（关键）：KV 按 host 永久缓存 + 响应 immutable 一年。
-   *   第三方 API 调用次数 ≈ 域名总数（每个域名只抓一次），与访问量无关。
-   *
-   * 失败 → 404，前端回退本地字母图标（第三方自身也会返回默认图标）。
-   * 兼容：仍接受旧参数 u=<host>，等价 url=https://<host>/。
+   * ⚠️ 这里刻意**不做**任何"优化"：不判私网、不判 content-type、不加超时。
+   *    原因：本处理器只跟 api.xinac.net 通信，**从不直接请求 targetUrl**，
+   *    所以没有 SSRF 面（想加校验前请先想清楚这个前提是否还成立）。
    */
   app.get('/api/icon', async (c) => {
-    const raw = (c.req.query('url') || '').trim();
-    const legacyHost = (c.req.query('u') || '').trim().toLowerCase();
-    const target = raw || (legacyHost ? `https://${legacyHost}/` : '');
-    if (!target) return new Response(null, { status: 404 });
+    const url = new URL(c.req.url);
+    const targetUrl = url.searchParams.get('url');
 
-    let parsed: URL;
+    if (!targetUrl) return new Response('Missing URL', { status: 400 });
+
+    let cacheKey: Request;
     try {
-      parsed = new URL(target);
+      cacheKey = new Request(url.toString(), c.req.raw);
     } catch {
-      return new Response(null, { status: 404 });
+      cacheKey = new Request(url.toString());
     }
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      return new Response(null, { status: 404 });
-    }
-    const host = parsed.hostname.toLowerCase();
-    if (!host || isPrivateHost(host)) return new Response(null, { status: 404 });
+    const cache = iconCache();
 
-    // 命中 KV 缓存（key 仍按 host，与旧版一致 → 存量缓存可直接复用）
-    const cached = await store.getText(KV.ICON_PREFIX + host);
-    if (cached) {
+    let response: Response | null = null;
+    if (cache) {
       try {
-        const p = JSON.parse(cached) as { ct: string; b64: string };
-        if (p?.b64) {
-          return new Response(base64ToBytes(p.b64), {
-            status: 200,
-            headers: {
-              'Content-Type': p.ct || 'image/x-icon',
-              'Cache-Control': 'public, max-age=31536000, immutable',
-            },
-          });
-        }
+        response = (await cache.match(cacheKey)) || null;
       } catch {
-        /* 缓存损坏 → 继续抓取 */
+        response = null;
       }
     }
 
-    // 唯一抓取路径：代理第三方图标服务
-    const res = await safeFetch(
-      `${XINAC_ICON_API}${encodeURIComponent(target)}`,
-      fetchImpl,
-      allowPublicHttps,
-      2,
-      ICON_TIMEOUT_MS,
-    );
-    if (res && res.ok) {
-      const ct = res.headers.get('content-type') || 'image/x-icon';
-      if (ct.startsWith('image/')) {
-        let buf: Uint8Array;
-        try {
-          buf = new Uint8Array(await res.arrayBuffer());
-        } catch {
-          return new Response(null, { status: 404 });
-        }
-        if (buf.length > 0) {
-          // ≤100 KB 才写缓存（避免 KV 单值与额度被滥用）
-          if (buf.length <= 100 * 1024) {
-            try {
-              await store.putText(
-                KV.ICON_PREFIX + host,
-                JSON.stringify({ ct, b64: bytesToBase64(buf) }),
-              );
-            } catch {
-              /* 缓存失败不影响本次返回 */
-            }
+    if (response) {
+      response = new Response(response.body, response);
+      response.headers.set('X-Icon-Cache-Status', 'HIT');
+    } else {
+      let upstreamResponse: Response | null = null;
+      try {
+        upstreamResponse = await fetchImpl(
+          `${XINAC_ICON_API}${encodeURIComponent(targetUrl)}`,
+          { headers: { 'User-Agent': ICON_UPSTREAM_UA } },
+        );
+      } catch {
+        upstreamResponse = null;
+      }
+
+      if (upstreamResponse) {
+        response = new Response(upstreamResponse.body, upstreamResponse);
+        response.headers.set('Cache-Control', 'public, max-age=604800, s-maxage=604800');
+        response.headers.set('Access-Control-Allow-Origin', '*');
+        response.headers.set('X-Icon-Cache-Status', 'MISS');
+        if (cache) {
+          try {
+            runLater(c, cache.put(cacheKey, response.clone()));
+          } catch {
+            /* 缓存失败不影响本次返回 */
           }
-          return new Response(buf, {
-            status: 200,
-            headers: {
-              'Content-Type': ct,
-              'Cache-Control': 'public, max-age=31536000, immutable',
-            },
-          });
         }
+      } else {
+        response = new Response(DEFAULT_ICON_SVG, {
+          status: 200,
+          headers: {
+            'Content-Type': 'image/svg+xml',
+            'Cache-Control': 'public, max-age=3600',
+          },
+        });
+        response.headers.set('X-Icon-Cache-Status', 'DEFAULT');
       }
+      response.headers.set('Access-Control-Allow-Origin', '*');
     }
 
-    // 失败 → 404（前端据此回退本地字母图标）
-    return new Response(null, { status: 404 });
+    return response;
   });
 
   /* ── GET /api/backup/snapshots：快照列表（index-aside，一次 KV 读） ── */
