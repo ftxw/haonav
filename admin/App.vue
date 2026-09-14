@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import AdminIcon from './components/AdminIcon.vue';
+import AdminNav, { PANEL_GROUPS } from './components/AdminNav.vue';
 import Modal from './components/Modal.vue';
 import BackupPanel from './panels/BackupPanel.vue';
 import CategoriesPanel from './panels/CategoriesPanel.vue';
@@ -22,25 +23,17 @@ import {
   undo,
   type PanelId,
 } from './lib/adminStore';
-import { BTN_PRIMARY, BTN_SECONDARY, NAV_ACTIVE, NAV_IDLE } from './lib/adminUi';
+import { BTN_GHOST_DANGER, BTN_PRIMARY, BTN_SECONDARY } from './lib/adminUi';
 
 const password = ref('');
 const loggingIn = ref(false);
 const showDiff = ref(false);
+/** 移动端抽屉开关（lg 以下侧栏隐藏，靠顶栏汉堡打开） */
+const navOpen = ref(false);
 
-/** 左侧导航 6 分区（面板状态集中在 adminStore.state.panel） */
-const PANELS: { id: PanelId; label: string; icon: string }[] = [
-  { id: 'links', label: '链接', icon: 'list' },
-  { id: 'categories', label: '分类', icon: 'grid' },
-  { id: 'search', label: '搜索', icon: 'search' },
-  { id: 'data', label: '数据', icon: 'upload' },
-  { id: 'backup', label: '备份', icon: 'download' },
-  { id: 'settings', label: '设置', icon: 'gear' },
-];
-
-const currentPanel = computed(() => PANELS.find((p) => p.id === state.panel) ?? PANELS[0]);
-const siteName = computed(() => state.doc?.settings.name || 'HaoNav');
-const brandChar = computed(() => Array.from(siteName.value.trim())[0] || 'H');
+/** 导航分组数据源在 AdminNav.vue，这里扁平化一份用于顶栏面包屑 */
+const ALL_PANELS = PANEL_GROUPS.flatMap((g) => g.items);
+const currentPanel = computed(() => ALL_PANELS.find((p) => p.id === state.panel) ?? ALL_PANELS[0]);
 
 const conflictDiff = computed(() => {
   const c = state.conflict;
@@ -78,7 +71,15 @@ function onKey(e: KeyboardEvent): void {
   } else if (mod && e.key.toLowerCase() === 's') {
     e.preventDefault();
     void doSave();
+  } else if (e.key === 'Escape') {
+    navOpen.value = false;
   }
+}
+
+/** 选中导航项：切面板并关闭移动端抽屉（桌面端无副作用） */
+function onPick(id: PanelId): void {
+  state.panel = id;
+  navOpen.value = false;
 }
 
 /** 有未保存改动时拦截关闭/刷新 */
@@ -99,11 +100,6 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey);
   window.removeEventListener('beforeunload', onBeforeUnload);
 });
-
-/** 左侧导航项：选中实心主色（与前台 PILL_ACTIVE 同语言）+ 右侧白点 */
-const navCls = (active: boolean): string =>
-  'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all ' +
-  (active ? NAV_ACTIVE : NAV_IDLE);
 </script>
 
 <!-- 背景层：与前台同款渐变 + 光斑（登录页与主界面共用） -->
@@ -159,68 +155,53 @@ const navCls = (active: boolean): string =>
 
   <!-- ═════════ 主界面：左侧固定导航 + 右侧内容区 ═════════ -->
   <div v-else class="relative z-10 flex h-screen overflow-hidden">
-    <!-- 左侧导航（w-60 ≈ 15rem）：玻璃面，与前台侧栏同款 -->
-    <aside class="glass-surface flex w-60 shrink-0 flex-col">
-      <div class="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200/40 px-5 dark:border-white/10">
-        <div
-          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-600 text-base font-bold text-white shadow-lg shadow-emerald-500/30 ring-1 ring-white/25"
-        >
-          {{ brandChar }}
-        </div>
-        <div class="min-w-0">
-          <p class="truncate text-sm font-bold text-slate-700 dark:text-slate-100">{{ siteName }}</p>
-          <p class="text-[11px] text-slate-400">管理后台</p>
-        </div>
-      </div>
-
-      <nav class="hn-scroll no-scrollbar flex-1 space-y-1 overflow-y-auto p-3">
-        <button
-          v-for="p in PANELS"
-          :key="p.id"
-          type="button"
-          :class="navCls(state.panel === p.id)"
-          @click="state.panel = p.id"
-        >
-          <AdminIcon :name="p.icon" :size="16" />
-          <span class="flex-1 truncate text-left">{{ p.label }}</span>
-          <span
-            v-if="state.panel === p.id"
-            class="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent)]"
-          ></span>
-        </button>
-      </nav>
-
-      <div class="shrink-0 space-y-1 border-t border-slate-200/40 p-3 dark:border-white/10">
-        <a
-          href="/"
-          target="_blank"
-          rel="noopener noreferrer"
-          :class="navCls(false)"
-          title="打开前台导航页"
-        >
-          <AdminIcon name="external" :size="16" />
-          <span class="flex-1 truncate text-left">返回前台</span>
-        </a>
-        <button type="button" :class="navCls(false)" @click="logout">
-          <AdminIcon name="logout" :size="16" />
-          <span class="flex-1 truncate text-left">退出登录</span>
-        </button>
-      </div>
+    <!-- 桌面侧栏（w-60 ≈ 15rem）：玻璃面，lg 以下隐藏，改为顶栏汉堡打开抽屉 -->
+    <aside class="glass-surface hidden w-60 shrink-0 flex-col lg:flex">
+      <AdminNav @pick="onPick" />
     </aside>
+
+    <!-- 移动端抽屉：遮罩 + 左侧滑出面板（内容与桌面侧栏共用同一组件） -->
+    <div v-if="navOpen" class="fixed inset-0 z-50 lg:hidden">
+      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="navOpen = false"></div>
+      <aside class="glass-surface absolute inset-y-0 left-0 flex w-64 flex-col">
+        <button
+          type="button"
+          class="absolute right-3 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-900/[0.06] dark:text-slate-300 dark:hover:bg-white/10"
+          aria-label="关闭导航"
+          @click="navOpen = false"
+        >
+          <AdminIcon name="close" :size="18" />
+        </button>
+        <AdminNav @pick="onPick" />
+      </aside>
+    </div>
 
     <!-- 右侧：顶栏 + 独立滚动的内容区 -->
     <div class="flex min-w-0 flex-1 flex-col">
-      <header class="glass-surface flex h-14 shrink-0 flex-wrap items-center gap-3 px-4 lg:px-6">
+      <header class="glass-surface flex h-14 shrink-0 items-center gap-3 px-4 lg:px-6">
+        <!-- 汉堡：仅 lg 以下出现（窄屏不换行，故顶栏去掉 flex-wrap） -->
+        <button
+          type="button"
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-900/[0.06] hover:text-slate-700 lg:hidden dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+          aria-label="打开导航"
+          :aria-expanded="navOpen"
+          @click="navOpen = true"
+        >
+          <AdminIcon name="menu" :size="18" />
+        </button>
+
         <!-- 面包屑：大标题交给各面板的 PAGE_HEAD，顶栏只做上下文 + 全局保存/撤销 -->
-        <span class="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+        <span
+          class="flex min-w-0 items-center gap-1.5 truncate text-xs font-medium text-slate-500 dark:text-slate-400"
+        >
           管理后台<span class="text-slate-300 dark:text-slate-600">/</span>{{ currentPanel.label }}
         </span>
-        <span class="text-xs text-slate-400">rev {{ state.doc?.rev ?? '—' }}</span>
+        <span class="hidden text-xs text-slate-400 sm:inline">rev {{ state.doc?.rev ?? '—' }}</span>
         <span v-if="state.dirty" class="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
           <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>未保存
         </span>
 
-        <div class="ml-auto flex items-center gap-2">
+        <div class="ml-auto flex shrink-0 items-center gap-2">
           <button
             type="button"
             :class="BTN_SECONDARY"
@@ -238,6 +219,10 @@ const navCls = (active: boolean): string =>
             @click="doSave"
           >
             {{ state.saving ? '保存中…' : '保存' }}
+          </button>
+          <button type="button" :class="BTN_GHOST_DANGER" title="退出登录" @click="logout">
+            <AdminIcon name="logout" :size="14" />
+            退出登录
           </button>
         </div>
       </header>

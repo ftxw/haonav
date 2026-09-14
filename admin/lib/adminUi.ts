@@ -98,6 +98,11 @@ export const BTN_SECONDARY =
 /** 危险操作 */
 export const BTN_DANGER = BTN_BASE + ' bg-red-500 text-white hover:bg-red-600';
 
+/** 无底色危险操作（顶栏「退出登录」）：平时是中性 ghost，悬停才转红 —— 不与主操作抢注意力 */
+export const BTN_GHOST_DANGER =
+  BTN_BASE +
+  ' text-slate-500 hover:bg-red-500/10 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-500/15 dark:hover:text-red-400';
+
 /** 行内文字动作（表内编辑 / 恢复等） */
 export const LINK_BTN = 'text-xs text-accent hover:underline';
 export const LINK_DANGER = 'text-xs text-red-500 hover:underline';

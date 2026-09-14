@@ -1,0 +1,13 @@
+/* admin 入口自己的 Tailwind 编译单元。
+ *
+ * 背景：web/styles/app.css 用 `@import "tailwindcss" source(none)` 关掉了自动扫描，
+ * 只显式声明了 index.html / admin.html / web/** 三个来源 —— admin/** 从未被扫描，
+ * 导致后台里凡是前台没用过的类名（h-screen / h-14 / w-60 / max-w-5xl / lg:flex /
+ * cursor-grab / w-28 …）全部静默失效（Tailwind 对拼不出/扫不到的类名不报错）。
+ *
+ * 这里复用前台那份 CSS 的令牌、glass-surface 等自定义类，再把 admin 源码范围补进扫描，
+ * 使后台的类名真正生成。前台产物不受影响。
+ */
+@import "../../web/styles/app.css";
+
+@source "../**/*.{vue,ts}";
