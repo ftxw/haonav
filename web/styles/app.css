@@ -2,6 +2,12 @@
    会被一并生成，污染构建产物。只显式声明新架构的源码范围。 */
 @import "tailwindcss" source(none);
 
+/* ⚠️ 这里是「前台」样式入口：只扫 web 目录（另加两个 HTML 壳，它们只是挂载点，不是应用源码）。
+   后台应用的源码由独立入口 admin/styles/admin.css 负责扫描 —— 那个文件会先 @import 本文件
+   取令牌与自定义类，再补一条指向 admin 目录的 @source（vue / ts 文件）。
+   请不要把 admin 目录的源码扫描并到这里：两端入口分离，才能保证后台的改动不牵动前台 CSS 产物。
+   历史教训：admin 目录曾长期不在任何 @source 范围内，于是后台大量类名（h-screen / h-14 /
+   w-60 / max-w-5xl / cursor-grab 等）静默不生成 —— Tailwind 对扫不到的类名不报错，不查产物看不出来。 */
 @source "../../index.html";
 @source "../../admin.html";
 @source "../**/*.{vue,ts}";
