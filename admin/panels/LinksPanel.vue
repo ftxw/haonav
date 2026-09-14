@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import Modal from '../components/Modal.vue';
 import { between, appendOrder, orderForIndex } from '../lib/order';
 import { newId, hostOf, maxOrderOf } from '../lib/util';
-import { mutate, state, toast } from '../lib/adminStore';
+import { commit, state, toast } from '../lib/adminStore';
 import {
   BTN_DANGER,
   BTN_PRIMARY,
@@ -84,7 +84,7 @@ const applyBatchCat = (): void => {
   const ids = selected.value;
   if (!ids.size || !batchCat.value) return;
   const target = batchCat.value === '__none__' ? '' : batchCat.value;
-  mutate((d) => {
+  commit((d) => {
     // 追加到目标分类末尾，避免与现有 order 冲突
     let last = maxOrderOf(d.links.filter((l) => l.cat === target).map((l) => l.order));
     for (const l of d.links) {
@@ -101,7 +101,7 @@ const applyBatchCat = (): void => {
 const batchPin = (pinned: boolean): void => {
   const ids = selected.value;
   if (!ids.size) return;
-  mutate((d) => {
+  commit((d) => {
     for (const l of d.links) if (ids.has(l.id)) l.pinned = pinned || undefined;
   });
   toast(pinned ? `已置顶 ${ids.size} 条` : `已取消置顶 ${ids.size} 条`);
@@ -111,8 +111,8 @@ const batchPin = (pinned: boolean): void => {
 const batchDelete = (): void => {
   const ids = selected.value;
   if (!ids.size) return;
-  if (!window.confirm(`确定删除选中的 ${ids.size} 条链接？此操作可撤销（Ctrl+Z）。`)) return;
-  mutate((d) => {
+  if (!window.confirm(`确定删除选中的 ${ids.size} 条链接？删除将立即保存。`)) return;
+  commit((d) => {
     d.links = d.links.filter((l) => !ids.has(l.id));
   });
   toast(`已删除 ${ids.size} 条`);
@@ -162,7 +162,7 @@ function moveLink(id: string, targetId: string): void {
   const next = nextEl && nextEl.cat === targetCat ? nextEl.order : null;
   const newOrder = between(prev, next);
 
-  mutate((d) => {
+  commit((d) => {
     const l = d.links.find((x) => x.id === id);
     if (!l) return;
     l.cat = targetCat;
@@ -229,7 +229,7 @@ function submitForm(): void {
   // 只接受 http(s) 的自定义图标，其余（含留空）一律 undefined → 交给 iconStrategy 决定
   const icon = /^https?:\/\//i.test(f.icon.trim()) ? f.icon.trim() : undefined;
   if (isAdd.value) {
-    mutate((d) => {
+    commit((d) => {
       const last = maxOrderOf(d.links.filter((l) => l.cat === f.cat).map((l) => l.order));
       d.links.push({
         id: newId(),
@@ -249,7 +249,7 @@ function submitForm(): void {
     toast('已添加');
   } else if (editing.value) {
     const id = editing.value.id;
-    mutate((d) => {
+    commit((d) => {
       const l = d.links.find((x) => x.id === id);
       if (!l) return;
       l.title = f.title.trim();
@@ -270,7 +270,7 @@ function submitForm(): void {
 
 function removeOne(l: LinkItem): void {
   if (!window.confirm(`删除「${l.title}」？`)) return;
-  mutate((d) => {
+  commit((d) => {
     d.links = d.links.filter((x) => x.id !== l.id);
   });
   toast('已删除');
@@ -371,7 +371,7 @@ const tdCls = TD;
             <td :class="tdCls + ' max-w-[220px]'"><span class="block truncate text-xs text-slate-500">{{ r.url }}</span></td>
             <td :class="tdCls + ' text-xs'">{{ catName[r.cat] || r.cat || '（未分类）' }}</td>
             <td :class="tdCls">
-              <button type="button" :aria-label="r.pinned ? '取消置顶' : '置顶'" @click="mutate((d) => { const x = d.links.find((y) => y.id === r.id); if (x) x.pinned = r.pinned ? undefined : true; })">
+              <button type="button" :aria-label="r.pinned ? '取消置顶' : '置顶'" @click="commit((d) => { const x = d.links.find((y) => y.id === r.id); if (x) x.pinned = r.pinned ? undefined : true; })">
                 <span :class="r.pinned ? 'text-amber-500' : 'text-slate-300 hover:text-slate-500'">★</span>
               </button>
             </td>

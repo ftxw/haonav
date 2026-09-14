@@ -1,5 +1,5 @@
 import { reactive } from 'vue';
-import type { Doc } from '../../shared/types';
+import type { Doc, Op } from '../../shared/types';
 import { DEFAULT_SETTINGS } from '../../web/lib/settings';
 import { api, ApiError, AuthError } from './adminApi';
 import { diffOps } from './diffOps';
@@ -22,8 +22,6 @@ export const state = reactive({
 
 /** 与服务端一致的最后版本（diff 基准） */
 let savedDoc: Doc | null = null;
-/** 撤销栈：只存内存，最多 10 步，绝不写 localStorage / KV */
-const undoStack: Doc[] = [];
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 export function toast(msg: string): void {
@@ -55,7 +53,6 @@ function adopt(raw: Doc): void {
   savedDoc = clone(d);
   state.dirty = false;
   state.error = '';
-  undoStack.length = 0;
 }
 
 // ─────────────────────────── 会话 ───────────────────────────
@@ -65,9 +62,8 @@ export async function boot(): Promise<void> {
   state.booted = true;
   state.checking = true;
   try {
-    // 必须先用「会话探针」判断是否登录：/api/data 是公开只读接口，
-    // 未登录同样返回 200，用它当探针会让后台在无会话时照常打开，
-    // 直到第一次保存被 401 挡下才跳回登录页（即「点保存就退出登录」）。
+    // 必须先用「会话探针」判断是否登录：/api/data 是公开只读接口，未登录同样返回 200，
+    // 用它当探针会让后台在无会话时照常打开，直到第一次保存被 401 打回才跳登录页。
     const ok = await api.session();
     if (ok) {
       adopt(await api.getData());
@@ -107,32 +103,20 @@ export async function logout(): Promise<void> {
   state.doc = null;
   savedDoc = null;
   state.dirty = false;
-  undoStack.length = 0;
 }
 
-// ─────────────────────────── 本地变更 / 撤销 ───────────────────────────
+// ─────────────────────────── 本地变更 ───────────────────────────
 
-/** 所有面板通过它改文档：自动入撤销栈并标记 dirty */
+/**
+ * 面板内联编辑（设置 / 搜索 / 备份）走「草稿」：先改 state.doc，由面板自己的
+ * 「保存」按钮调用 commitCurrent() 一次性落库。分类 / 链接等走「即时落库」：直接 commit()。
+ */
 export function mutate(fn: (d: Doc) => void): void {
   if (!state.doc) return;
-  undoStack.push(clone(state.doc));
-  if (undoStack.length > 10) undoStack.shift();
   const next = clone(state.doc);
   fn(next);
   state.doc = next;
-  state.dirty = true;
-}
-
-export function canUndo(): boolean {
-  return undoStack.length > 0;
-}
-
-export function undo(): boolean {
-  const prev = undoStack.pop();
-  if (!prev || !state.doc) return false;
-  state.doc = prev;
-  state.dirty = savedDoc ? JSON.stringify(prev) !== JSON.stringify(savedDoc) : false;
-  return true;
+  state.dirty = savedDoc ? JSON.stringify(next) !== JSON.stringify(savedDoc) : true;
 }
 
 export async function reload(): Promise<void> {
@@ -144,49 +128,85 @@ export async function reload(): Promise<void> {
   }
 }
 
-/** 导入等走服务端写入的流程完成后：以服务端为准重新对齐（丢弃撤销栈） */
+/** 导入等走服务端写入的流程完成后：以服务端为准重新对齐 */
 export function adoptServerDoc(d: Doc): void {
   adopt(d);
 }
 
-// ─────────────────────────── 保存 ───────────────────────────
+// ─────────────────────────── 保存（即时 / 批量） ───────────────────────────
 
-export async function save(): Promise<boolean> {
-  if (!state.doc || !savedDoc) return false;
-  if (!state.dirty) return true;
+/**
+ * 即时落库：把 fn 应用到文档副本算出 ops，立即 PATCH。成功才写回 state.doc（乐观更新，
+ * 失败回滚），rev 以服务端返回为准。分类 / 链接面板的增删改、排序、置顶、批量都用它 ——
+ * 不再有「顶栏保存」按钮，弹窗里的「保存」即直接落库。
+ */
+export async function commit(fn: (d: Doc) => void): Promise<boolean> {
+  if (!state.doc) return false;
+  const prev = clone(state.doc);
+  const next = clone(state.doc);
+  fn(next);
+  const ops = diffOps(prev, next);
+  if (!ops.length) return true;
 
-  const ops = diffOps(savedDoc, state.doc);
-  if (!ops.length) {
-    state.dirty = false;
-    return true;
-  }
-
+  state.doc = next; // 乐观更新
   state.saving = true;
   state.error = '';
   try {
     const { rev } = await api.patch(state.doc.rev, ops);
-    const next = { ...state.doc, rev };
-    state.doc = next;
-    savedDoc = clone(next);
+    state.doc = { ...state.doc, rev };
+    savedDoc = clone(state.doc);
     state.dirty = false;
-    undoStack.length = 0;
-    toast(`已保存（${ops.length} 项变更）`);
     return true;
   } catch (e) {
-    if (e instanceof ApiError && e.status === 409) {
-      state.conflict = {
-        serverRev: typeof e.payload?.rev === 'number' ? e.payload.rev : 0,
-        serverDoc: (e.payload?.doc as Doc | undefined) ?? null,
-      };
-    } else if (e instanceof AuthError) {
-      state.authed = false;
-    } else {
-      state.error = e instanceof Error ? e.message : '保存失败';
-    }
+    state.doc = prev; // 回滚
+    handleSaveError(e);
     return false;
   } finally {
     state.saving = false;
   }
+}
+
+/** 已是草稿（mutate 改过 state.doc）的面板用：把与 savedDoc 的差异一次性提交 */
+export async function commitOps(ops: Op[]): Promise<boolean> {
+  if (!state.doc || !ops.length) return true;
+  state.saving = true;
+  state.error = '';
+  try {
+    const { rev } = await api.patch(state.doc.rev, ops);
+    state.doc = { ...state.doc, rev };
+    savedDoc = clone(state.doc);
+    state.dirty = false;
+    return true;
+  } catch (e) {
+    handleSaveError(e);
+    return false;
+  } finally {
+    state.saving = false;
+  }
+}
+
+/** 设置 / 搜索 / 备份面板的「保存」按钮：提交草稿与已存版本的差异 */
+export async function commitCurrent(): Promise<boolean> {
+  if (!savedDoc || !state.doc) return true;
+  return commitOps(diffOps(savedDoc, state.doc));
+}
+
+/** 409 / 401 / 其它错误的统一处理（复用现有冲突弹窗） */
+function handleSaveError(e: unknown): void {
+  if (e instanceof ApiError) {
+    if (e.status === 409) {
+      state.conflict = {
+        serverRev: typeof e.payload?.rev === 'number' ? e.payload.rev : 0,
+        serverDoc: (e.payload?.doc as Doc | undefined) ?? null,
+      };
+      return;
+    }
+  }
+  if (e instanceof AuthError) {
+    state.authed = false;
+    return;
+  }
+  state.error = e instanceof Error ? e.message : '保存失败';
 }
 
 // ─────────────────────────── 409 冲突 ───────────────────────────
@@ -216,7 +236,6 @@ export async function conflictForce(): Promise<void> {
     state.doc = next;
     savedDoc = clone(next);
     state.dirty = false;
-    undoStack.length = 0;
     toast('已强制覆盖');
   } catch (e) {
     state.error = e instanceof Error ? e.message : '覆盖失败';

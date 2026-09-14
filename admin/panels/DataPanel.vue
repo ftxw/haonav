@@ -6,7 +6,7 @@ import { api } from '../lib/adminApi';
 import { parseBookmarksHtml, type ParsedItem } from '../lib/importParse';
 import { checkLinks, type CheckMode, type CheckResult } from '../lib/checkLinks';
 import { slugId, hostOf, maxOrderOf } from '../lib/util';
-import { mutate, reload, save, state, toast } from '../lib/adminStore';
+import { commit, reload, state, toast } from '../lib/adminStore';
 import {
   BTN_DANGER,
   BTN_PRIMARY,
@@ -85,12 +85,11 @@ async function restoreFromJson(file: File): Promise<void> {
     phase.value = 'idle';
     return;
   }
-  mutate((d) => {
+  await commit((d) => {
     d.categories = parsed.categories as typeof d.categories;
     d.links = parsed.links as typeof d.links;
     if (parsed.settings && typeof parsed.settings === 'object') d.settings = parsed.settings as typeof d.settings;
   });
-  await save();
   toast('已从 JSON 备份还原');
   phase.value = 'idle';
 }
@@ -150,7 +149,7 @@ async function confirmImport(): Promise<void> {
     for (const it of added.value) if (it.cat && !existingNames.has(it.cat)) needNames.add(it.cat);
     const nameToId = new Map<string, string>(state.doc.categories.map((c) => [c.name, c.id]));
     if (needNames.size) {
-      mutate((d) => {
+      if (!(await commit((d) => {
         let last = maxOrderOf(d.categories.map((c) => c.order));
         for (const name of needNames) {
           const id = slugId('imp', name);
@@ -158,8 +157,7 @@ async function confirmImport(): Promise<void> {
           d.categories.push({ id, name, icon: 'folder', order: last });
           nameToId.set(name, id);
         }
-      });
-      if (!(await save())) throw new Error('创建分类失败，导入已取消');
+      }))) throw new Error('创建分类失败，导入已取消');
     }
 
     // ② 冲突「保留新值」的条目也加入导入
@@ -187,7 +185,7 @@ async function confirmImport(): Promise<void> {
     if (conflictChoice.value === 'new') {
       const byKey = new Map<string, LinkItem>();
       for (const it of conflicts.value) byKey.set(it.existing.urlKey, it.existing);
-      mutate((d) => {
+      await commit((d) => {
         for (const l of d.links) {
           const ex = byKey.get(l.urlKey);
           if (!ex) continue;
@@ -197,7 +195,6 @@ async function confirmImport(): Promise<void> {
           if (src.desc) l.desc = src.desc;
         }
       });
-      await save();
     }
 
     toast(`导入完成：新增 ${applied} 条，已存在 ${existingCount.value} 条，冲突 ${conflicts.value.length} 条`);
@@ -243,7 +240,7 @@ function findDupes(): void {
 function removeDupeExtra(group: DupGroup, keepId?: string): void {
   const keep = keepId ?? group.items[0].id;
   const ids = new Set(group.items.filter((l) => l.id !== keep).map((l) => l.id));
-  mutate((d) => {
+  void commit((d) => {
     d.links = d.links.filter((l) => !ids.has(l.id));
   });
   findDupes();
@@ -287,8 +284,8 @@ async function runDeadCheck(): Promise<void> {
 function removeDead(): void {
   const bad = new Set(deadFailed.value.map((r) => r.url));
   if (!bad.size) return;
-  if (!window.confirm(`删除 ${bad.size} 条检测失败的链接？检测结果不代表永久失效，可撤销（Ctrl+Z）。`)) return;
-  mutate((d) => {
+  if (!window.confirm(`删除 ${bad.size} 条检测失败的链接？检测结果不代表永久失效，删除将立即保存。`)) return;
+  void commit((d) => {
     d.links = d.links.filter((l) => !bad.has(l.url));
   });
   deadResults.value = deadResults.value.filter((r) => !bad.has(r.url));

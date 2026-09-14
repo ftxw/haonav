@@ -4,7 +4,7 @@ import Modal from '../components/Modal.vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import { between, appendOrder, orderForIndex } from '../lib/order';
 import { newId, maxOrderOf, slugId } from '../lib/util';
-import { mutate, state, toast } from '../lib/adminStore';
+import { commit, state, toast } from '../lib/adminStore';
 import {
   BTN_DANGER,
   BTN_PRIMARY,
@@ -87,13 +87,13 @@ function submitForm(): void {
   const icon = form.value.icon || 'folder';
 
   if (isAdd.value) {
-    mutate((d) => {
+    commit((d) => {
       d.categories.push({ id: newId(), name, icon, order: appendOrder(maxOrderOf(d.categories.map((c) => c.order))) });
     });
     toast('分类已添加');
   } else if (editing.value) {
     const id = editing.value.id;
-    mutate((d) => {
+    commit((d) => {
       const c = d.categories.find((x) => x.id === id);
       if (c) {
         c.name = name;
@@ -129,7 +129,7 @@ function onDrop(targetId: string, e: DragEvent): void {
   const next = list[idx + 1]?.order ?? null;
   const newOrder = between(prev, next);
 
-  mutate((d) => {
+  commit((d) => {
     const c = d.categories.find((x) => x.id === id);
     if (!c) return;
     c.order = newOrder;
@@ -157,7 +157,7 @@ function confirmDelete(): void {
   const c = deleting.value;
   if (!c) return;
   const target = deleteTarget.value === '__none__' ? '' : deleteTarget.value;
-  mutate((d) => {
+  commit((d) => {
     // 先移链接（否则服务端 cat.delete 会把链接置为 ''，本地会失同步）
     for (const l of d.links) if (l.cat === c.id) l.cat = target;
     d.categories = d.categories.filter((x) => x.id !== c.id);
@@ -176,7 +176,7 @@ function confirmMerge(): void {
   const to = mergeTo.value;
   if (!from || !to || from === to) return;
   const fromName = cats.value.find((c) => c.id === from)?.name ?? '';
-  mutate((d) => {
+  commit((d) => {
     let last = maxOrderOf(d.links.filter((l) => l.cat === to).map((l) => l.order));
     for (const l of d.links) {
       if (l.cat !== from) continue;

@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import { api, ApiError } from '../lib/adminApi';
 import { formatBytes, formatTime } from '../lib/util';
-import { mutate, reload, save, state, toast } from '../lib/adminStore';
+import { mutate, reload, commitCurrent, state, toast } from '../lib/adminStore';
 import {
   BTN_PRIMARY,
   BTN_PRIMARY_LG,
@@ -118,7 +118,7 @@ async function removeSnapshot(key: string): Promise<void> {
 async function saveNow(): Promise<void> {
   saving.value = true;
   try {
-    await save();
+    await commitCurrent();
   } finally {
     saving.value = false;
   }

@@ -11,19 +11,15 @@ import SearchPanel from './panels/SearchPanel.vue';
 import SettingsPanel from './panels/SettingsPanel.vue';
 import {
   boot,
-  canUndo,
   conflictDiscard,
   conflictForce,
   login,
   logout,
-  save,
   startAutoRefresh,
   state,
-  toast,
-  undo,
   type PanelId,
 } from './lib/adminStore';
-import { BTN_GHOST_DANGER, BTN_PRIMARY, BTN_SECONDARY } from './lib/adminUi';
+import { BTN_GHOST_DANGER } from './lib/adminUi';
 
 const password = ref('');
 const loggingIn = ref(false);
@@ -57,22 +53,10 @@ async function doLogin(): Promise<void> {
   if (state.authed) password.value = '';
 }
 
-async function doSave(): Promise<void> {
-  await save();
-}
-
 function onKey(e: KeyboardEvent): void {
-  const mod = e.ctrlKey || e.metaKey;
-  if (mod && e.key.toLowerCase() === 'z' && !e.shiftKey) {
-    const t = e.target as HTMLElement | null;
-    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
-    e.preventDefault();
-    if (!undo()) toast('没有可撤销的操作');
-  } else if (mod && e.key.toLowerCase() === 's') {
-    e.preventDefault();
-    void doSave();
-  } else if (e.key === 'Escape') {
+  if (e.key === 'Escape') {
     navOpen.value = false;
+    showDiff.value = false;
   }
 }
 
@@ -82,7 +66,7 @@ function onPick(id: PanelId): void {
   navOpen.value = false;
 }
 
-/** 有未保存改动时拦截关闭/刷新 */
+/** 有未保存改动时拦截关闭/刷新（设置等面板仍是「草稿 + 本面板保存按钮」） */
 function onBeforeUnload(e: BeforeUnloadEvent): void {
   if (state.dirty) {
     e.preventDefault();
@@ -190,7 +174,7 @@ onBeforeUnmount(() => {
           <AdminIcon name="menu" :size="18" />
         </button>
 
-        <!-- 面包屑：大标题交给各面板的 PAGE_HEAD，顶栏只做上下文 + 全局保存/撤销 -->
+        <!-- 面包屑：大标题交给各面板的 PAGE_HEAD，顶栏只做上下文 + 退出登录 -->
         <span
           class="flex min-w-0 items-center gap-1.5 truncate text-xs font-medium text-slate-500 dark:text-slate-400"
         >
@@ -198,28 +182,10 @@ onBeforeUnmount(() => {
         </span>
         <span class="hidden text-xs text-slate-400 sm:inline">rev {{ state.doc?.rev ?? '—' }}</span>
         <span v-if="state.dirty" class="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
-          <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>未保存
+          <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>有未保存改动
         </span>
 
         <div class="ml-auto flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            :class="BTN_SECONDARY"
-            :disabled="!canUndo()"
-            title="Ctrl/Cmd+Z"
-            @click="undo() || toast('没有可撤销的操作')"
-          >
-            撤销
-          </button>
-          <button
-            type="button"
-            :class="BTN_PRIMARY"
-            :disabled="!state.dirty || state.saving"
-            title="Ctrl/Cmd+S"
-            @click="doSave"
-          >
-            {{ state.saving ? '保存中…' : '保存' }}
-          </button>
           <button type="button" :class="BTN_GHOST_DANGER" title="退出登录" @click="logout">
             <AdminIcon name="logout" :size="14" />
             退出登录

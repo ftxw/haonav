@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { mutate, save, state, toast } from '../lib/adminStore';
+import { mutate, commitCurrent, state, toast } from '../lib/adminStore';
 import {
   BTN_PRIMARY_LG,
   BTN_SECONDARY,
@@ -63,7 +63,7 @@ const saving = ref(false);
 async function saveNow(): Promise<void> {
   saving.value = true;
   try {
-    await save();
+    await commitCurrent();
   } finally {
     saving.value = false;
   }
