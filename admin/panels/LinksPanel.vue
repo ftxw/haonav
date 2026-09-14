@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import Modal from '../components/Modal.vue';
 import { between, appendOrder, orderForIndex } from '../lib/order';
-import { newId, hostOf, hostForIcon, maxOrderOf } from '../lib/util';
+import { newId, hostOf, maxOrderOf } from '../lib/util';
 import { linkLetterIcon } from '../../web/lib/brandIcon';
 import { commit, state, toast } from '../lib/adminStore';
 import {
@@ -42,15 +42,14 @@ const catName = computed<Record<string, string>>(() => {
 /**
  * 列表里的图标，优先级与前台 `web/components/LinkCard.vue` **完全一致**（所见即所得）：
  *  - `letter` 策略语义是「零请求」→ 只用本地字母图标，刻意忽略自定义 URL；
- *  - `fetched`：自定义 http(s) 图标 → `/api/icon?u=<host>` 自动抓取 → 字母兜底。
- * ⚠️ 拼 `/api/icon` 必须用 `hostForIcon()`（保留 `www.`），用 `hostOf()` 会白名单不匹配 → 静默 404。
+ *  - `fetched`：自定义 http(s) 图标 → `/api/icon?url=<完整网址>` 自动抓取 → 字母兜底。
  */
 function iconSrc(l: LinkItem): string {
   const letter = linkLetterIcon(l.title, l.url);
   if (state.doc?.settings?.iconStrategy !== 'fetched') return letter;
   const custom = l.icon && /^https?:\/\//i.test(l.icon) ? l.icon : '';
-  const host = hostForIcon(l.url);
-  return custom || (host ? `/api/icon?u=${encodeURIComponent(host)}` : '') || letter;
+  const auto = l.url ? `/api/icon?url=${encodeURIComponent(l.url)}` : '';
+  return custom || auto || letter;
 }
 
 /** 图标加载失败（域名未登记 / 抓取失败）→ 回退字母图标，避免列表里出现破图 */

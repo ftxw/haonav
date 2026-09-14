@@ -538,10 +538,24 @@ function retentionOf(doc: Doc): number {
 }
 
 /* ------------------------------------------------------------------ *
- * /api/icon 的 SSRF 防护
+ * /api/icon：第三方图标服务（与 workers.js 的 DEFAULT_IMGAPI 对齐）
  * ------------------------------------------------------------------ */
 
-const DDG_HOST = 'icons.duckduckgo.com';
+/** 第三方 favicon 服务：传完整网址，返回 image/*（自身带默认图标兜底） */
+const XINAC_ICON_API = 'https://api.xinac.net/icon/?url=';
+/** 网络等待不计 CPU，可给得宽一些（单次且结果会永久缓存） */
+const ICON_TIMEOUT_MS = 8000;
+
+/** 上游闸门：只走 https 且不得指向私网（跟随重定向时逐跳校验） */
+function allowPublicHttps(u: string): boolean {
+  try {
+    const p = new URL(u);
+    if (p.protocol !== 'https:') return false;
+    return !isPrivateHost(p.hostname.toLowerCase().replace(/^\[|\]$/g, ''));
+  } catch {
+    return false;
+  }
+}
 
 function isPrivateIpv4(host: string): boolean {
   const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
@@ -576,15 +590,6 @@ function isPrivateHost(host: string): boolean {
   return isPrivateIpv4(h);
 }
 
-function collectHosts(doc: Doc): Set<string> {
-  const set = new Set<string>();
-  for (const l of doc.links) {
-    const h = hostOf(l.url);
-    if (h) set.add(h);
-  }
-  return set;
-}
-
 function bytesToBase64(bytes: Uint8Array): string {
   let bin = '';
   const CHUNK = 0x8000;
@@ -613,69 +618,6 @@ async function fetchWithTimeout(
   } finally {
     clearTimeout(timer);
   }
-}
-
-/* ── /api/icon：首页 HTML 解析（无 DOM、无 HTMLRewriter、无 Node 内建） ──
- * ⚠️ CPU 只有 10 ms：只读前 64 KB 就必须停（见 readTextBounded），只用一条线性正则扫描
- *    （无嵌套量词 → 无灾难性回溯）。HTMLRewriter 是 Cloudflare 专有 API，EdgeOne V8 没有 —— 禁用。
- */
-const HTML_SCAN_BYTES = 64 * 1024;
-
-/**
- * 只读前 maxBytes 字节的文本（超限即 cancel，绝不无上限缓冲整页）。
- * 网络等待不计 CPU；读取本身是流式，避免 res.text() 把整页拉进内存。
- */
-async function readTextBounded(res: Response, maxBytes: number): Promise<string> {
-  const body = res.body;
-  if (!body) return '';
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let out = '';
-  let total = 0;
-  try {
-    while (total < maxBytes) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      total += value.byteLength;
-      out += decoder.decode(value, { stream: true });
-      if (total >= maxBytes) break; // 到上限立刻停，不再多读一字节
-    }
-    out += decoder.decode();
-  } catch {
-    /* 读取中断：用已读到的部分尽力解析 */
-  } finally {
-    try {
-      await reader.cancel();
-    } catch {
-      /* 已读完 / 已被取消 */
-    }
-  }
-  // 单个 chunk 可能 > maxBytes：再按字符截断一次，确保正则只见到前 ≤64 KB
-  return out.length > maxBytes ? out.slice(0, maxBytes) : out;
-}
-
-/**
- * 仅一条正则（无 DOM、无 HTMLRewriter）：匹配 <link ...> 且 rel 含 "icon"，捕获 rel 与 href。
- * ⚠️ rel 用**贪婪**捕获 ([^"'>]*)：若改成惰性 *?，`["']?` 会先吞掉起始引号、导致 rel 捕获成空串
- *    —— 实测会漏掉 apple-touch-icon（务必别改回 *?）。href 用惰性 + 排除引号/空白。
- * 返回时优先 apple-touch-icon，其次第一个任意 *icon*（含 shortcut icon / mask-icon）。
- * ⚠️ 同步执行、无 await —— 模块级正则的 lastIndex 不会被并发请求交错污染。
- */
-const ICON_LINK_RE =
-  /<link\b[^>]*?\brel\s*=\s*["']?([^"'>]*)["']?[^>]*?\bhref\s*=\s*["']?([^"'>\s]+)["']?/gi;
-
-function pickIconHref(html: string): string | null {
-  ICON_LINK_RE.lastIndex = 0;
-  let fallback: string | null = null;
-  let m: RegExpExecArray | null;
-  while ((m = ICON_LINK_RE.exec(html)) !== null) {
-    const rel = (m[1] || '').toLowerCase();
-    const href = m[2];
-    if (!href) continue;
-    if (rel.includes('apple-touch-icon')) return href; // 高质量档：命中即止
-    if (fallback === null && rel.includes('icon')) fallback = href;
-  }
-  return fallback;
 }
 
 /* ------------------------------------------------------------------ *
@@ -1085,32 +1027,48 @@ export function createApp(deps: AppDeps): Hono {
     });
   });
 
-  /* ── GET /api/icon?u=<domain>&v=<hash>：favicon 代理 ──
-   * 契约：客户端传 u = hostname（小写、保留 www），必须与 api/urlKey.ts 的 hostOf()
-   *       一致 —— collectHosts() 用它建 allow-list，不一致会静默 404。
-   *       （自定义图标 URL 前端直接热链，不走本接口，故无需扩 allow-list。）
-   * 三档按质量排序，命中即返回：
-   *   1) 抓站点首页 HTML 解析 apple-touch-icon / rel~=icon 指向的图标（最佳质量）
-   *   2) https://<domain>/favicon.ico
-   *   3) DuckDuckGo ip3/<domain>.ico
-   * 全部失败仍返回 404 → 前端回退本地字母图标（比通用占位 SVG 更好，勿改占位图）。
+  /* ── GET /api/icon?url=<完整网址>：favicon 代理（与 workers.js 方案对齐）──
+   * 不再自建抓取，直接代理第三方图标服务（同 workers.js 的 DEFAULT_IMGAPI）。
+   *
+   * 为什么放弃自建三档：国内实测几乎全失败 ——
+   *   1 档抓首页：图标多在 CDN，被精确白名单拒绝；
+   *   2 档 /favicon.ico：大量站点 301 跳 www，同样被拒；
+   *   3 档 DuckDuckGo：国内 10 秒超时，等于没有兜底。
+   *
+   * 缓存（关键）：KV 按 host 永久缓存 + 响应 immutable 一年。
+   *   第三方 API 调用次数 ≈ 域名总数（每个域名只抓一次），与访问量无关。
+   *
+   * 失败 → 404，前端回退本地字母图标（第三方自身也会返回默认图标）。
+   * 兼容：仍接受旧参数 u=<host>，等价 url=https://<host>/。
    */
   app.get('/api/icon', async (c) => {
-    const domain = (c.req.query('u') || '').trim().toLowerCase();
-    if (!domain || isPrivateHost(domain)) {
+    const raw = (c.req.query('url') || '').trim();
+    const legacyHost = (c.req.query('u') || '').trim().toLowerCase();
+    const target = raw || (legacyHost ? `https://${legacyHost}/` : '');
+    if (!target) return new Response(null, { status: 404 });
+
+    let parsed: URL;
+    try {
+      parsed = new URL(target);
+    } catch {
       return new Response(null, { status: 404 });
     }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return new Response(null, { status: 404 });
+    }
+    const host = parsed.hostname.toLowerCase();
+    if (!host || isPrivateHost(host)) return new Response(null, { status: 404 });
 
-    // 命中 KV 缓存
-    const cached = await store.getText(KV.ICON_PREFIX + domain);
+    // 命中 KV 缓存（key 仍按 host，与旧版一致 → 存量缓存可直接复用）
+    const cached = await store.getText(KV.ICON_PREFIX + host);
     if (cached) {
       try {
-        const parsed = JSON.parse(cached) as { ct: string; b64: string };
-        if (parsed?.b64) {
-          return new Response(base64ToBytes(parsed.b64), {
+        const p = JSON.parse(cached) as { ct: string; b64: string };
+        if (p?.b64) {
+          return new Response(base64ToBytes(p.b64), {
             status: 200,
             headers: {
-              'Content-Type': parsed.ct || 'image/x-icon',
+              'Content-Type': p.ct || 'image/x-icon',
               'Cache-Control': 'public, max-age=31536000, immutable',
             },
           });
@@ -1120,95 +1078,44 @@ export function createApp(deps: AppDeps): Hono {
       }
     }
 
-    // 只允许抓取文档中已登记的域名（SSRF 第一道防线）
-    let allowed: Set<string>;
-    try {
-      const { doc } = await readDocForWrite(store, now());
-      allowed = collectHosts(doc);
-    } catch {
-      return new Response(null, { status: 404 });
-    }
-    if (!allowed.has(domain)) return new Response(null, { status: 404 });
-
-    // SSRF 闸门：每一跳都必须过这里，只允许 https 且 host 只能是 domain 或 DDG_HOST。
-    // ⚠️ 不得放宽 allow-list（含首页解析出的图标 URL —— 第三方 CDN 主机一律拒绝，落到 2/3 档）。
-    const validate = (u: string): boolean => {
-      let parsed: URL;
-      try {
-        parsed = new URL(u);
-      } catch {
-        return false;
-      }
-      if (parsed.protocol !== 'https:') return false;
-      const h = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
-      if (isPrivateHost(h)) return false;
-      return h === domain || h === DDG_HOST;
-    };
-
-    // 命中即返回：仅接受 image/*，≤100 KB 才写缓存（避免 KV 单值与额度被滥用）
-    const serveImage = async (res: Response): Promise<Response | null> => {
+    // 唯一抓取路径：代理第三方图标服务
+    const res = await safeFetch(
+      `${XINAC_ICON_API}${encodeURIComponent(target)}`,
+      fetchImpl,
+      allowPublicHttps,
+      2,
+      ICON_TIMEOUT_MS,
+    );
+    if (res && res.ok) {
       const ct = res.headers.get('content-type') || 'image/x-icon';
-      if (!ct.startsWith('image/')) return null;
-      let buf: Uint8Array;
-      try {
-        buf = new Uint8Array(await res.arrayBuffer());
-      } catch {
-        return null;
-      }
-      if (buf.length === 0) return null;
-      if (buf.length <= 100 * 1024) {
+      if (ct.startsWith('image/')) {
+        let buf: Uint8Array;
         try {
-          await store.putText(
-            KV.ICON_PREFIX + domain,
-            JSON.stringify({ ct, b64: bytesToBase64(buf) }),
-          );
+          buf = new Uint8Array(await res.arrayBuffer());
         } catch {
-          /* 缓存失败不影响本次返回 */
+          return new Response(null, { status: 404 });
         }
-      }
-      return new Response(buf, {
-        status: 200,
-        headers: {
-          'Content-Type': ct,
-          'Cache-Control': 'public, max-age=31536000, immutable',
-        },
-      });
-    };
-
-    // ── 1 档：首页 HTML → <link rel="apple-touch-icon"/rel~="icon" href> 图标 ──
-    const homeUrl = `https://${domain}/`;
-    const home = await safeFetch(homeUrl, fetchImpl, validate);
-    if (home && home.ok) {
-      const pct = (home.headers.get('content-type') || '').toLowerCase();
-      // 只解析 HTML/XML，避免对二进制做正则（省 CPU）
-      if (!pct || pct.includes('html') || pct.includes('xml')) {
-        const html = await readTextBounded(home, HTML_SCAN_BYTES);
-        const href = html ? pickIconHref(html) : null;
-        if (href) {
-          let abs: string | null = null;
-          try {
-            abs = new URL(href, homeUrl).toString();
-          } catch {
-            abs = null;
-          }
-          if (abs && validate(abs)) {
-            const iconRes = await safeFetch(abs, fetchImpl, validate);
-            if (iconRes && iconRes.ok) {
-              const served = await serveImage(iconRes);
-              if (served) return served;
+        if (buf.length > 0) {
+          // ≤100 KB 才写缓存（避免 KV 单值与额度被滥用）
+          if (buf.length <= 100 * 1024) {
+            try {
+              await store.putText(
+                KV.ICON_PREFIX + host,
+                JSON.stringify({ ct, b64: bytesToBase64(buf) }),
+              );
+            } catch {
+              /* 缓存失败不影响本次返回 */
             }
           }
+          return new Response(buf, {
+            status: 200,
+            headers: {
+              'Content-Type': ct,
+              'Cache-Control': 'public, max-age=31536000, immutable',
+            },
+          });
         }
       }
-    }
-
-    // ── 2 / 3 档：favicon.ico → DuckDuckGo ip3 ──
-    const upstreams = [`https://${domain}/favicon.ico`, `https://${DDG_HOST}/ip3/${domain}.ico`];
-    for (const up of upstreams) {
-      const res = await safeFetch(up, fetchImpl, validate);
-      if (!res || !res.ok) continue;
-      const served = await serveImage(res);
-      if (served) return served;
     }
 
     // 失败 → 404（前端据此回退本地字母图标）

@@ -6,19 +6,6 @@ export function hostOf(url: string): string {
   }
 }
 
-/**
- * 专供 `/api/icon?u=` 使用的 host：**小写、保留 `www.`**，必须与
- * `api/urlKey.ts` 的 `hostOf()` 完全一致 —— 服务端 `collectHosts()` 用它建
- * SSRF 白名单，剥掉 `www.` 会不匹配 → 静默 404、永远只有字母图标。
- * ⚠️ 上面的 `hostOf()` 会剥 `www.`，**不可用于拼图标 URL**。
- */
-export function hostForIcon(url: string): string {
-  try {
-    return new URL(url).hostname.toLowerCase();
-  } catch {
-    return '';
-  }
-}
 
 export function newId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();

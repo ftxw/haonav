@@ -16,20 +16,6 @@ const emit = defineEmits<{ context: [payload: { link: IndexedLink; x: number; y:
 
 const failed = ref(false);
 
-/**
- * 与 `api/urlKey.ts` 的 `hostOf()` **完全一致**：小写、**保留 `www.`**。
- * 服务端 `collectHosts()` 用它建 `GET /api/icon` 的 SSRF 白名单；
- * 这里若剥掉 `www.` 会与白名单不匹配 → 静默 404、永远只有字母图标。
- * 注意：`web/lib/brandIcon.ts` 与 `admin/lib/util.ts` 里的 hostOf 会剥 `www.`，**不可复用**。
- */
-function hostOf(url: string): string {
-  try {
-    return new URL(url).hostname.toLowerCase();
-  } catch {
-    return '';
-  }
-}
-
 /** 本地字母图标（data URI，零请求） */
 const letterSrc = computed(() => linkLetterIcon(props.link.title, props.link.url));
 
@@ -39,11 +25,14 @@ const custom = computed(() => {
   return v && /^https?:\/\//i.test(v) ? v : '';
 });
 
-/** 自动抓取：/api/icon?u=<host>；URL 非法则取不到 */
-const auto = computed(() => {
-  const host = hostOf(props.link.url);
-  return host ? `/api/icon?u=${encodeURIComponent(host)}` : '';
-});
+/**
+ * 自动抓取：**传完整网址**（与 workers.js 一致）。
+ * 服务端据此代理第三方图标服务并按 host 永久缓存；
+ * 早期版本传的是 `?u=<host>`，服务端仍兼容，但新代码统一用 url。
+ */
+const auto = computed(() =>
+  props.link.url ? `/api/icon?url=${encodeURIComponent(props.link.url)}` : '',
+);
 
 /**
  * 图标取值优先级（对齐 `workers.js`：`(!icon || !icon.startsWith('http')) ? imgApi + url : icon`）：

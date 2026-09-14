@@ -338,18 +338,76 @@ describe('api / 快照', () => {
   });
 });
 
-describe('api / icon SSRF', () => {
-  it('未登记域名 → 404（不发起网络请求）', async () => {
+describe('api / icon（代理第三方，与 workers.js 对齐）', () => {
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+  const imgRes = (): Response =>
+    new Response(png, { status: 200, headers: { 'Content-Type': 'image/png' } });
+
+  it('私网 / 本地 → 404（不发请求）', async () => {
     const { app } = makeApp();
-    const res = await app.request('/api/icon?u=not-registered.example&v=1');
+    expect((await app.request('/api/icon?url=https://127.0.0.1/')).status).toBe(404);
+    expect((await app.request('/api/icon?url=https://10.0.0.1/')).status).toBe(404);
+    expect((await app.request('/api/icon?url=https://localhost/')).status).toBe(404);
+  });
+
+  it('非 http(s) → 404', async () => {
+    const { app } = makeApp();
+    const res = await app.request(`/api/icon?url=${encodeURIComponent('ftp://a.com/')}`);
     expect(res.status).toBe(404);
   });
 
-  it('私网字面量 → 404', async () => {
-    const { app } = makeApp();
-    expect((await app.request('/api/icon?u=127.0.0.1')).status).toBe(404);
-    expect((await app.request('/api/icon?u=10.0.0.1')).status).toBe(404);
-    expect((await app.request('/api/icon?u=localhost')).status).toBe(404);
+  it('代理第三方成功 → 200 + image + immutable 一年', async () => {
+    let called = '';
+    const { app } = makeApp({}, {}, (async (u: any) => {
+      called = String(u);
+      return imgRes();
+    }) as unknown as typeof fetch);
+    const res = await app.request(`/api/icon?url=${encodeURIComponent('https://a.com/x')}`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('image/png');
+    expect(res.headers.get('cache-control')).toContain('immutable');
+    expect(called).toContain('api.xinac.net/icon/?url=');
+  });
+
+  it('结果写入 KV，二次请求命中缓存不再打上游', async () => {
+    let n = 0;
+    const { app, store } = makeApp({}, {}, (async () => {
+      n++;
+      return imgRes();
+    }) as unknown as typeof fetch);
+    const q = `/api/icon?url=${encodeURIComponent('https://b.com/')}`;
+    expect((await app.request(q)).status).toBe(200);
+    expect((await app.request(q)).status).toBe(200);
+    expect(n).toBe(1); // 每个域名全局只抓一次
+    expect(await store.getText('nav:icon:b.com')).toBeTruthy();
+  });
+
+  it('上游返回非图 → 404（前端据此回退字母图标）', async () => {
+    const { app } = makeApp({}, {}, (async () =>
+      new Response('nope', {
+        status: 200,
+        headers: { 'Content-Type': 'text/html' },
+      })) as unknown as typeof fetch);
+    const res = await app.request(`/api/icon?url=${encodeURIComponent('https://c.com/')}`);
+    expect(res.status).toBe(404);
+  });
+
+  it('上游超时/异常 → 404，不抛到客户端', async () => {
+    const { app } = makeApp({}, {}, (async () => {
+      throw new Error('boom');
+    }) as unknown as typeof fetch);
+    const res = await app.request(`/api/icon?url=${encodeURIComponent('https://d.com/')}`);
+    expect(res.status).toBe(404);
+  });
+
+  it('兼容旧参数 u=<host>（等价 url=https://<host>/）', async () => {
+    let called = '';
+    const { app } = makeApp({}, {}, (async (u: any) => {
+      called = String(u);
+      return imgRes();
+    }) as unknown as typeof fetch);
+    expect((await app.request('/api/icon?u=d.com')).status).toBe(200);
+    expect(called).toContain(encodeURIComponent('https://d.com/'));
   });
 });
 
