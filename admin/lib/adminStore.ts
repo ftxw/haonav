@@ -147,18 +147,20 @@ export async function commit(fn: (d: Doc) => void): Promise<boolean> {
   fn(next);
   const ops = diffOps(prev, next);
   if (!ops.length) return true;
+  const rev = prev.rev;
 
   state.doc = next; // 乐观更新
   state.saving = true;
   state.error = '';
   try {
-    const { rev } = await api.patch(state.doc.rev, ops);
-    state.doc = { ...state.doc, rev };
+    const { rev: newRev } = await api.patch(rev, ops);
+    state.doc = { ...state.doc, rev: newRev };
     savedDoc = clone(state.doc);
     state.dirty = false;
     return true;
   } catch (e) {
     state.doc = prev; // 回滚
+    logSaveFailure(rev, ops, e);
     handleSaveError(e);
     return false;
   } finally {
@@ -169,15 +171,17 @@ export async function commit(fn: (d: Doc) => void): Promise<boolean> {
 /** 已是草稿（mutate 改过 state.doc）的面板用：把与 savedDoc 的差异一次性提交 */
 export async function commitOps(ops: Op[]): Promise<boolean> {
   if (!state.doc || !ops.length) return true;
+  const rev = state.doc.rev;
   state.saving = true;
   state.error = '';
   try {
-    const { rev } = await api.patch(state.doc.rev, ops);
-    state.doc = { ...state.doc, rev };
+    const { rev: newRev } = await api.patch(rev, ops);
+    state.doc = { ...state.doc, rev: newRev };
     savedDoc = clone(state.doc);
     state.dirty = false;
     return true;
   } catch (e) {
+    logSaveFailure(rev, ops, e);
     handleSaveError(e);
     return false;
   } finally {
@@ -191,10 +195,32 @@ export async function commitCurrent(): Promise<boolean> {
   return commitOps(diffOps(savedDoc, state.doc));
 }
 
+/**
+ * 保存失败时的调试日志：把服务端返回的具体错误文案（HTTP 状态 + error 字段）、
+ * 以及本次实际发出的 rev / ops 打到 console，便于线上 400/409 等问题秒级定位。
+ */
+function logSaveFailure(rev: number | undefined, ops: Op[], e: unknown): void {
+  const status = e instanceof ApiError ? e.status : e instanceof AuthError ? 401 : 'ERR';
+  const serverMsg =
+    e instanceof ApiError
+      ? e.payload?.error ?? e.message
+      : e instanceof AuthError
+        ? '未登录或会话已过期'
+        : e instanceof Error
+          ? e.message
+          : String(e);
+  console.error(`[HaoNav] PATCH /api/data 失败 (HTTP ${status}): ${serverMsg}`);
+  console.error(`  → 发送 rev=${rev}，ops 数量=${ops.length}`, ops);
+  if (e instanceof ApiError && e.payload) {
+    console.error('  → 服务端原始响应体:', e.payload);
+  }
+}
+
 /** 409 / 401 / 其它错误的统一处理（复用现有冲突弹窗） */
 function handleSaveError(e: unknown): void {
   if (e instanceof ApiError) {
     if (e.status === 409) {
+      console.warn('[HaoNav] 保存冲突 (409)：本地 rev 与服务端不一致，已弹出冲突处理', e.payload);
       state.conflict = {
         serverRev: typeof e.payload?.rev === 'number' ? e.payload.rev : 0,
         serverDoc: (e.payload?.doc as Doc | undefined) ?? null,
