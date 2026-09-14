@@ -222,11 +222,28 @@ function sanitizeDesc(v: unknown): string | undefined {
   return s ? s : undefined;
 }
 
+/**
+ * 生成唯一 id。
+ * ⚠️ 不能裸用 `crypto.randomUUID()`：EdgeOne 的 V8 运行时不一定注入该全局，
+ * 缺失时会抛 TypeError（非 OpError）→ PATCH 被兜底成「操作应用失败」(400)。
+ * 这里优先用 Web Crypto，缺失则回退到 Math.random 兜底串（仅服务端自生成 id 的兜底）。
+ */
+function genId(): string {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+  } catch {
+    /* 忽略，走回退 */
+  }
+  return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+}
+
 function hydrateLink(link: LinkItem, now: number): LinkItem {
   const url = typeof link.url === 'string' ? link.url : '';
   return {
     ...link,
-    id: typeof link.id === 'string' && link.id ? link.id : crypto.randomUUID(),
+    id: typeof link.id === 'string' && link.id ? link.id : genId(),
     title: typeof link.title === 'string' ? link.title : '',
     url,
     urlKey: typeof link.urlKey === 'string' && link.urlKey ? link.urlKey : normalizeUrl(url),
@@ -844,7 +861,11 @@ export function createApp(deps: AppDeps): Hono {
       next = applyOps(current.doc, body.ops as Op[], now());
     } catch (e) {
       if (e instanceof OpError) return jsonResponse({ error: e.message }, 400);
-      return jsonResponse({ error: '操作应用失败' }, 400);
+      // ⚠️ 非 OpError 崩溃（如运行时缺少全局、序列化异常）一律归到这里。
+      // 服务端先落日志，再把真实错误信息回传给客户端，方便即时定位（不回传只会得到"操作应用失败"黑盒）。
+      console.error('[PATCH /api/data] applyOps 未预期异常:', e);
+      const detail = e instanceof Error ? e.message : String(e);
+      return jsonResponse({ error: `操作应用失败：${detail}` }, 400);
     }
 
     const v = validateDoc(next);
@@ -976,7 +997,7 @@ export function createApp(deps: AppDeps): Hono {
       nextLinks.push(
         hydrateLink(
           {
-            id: crypto.randomUUID(),
+            id: genId(),
             title: item.title,
             url: item.url,
             urlKey: key,
