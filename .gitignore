@@ -15,6 +15,9 @@ dist-ssr
 # dev 期本地文件存储（api/adapters/dev.ts）
 .data/
 
+# EdgeOne CLI 的本地构建产物（routes.json、函数 bundle、登录态）
+.edgeone/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
