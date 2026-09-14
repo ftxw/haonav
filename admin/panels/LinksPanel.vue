@@ -2,7 +2,8 @@
 import { computed, ref, watch } from 'vue';
 import Modal from '../components/Modal.vue';
 import { between, appendOrder, orderForIndex } from '../lib/order';
-import { newId, hostOf, maxOrderOf } from '../lib/util';
+import { newId, hostOf, hostForIcon, maxOrderOf } from '../lib/util';
+import { linkLetterIcon } from '../../web/lib/brandIcon';
 import { commit, state, toast } from '../lib/adminStore';
 import {
   BTN_DANGER,
@@ -37,6 +38,29 @@ const catName = computed<Record<string, string>>(() => {
   for (const c of state.doc?.categories ?? []) m[c.id] = c.name;
   return m;
 });
+
+/**
+ * 列表里的图标，优先级与前台 `web/components/LinkCard.vue` **完全一致**（所见即所得）：
+ *  - `letter` 策略语义是「零请求」→ 只用本地字母图标，刻意忽略自定义 URL；
+ *  - `fetched`：自定义 http(s) 图标 → `/api/icon?u=<host>` 自动抓取 → 字母兜底。
+ * ⚠️ 拼 `/api/icon` 必须用 `hostForIcon()`（保留 `www.`），用 `hostOf()` 会白名单不匹配 → 静默 404。
+ */
+function iconSrc(l: LinkItem): string {
+  const letter = linkLetterIcon(l.title, l.url);
+  if (state.doc?.settings?.iconStrategy !== 'fetched') return letter;
+  const custom = l.icon && /^https?:\/\//i.test(l.icon) ? l.icon : '';
+  const host = hostForIcon(l.url);
+  return custom || (host ? `/api/icon?u=${encodeURIComponent(host)}` : '') || letter;
+}
+
+/** 图标加载失败（域名未登记 / 抓取失败）→ 回退字母图标，避免列表里出现破图 */
+function onIconError(e: Event): void {
+  const el = e.target as HTMLImageElement | null;
+  if (!el) return;
+  const id = el.dataset.linkId;
+  const l = id ? state.doc?.links.find((x) => x.id === id) : undefined;
+  el.src = l ? linkLetterIcon(l.title, l.url) : '';
+}
 
 const rows = computed<(LinkItem & { host: string })[]>(() => {
   const d = state.doc;
@@ -344,6 +368,7 @@ const tdCls = TD;
               <input type="checkbox" :checked="allChecked" @change="toggleAll" aria-label="全选" />
             </th>
             <th :class="thCls + ' w-8'"></th>
+            <th :class="thCls + ' w-12'">图标</th>
             <th :class="thCls">标题</th>
             <th :class="thCls">网址</th>
             <th :class="thCls + ' w-32'">分类</th>
@@ -365,6 +390,16 @@ const tdCls = TD;
             <td :class="tdCls"><input type="checkbox" :checked="selected.has(r.id)" @change="toggle(r.id)" :aria-label="'选中 ' + r.title" /></td>
             <td :class="tdCls + ' cursor-grab text-slate-300 active:cursor-grabbing'" title="拖拽排序">⠿</td>
             <td :class="tdCls">
+              <img
+                :src="iconSrc(r)"
+                :data-link-id="r.id"
+                alt=""
+                loading="lazy"
+                class="h-5 w-5 rounded object-contain"
+                @error="onIconError($event)"
+              />
+            </td>
+            <td :class="tdCls">
               <span class="font-medium">{{ r.title }}</span>
               <span v-if="r.desc" class="block text-xs text-slate-400">{{ r.desc }}</span>
             </td>
@@ -381,7 +416,7 @@ const tdCls = TD;
             </td>
           </tr>
           <tr v-if="!rows.length">
-            <td :class="tdCls + ' text-center text-slate-400'" colspan="7">没有符合筛选条件的链接</td>
+            <td :class="tdCls + ' text-center text-slate-400'" colspan="8">没有符合筛选条件的链接</td>
           </tr>
         </tbody>
       </table>

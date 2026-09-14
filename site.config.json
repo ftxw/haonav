@@ -10,7 +10,7 @@
     { "id": "bing", "name": "必应", "url": "https://www.bing.com/search?q=" },
     { "id": "google", "name": "Google", "url": "https://www.google.com/search?q=" }
   ],
-  "iconStrategy": "letter",
+  "iconStrategy": "fetched",
   "footerLinks": [],
   "backup": { "mode": "auto", "frequency": "daily", "retention": 7 }
 }
