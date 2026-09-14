@@ -253,5 +253,29 @@ node --experimental-strip-types migrate/v0-to-v1.ts --in old-data.json --commit 
 - 备份支持**自动**（可在后台配置频率与保留份数，默认每天 / 保留 7 份）与**手动**两种模式
 - 快照枚举使用 index-aside（索引存单个 key），不消耗平台的 List 请求额度
 - 前台不含任何编辑功能与登录界面；所有写操作由后台会话（HttpOnly cookie，30 天）保护
-- 图标策略默认 `letter`（零请求）；切到 `fetched` 后首次访问按域名抓取一次 favicon 并长缓存
+- 图标策略默认 `fetched`（后台可切成 `letter` 走本地字母图标）
 - 架构与实施细节见 [`HaoNav-改造方案.md`](./HaoNav-改造方案.md)
+
+### ⚠️ Makers 平台的 Cache API 限制（已实测，别重复排查）
+
+`/api/icon` 按 workers.js 的方案用 `caches.default` 做边缘缓存，但 **EdgeOne Makers 不允许写入**：
+
+| 验证项 | 结果 |
+|---|---|
+| `globalThis.caches` 是否存在 | ✅ 存在（`/api/health` 的 `cacheApi: true`） |
+| `cache.put()` 是否成功 | ❌ `err:forbidden cdn cache` |
+| 预览域名 `*.edgeone.cool` | ❌ 同样报错 |
+| **绑定正式自定义域名后** | ❌ **同样报错** |
+
+结论：**平台级拒绝，与代码、响应头、域名都无关**，预览环境和正式域名表现一致。
+官方文档未收录该错误码，推测是 Makers 项目类型未开放 CDN 缓存写入。
+
+因此实际行为是：每次请求都回源 `api.xinac.net`（实测 ~22 ms），**服务端无缓存**；
+靠响应自带的 `Cache-Control: public, max-age=604800` 让**浏览器**缓存 7 天。
+对个人站来说体验无差别，且零 KV 消耗 —— **当前实现是有意为之的最终状态，不是 bug**。
+
+代码仍保留 `cache.put` 调用（对齐 workers.js），失败时静默降级，万一将来平台开放可自动生效。
+调试时看这两个响应头：`X-Icon-Cache-Put`（ok / err:xxx / no-cache-api）、`X-Icon-WaitUntil`（yes / no）。
+
+若确实需要**服务端持久缓存**，唯一可选是把图标按域名存 KV（写次数 ≈ 去重域名数，非访问量），
+但那会偏离 workers.js 方案并消耗 KV 写配额，需另行决定。
