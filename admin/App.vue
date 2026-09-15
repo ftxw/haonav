@@ -14,12 +14,10 @@ import {
   conflictDiscard,
   conflictForce,
   login,
-  logout,
   startAutoRefresh,
   state,
   type PanelId,
 } from './lib/adminStore';
-import { BTN_GHOST_DANGER } from './lib/adminUi';
 
 const password = ref('');
 const loggingIn = ref(false);
@@ -88,15 +86,16 @@ onBeforeUnmount(() => {
 
 <!-- 背景层：与前台同款渐变 + 光斑（登录页与主界面共用） -->
 <template>
-  <!-- 用 z-0 + 内容 z-10 的显式层叠，不用负 z-index（祖先若有不透明背景会整层盖住它；
-       body 也不能有不透明背景类，否则同样会盖住这一层） -->
-  <div class="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-gray-100 dark:bg-[#0a0f1a]">
-    <div class="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-[#0a0f1a] dark:to-[#0f172a]"></div>
+  <!-- 画布层：主色淡染的整屏底色（圆角应用框浮在其上）。走 --accent，换主色即时生效 -->
+  <div class="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-slate-100 dark:bg-[#070b14]">
     <div
-      class="animate-blob absolute left-[-10%] top-[-10%] h-[800px] w-[800px] rounded-full bg-emerald-200/40 blur-[150px] dark:bg-emerald-500/15 dark:mix-blend-screen"
+      class="absolute inset-0 bg-gradient-to-br from-accent/25 via-accent/15 to-accent/5 dark:from-accent/12 dark:via-accent/[0.06] dark:to-transparent"
     ></div>
     <div
-      class="animate-blob-slow absolute bottom-[-10%] right-[-10%] h-[500px] w-[500px] rounded-full bg-teal-200/30 blur-[120px] dark:bg-teal-500/12 dark:mix-blend-screen"
+      class="animate-blob absolute left-[-10%] top-[-12%] h-[760px] w-[760px] rounded-full bg-accent/25 blur-[150px] dark:bg-accent/15 dark:mix-blend-screen"
+    ></div>
+    <div
+      class="animate-blob-slow absolute bottom-[-12%] right-[-10%] h-[520px] w-[520px] rounded-full bg-white/40 blur-[130px] dark:bg-white/[0.06] dark:mix-blend-screen"
     ></div>
   </div>
 
@@ -107,7 +106,7 @@ onBeforeUnmount(() => {
 
   <div v-else-if="!state.authed" class="relative z-10 flex min-h-screen items-center justify-center p-6">
     <form
-      class="glass-surface w-full max-w-sm rounded-3xl p-8"
+      class="w-full max-w-sm rounded-[24px] border border-white/60 bg-white/85 p-8 shadow-[0_20px_60px_-18px_rgba(15,23,42,0.3)] backdrop-blur-xl dark:border-white/10 dark:bg-[#0f172a]/85"
       @submit.prevent="doLogin"
     >
       <div class="flex items-center gap-3">
@@ -137,17 +136,76 @@ onBeforeUnmount(() => {
     </form>
   </div>
 
-  <!-- ═════════ 主界面：左侧固定导航 + 右侧内容区 ═════════ -->
-  <div v-else class="relative z-10 flex h-screen overflow-hidden">
-    <!-- 桌面侧栏（w-60 ≈ 15rem）：玻璃面，lg 以下隐藏，改为顶栏汉堡打开抽屉 -->
-    <aside class="glass-surface hidden w-60 shrink-0 flex-col lg:flex">
-      <AdminNav @pick="onPick" />
-    </aside>
+  <!-- ═════════ 主界面：圆角「应用框」内 = 左侧固定导航 + 右侧内容区 ═════════ -->
+  <div v-else class="relative z-10 h-screen p-2.5 sm:p-4 lg:p-5">
+    <!-- 整块白色圆角窗口浮在主色画布上（参考图的关键形），内部分侧栏 / 内容 -->
+    <div
+      class="flex h-full overflow-hidden rounded-[20px] border border-white/60 bg-white/85 shadow-[0_20px_60px_-18px_rgba(15,23,42,0.28)] backdrop-blur-xl lg:rounded-[28px] dark:border-white/10 dark:bg-[#0f172a]/85 dark:shadow-[0_20px_60px_-18px_rgba(0,0,0,0.65)]"
+    >
+      <!-- 桌面侧栏（w-60 ≈ 15rem）：框内左侧浅底，lg 以下隐藏，改为顶栏汉堡打开抽屉 -->
+      <aside
+        class="hidden w-60 shrink-0 flex-col border-r border-slate-200/70 bg-slate-50/70 lg:flex dark:border-white/10 dark:bg-white/[0.02]"
+      >
+        <AdminNav @pick="onPick" />
+      </aside>
+
+      <!-- 右侧：顶栏 + 独立滚动的内容区 -->
+      <div class="flex min-w-0 flex-1 flex-col">
+        <header
+          class="flex h-14 shrink-0 items-center gap-3 border-b border-slate-200/70 px-4 lg:px-6 dark:border-white/10"
+        >
+          <!-- 汉堡：仅 lg 以下出现（窄屏不换行，故顶栏去掉 flex-wrap） -->
+          <button
+            type="button"
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-900/[0.06] hover:text-slate-700 lg:hidden dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+            aria-label="打开导航"
+            :aria-expanded="navOpen"
+            @click="navOpen = true"
+          >
+            <AdminIcon name="menu" :size="18" />
+          </button>
+
+          <!-- 面包屑：大标题交给各面板的 PAGE_HEAD，顶栏只做上下文（退出登录在侧栏底部） -->
+          <span
+            class="flex min-w-0 items-center gap-1.5 truncate text-xs font-medium text-slate-500 dark:text-slate-400"
+          >
+            管理后台<span class="text-slate-300 dark:text-slate-600">/</span>{{ currentPanel.label }}
+          </span>
+          <span class="ml-auto hidden text-xs text-slate-400 sm:inline">rev {{ state.doc?.rev ?? '—' }}</span>
+          <span
+            v-if="state.dirty"
+            class="flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs text-amber-600 dark:text-amber-400"
+          >
+            <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>有未保存改动
+          </span>
+        </header>
+
+        <p
+          v-if="state.error"
+          class="mx-4 mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 lg:mx-6 dark:bg-red-950/40 dark:text-red-400"
+        >
+          {{ state.error }}
+        </p>
+
+        <main class="hn-scroll min-h-0 flex-1 p-4 lg:p-6">
+          <div class="mx-auto w-full max-w-5xl">
+            <LinksPanel v-if="state.panel === 'links'" />
+            <CategoriesPanel v-else-if="state.panel === 'categories'" />
+            <SearchPanel v-else-if="state.panel === 'search'" />
+            <DataPanel v-else-if="state.panel === 'data'" />
+            <BackupPanel v-else-if="state.panel === 'backup'" />
+            <SettingsPanel v-else />
+          </div>
+        </main>
+      </div>
+    </div>
 
     <!-- 移动端抽屉：遮罩 + 左侧滑出面板（内容与桌面侧栏共用同一组件） -->
     <div v-if="navOpen" class="fixed inset-0 z-50 lg:hidden">
       <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="navOpen = false"></div>
-      <aside class="glass-surface absolute inset-y-0 left-0 flex w-64 flex-col">
+      <aside
+        class="absolute inset-y-0 left-0 flex w-64 flex-col border-r border-slate-200/70 bg-white dark:border-white/10 dark:bg-[#0f172a]"
+      >
         <button
           type="button"
           class="absolute right-3 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-900/[0.06] dark:text-slate-300 dark:hover:bg-white/10"
@@ -158,58 +216,6 @@ onBeforeUnmount(() => {
         </button>
         <AdminNav @pick="onPick" />
       </aside>
-    </div>
-
-    <!-- 右侧：顶栏 + 独立滚动的内容区 -->
-    <div class="flex min-w-0 flex-1 flex-col">
-      <header class="glass-surface flex h-14 shrink-0 items-center gap-3 px-4 lg:px-6">
-        <!-- 汉堡：仅 lg 以下出现（窄屏不换行，故顶栏去掉 flex-wrap） -->
-        <button
-          type="button"
-          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-900/[0.06] hover:text-slate-700 lg:hidden dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
-          aria-label="打开导航"
-          :aria-expanded="navOpen"
-          @click="navOpen = true"
-        >
-          <AdminIcon name="menu" :size="18" />
-        </button>
-
-        <!-- 面包屑：大标题交给各面板的 PAGE_HEAD，顶栏只做上下文 + 退出登录 -->
-        <span
-          class="flex min-w-0 items-center gap-1.5 truncate text-xs font-medium text-slate-500 dark:text-slate-400"
-        >
-          管理后台<span class="text-slate-300 dark:text-slate-600">/</span>{{ currentPanel.label }}
-        </span>
-        <span class="hidden text-xs text-slate-400 sm:inline">rev {{ state.doc?.rev ?? '—' }}</span>
-        <span v-if="state.dirty" class="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
-          <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>有未保存改动
-        </span>
-
-        <div class="ml-auto flex shrink-0 items-center gap-2">
-          <button type="button" :class="BTN_GHOST_DANGER" title="退出登录" @click="logout">
-            <AdminIcon name="logout" :size="14" />
-            退出登录
-          </button>
-        </div>
-      </header>
-
-      <p
-        v-if="state.error"
-        class="mx-4 mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 lg:mx-6 dark:bg-red-950/40 dark:text-red-400"
-      >
-        {{ state.error }}
-      </p>
-
-      <main class="hn-scroll min-h-0 flex-1 p-4 lg:p-6">
-        <div class="mx-auto w-full max-w-5xl">
-          <LinksPanel v-if="state.panel === 'links'" />
-          <CategoriesPanel v-else-if="state.panel === 'categories'" />
-          <SearchPanel v-else-if="state.panel === 'search'" />
-          <DataPanel v-else-if="state.panel === 'data'" />
-          <BackupPanel v-else-if="state.panel === 'backup'" />
-          <SettingsPanel v-else />
-        </div>
-      </main>
     </div>
 
     <!-- 409 冲突 -->

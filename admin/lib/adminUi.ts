@@ -7,7 +7,7 @@
  * 约定：
  * - 类名必须是完整字面量，绝不 `xxx-${n}` 动态拼接（Tailwind 静态扫描会 purge）。
  * - 主色一律走 --accent（后台改色即时生效），不得出现写死的 emerald-*。
- * - 明暗两态都可用：玻璃面由 glass-surface 令牌提供，文字/边框用 dark: 变体。
+ * - 明暗两态都可用：内容面由「白底 + 浅边 + 圆角」的 SURFACE 提供，文字/边框用 dark: 变体。
  */
 
 /* ═══════════════════════ 页面骨架 ═══════════════════════ */
@@ -24,29 +24,35 @@ export const PAGE_HEAD_MAIN = 'min-w-0';
 /** 微标签（复刻前台 SECTION_LABEL 风格） */
 export const SECTION_LABEL = 'text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500';
 
-/** 页面大标题 */
-export const PAGE_TITLE = 'text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100';
+/** 页面大标题（参考图：内容区顶部的大号粗标题） */
+export const PAGE_TITLE = 'text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100';
 
 /** 标题区 / 行内操作区（自动靠右） */
 export const PAGE_ACTIONS = 'ml-auto flex flex-wrap items-center gap-2';
 
 /* ═══════════════════════ 侧栏导航 ═══════════════════════ */
 
-/** 导航选中态：实心主色 + 白字 + shadow-md（与前台 PILL_ACTIVE 一致，对齐参考站分类 chip） */
-export const NAV_ACTIVE =
-  'border-slate-200/50 bg-white/50 font-medium text-slate-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100';
+/** 导航选中态：实心主色 + 白字（参考图侧栏选中项 = 主色实心圆角块） */
+export const NAV_ACTIVE = 'bg-accent font-medium text-white shadow-sm shadow-accent/30';
 
 /** 导航空闲态 */
 export const NAV_IDLE =
-  'text-slate-600 hover:bg-white/60 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white';
+  'text-slate-600 hover:bg-slate-900/[0.05] hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/[0.07] dark:hover:text-white';
 
 /* ═══════════════════════ 卡片 ═══════════════════════ */
 
-/** 玻璃卡片（内容卡片 / 工具筛选卡片统一） */
-export const CARD = 'glass-surface rounded-2xl';
+/**
+ * 面板内容面（参考图：白底 + 极浅边框 + 圆角 + 微阴影）。
+ * 外壳（App.vue 的圆角应用框）已提供玻璃底，内层面用实底更清爽、层级更清楚。
+ */
+const SURFACE =
+  'rounded-2xl border border-slate-200/80 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/[0.04]';
 
-/** 玻璃卡片 + 内边距（面板里最常用的一体写法） */
-export const CARD_BOX = 'glass-surface rounded-2xl p-4';
+/** 内容卡片 / 工具筛选卡片统一 */
+export const CARD = SURFACE;
+
+/** 内容卡片 + 内边距（面板里最常用的一体写法） */
+export const CARD_BOX = SURFACE + ' p-4';
 
 /** 卡片内边距 */
 export const CARD_PAD = 'p-4';
@@ -114,6 +120,9 @@ const TAG_BASE = 'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px
 /** 成功 / 新增 / 已有（走主色） */
 export const TAG_OK = TAG_BASE + ' bg-accent/15 text-accent';
 
+/** 信息（蓝）：区别于主色的中性提示 */
+export const TAG_INFO = TAG_BASE + ' bg-sky-500/15 text-sky-600 dark:text-sky-400';
+
 /** 警告 / 冲突 */
 export const TAG_WARN = TAG_BASE + ' bg-amber-500/15 text-amber-600 dark:text-amber-400';
 
@@ -125,9 +134,9 @@ export const TAG_NEUTRAL = TAG_BASE + ' bg-slate-900/[0.06] text-slate-500 dark:
 
 /* ═══════════════════════ 表格 ═══════════════════════ */
 
-export const TABLE_WRAP = 'glass-surface overflow-hidden rounded-2xl';
+export const TABLE_WRAP = SURFACE + ' overflow-hidden';
 export const TABLE = 'w-full border-collapse';
-export const THEAD = 'bg-slate-900/[0.03] dark:bg-white/[0.05]';
-export const TH = 'px-3 py-2 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap';
-export const TD = 'px-3 py-2 text-sm text-slate-700 dark:text-slate-200';
-export const ROW = 'border-t border-slate-100 transition-colors hover:bg-white/40 dark:border-white/10 dark:hover:bg-white/5';
+export const THEAD = 'border-b border-slate-200/80 dark:border-white/10';
+export const TH = 'px-3 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap';
+export const TD = 'px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200';
+export const ROW = 'border-t border-slate-100 transition-colors hover:bg-slate-900/[0.02] dark:border-white/[0.06] dark:hover:bg-white/[0.03]';

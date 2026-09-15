@@ -32,7 +32,7 @@ export const PANEL_GROUPS: { title: string; items: { id: PanelId; label: string;
 import { computed } from 'vue';
 import AdminIcon from './AdminIcon.vue';
 import { NAV_ACTIVE, NAV_IDLE, SECTION_LABEL } from '../lib/adminUi';
-import { state } from '../lib/adminStore';
+import { logout, state } from '../lib/adminStore';
 
 /** 只抛事件，不在这里直接改 state.panel —— 由 App.vue 接住，顺便关闭移动端抽屉 */
 const emit = defineEmits<{ pick: [id: PanelId] }>();
@@ -48,15 +48,15 @@ const navCls = (active: boolean): string =>
 
 <template>
   <div class="flex h-full min-h-0 flex-col">
-    <!-- 品牌块（沿用原后台品牌写法，logo 渐变属既有品牌硬编码，保持不动） -->
-    <div class="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200/40 px-5 dark:border-white/10">
+    <!-- 品牌块（参考图：圆形头像 + 站点名 + 角色；logo 渐变属既有品牌硬编码，保持不动） -->
+    <div class="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200/70 px-4 dark:border-white/10">
       <div
-        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-600 text-base font-bold text-white shadow-lg shadow-emerald-500/30 ring-1 ring-white/25"
+        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-500 to-teal-600 text-sm font-bold text-white shadow-md shadow-emerald-500/30 ring-2 ring-white/70 dark:ring-white/10"
       >
         {{ brandChar }}
       </div>
       <div class="min-w-0">
-        <p class="truncate text-sm font-bold text-slate-700 dark:text-slate-100">{{ siteName }}</p>
+        <p class="truncate text-sm font-bold text-slate-800 dark:text-slate-100">{{ siteName }}</p>
         <p class="text-[11px] text-slate-400">管理后台</p>
       </div>
     </div>
@@ -65,7 +65,7 @@ const navCls = (active: boolean): string =>
     <nav class="hn-scroll no-scrollbar flex-1 space-y-5 overflow-y-auto px-3 py-4">
       <div v-for="g in PANEL_GROUPS" :key="g.title">
         <p class="px-3 pb-1.5" :class="SECTION_LABEL">{{ g.title }}</p>
-        <div class="space-y-0.5">
+        <div class="space-y-1">
           <button
             v-for="p in g.items"
             :key="p.id"
@@ -75,17 +75,13 @@ const navCls = (active: boolean): string =>
           >
             <AdminIcon :name="p.icon" :size="16" />
             <span class="flex-1 truncate text-left">{{ p.label }}</span>
-            <span
-              v-if="state.panel === p.id"
-              class="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent)]"
-            ></span>
           </button>
         </div>
       </div>
     </nav>
 
-    <!-- 底部：返回前台（退出登录已移到顶栏） -->
-    <div class="shrink-0 border-t border-slate-200/40 p-3 dark:border-white/10">
+    <!-- 底部：返回前台 + 退出登录（参考图把登出放在侧栏底部） -->
+    <div class="shrink-0 space-y-1 border-t border-slate-200/70 p-3 dark:border-white/10">
       <a
         href="/"
         target="_blank"
@@ -96,6 +92,10 @@ const navCls = (active: boolean): string =>
         <AdminIcon name="external" :size="16" />
         <span class="flex-1 truncate text-left">返回前台</span>
       </a>
+      <button type="button" :class="navCls(false)" title="退出登录" @click="logout">
+        <AdminIcon name="logout" :size="16" />
+        <span class="flex-1 truncate text-left">退出登录</span>
+      </button>
     </div>
   </div>
 </template>
