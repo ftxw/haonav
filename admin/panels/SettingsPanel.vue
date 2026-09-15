@@ -1,20 +1,18 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { mutate, commitCurrent, state, toast } from '../lib/adminStore';
+import AdminIcon from '../components/AdminIcon.vue';
+import CardHead from '../components/CardHead.vue';
+import PageHead from '../components/PageHead.vue';
+import { mutate, commitCurrent, state } from '../lib/adminStore';
 import {
   BTN_PRIMARY_LG,
   BTN_SECONDARY,
-  CARD_BOX,
-  CARD_TITLE,
+  CARD,
   FORM_ROW,
   INPUT,
+  INPUT_BASE,
   LABEL,
   PAGE,
-  PAGE_ACTIONS,
-  PAGE_HEAD,
-  PAGE_HEAD_MAIN,
-  PAGE_TITLE,
-  SECTION_LABEL,
 } from '../lib/adminUi';
 import type { SearchEngine, SiteSettings } from '../../shared/types';
 
@@ -72,37 +70,30 @@ async function saveNow(): Promise<void> {
 /* 类名统一走 admin/lib/adminUi.ts（玻璃面 + accent 令牌，与前台同语言） */
 const inputCls = INPUT;
 const labelCls = LABEL;
-const cardCls = CARD_BOX;
-const titleCls = CARD_TITLE;
+const cardCls = CARD + ' overflow-hidden';
 const rowCls = FORM_ROW;
 const miniBtn = BTN_SECONDARY;
 </script>
 
 <template>
   <div v-if="settings" :class="PAGE">
-    <!-- 页面标题区：微标签 + 大标题 + 右侧主操作 -->
-    <div :class="PAGE_HEAD">
-      <div :class="PAGE_HEAD_MAIN">
-        <span :class="SECTION_LABEL">站点设置</span>
-        <h2 :class="PAGE_TITLE">设置</h2>
-      </div>
-      <div :class="PAGE_ACTIONS">
-        <span class="text-xs text-slate-500">{{ state.dirty ? '有未保存的更改' : '所有更改已保存' }}</span>
-        <button
-          type="button"
-          :class="BTN_PRIMARY_LG"
-          :disabled="!state.dirty || state.saving || saving"
-          @click="saveNow"
-        >
-          {{ state.saving || saving ? '保存中…' : '保存设置' }}
-        </button>
-      </div>
-    </div>
+    <!-- 页面标题卡：一级分类 / 二级分类 / 说明全部派生自 lib/panels.ts（与左侧导航同步） -->
+    <PageHead panel="settings">
+      <span class="text-xs text-slate-500">{{ state.dirty ? '有未保存的更改' : '所有更改已保存' }}</span>
+      <button
+        type="button"
+        :class="BTN_PRIMARY_LG"
+        :disabled="!state.dirty || state.saving || saving"
+        @click="saveNow"
+      >
+        {{ state.saving || saving ? '保存中…' : '保存设置' }}
+      </button>
+    </PageHead>
 
     <!-- 品牌 -->
     <div :class="cardCls">
-      <h3 :class="titleCls">品牌</h3>
-      <div :class="rowCls + ' mt-3'">
+      <CardHead title="品牌" />
+      <div :class="rowCls + ' p-4'">
         <label class="block">
           <span :class="labelCls">站点名称（标题 / 侧栏 / 分享）</span>
           <input :value="settings.name" type="text" :class="inputCls" @input="setName(($event.target as HTMLInputElement).value)" />
@@ -124,8 +115,8 @@ const miniBtn = BTN_SECONDARY;
 
     <!-- 外观 -->
     <div :class="cardCls">
-      <h3 :class="titleCls">外观</h3>
-      <div :class="rowCls + ' mt-3'">
+      <CardHead title="外观" />
+      <div :class="rowCls + ' p-4'">
         <label class="block">
           <span :class="labelCls">主色（运行时生效，无需重新构建）</span>
           <div class="flex gap-2">
@@ -152,8 +143,8 @@ const miniBtn = BTN_SECONDARY;
 
     <!-- 行为 / 图标 -->
     <div :class="cardCls">
-      <h3 :class="titleCls">行为与图标</h3>
-      <div :class="rowCls + ' mt-3'">
+      <CardHead title="行为与图标" />
+      <div :class="rowCls + ' p-4'">
         <label class="flex items-center gap-2 self-end text-sm text-slate-700 dark:text-slate-200">
           <input type="checkbox" :checked="settings.openInNewTab" @change="setOpenInNewTab(($event.target as HTMLInputElement).checked)" />
           链接在新标签打开
@@ -172,13 +163,12 @@ const miniBtn = BTN_SECONDARY;
 
     <!-- 页脚外链 -->
     <div :class="cardCls">
-      <div class="flex items-center gap-2">
-        <h3 :class="titleCls">侧栏页脚外链</h3>
-        <button type="button" :class="miniBtn + ' ml-auto'" @click="addFooter">＋ 添加</button>
-      </div>
-      <div class="mt-3 space-y-2">
+      <CardHead title="侧栏页脚外链" :count="settings.footerLinks.length + ' 个'">
+        <button type="button" :class="miniBtn" @click="addFooter"><AdminIcon name="plus" :size="12" />添加</button>
+      </CardHead>
+      <div class="space-y-2 p-4">
         <div v-for="(f, i) in settings.footerLinks" :key="i" class="flex flex-wrap items-center gap-2">
-          <input :value="f.label" type="text" placeholder="名称" :class="inputCls + ' w-40'" @input="setFooterLabel(i, ($event.target as HTMLInputElement).value)" />
+          <input :value="f.label" type="text" placeholder="名称" :class="INPUT_BASE + ' w-40'" @input="setFooterLabel(i, ($event.target as HTMLInputElement).value)" />
           <input :value="f.url" type="text" placeholder="https://" :class="inputCls + ' flex-1'" @input="setFooterUrl(i, ($event.target as HTMLInputElement).value)" />
           <button type="button" class="text-xs text-red-500 hover:underline" @click="removeFooter(i)">删除</button>
         </div>

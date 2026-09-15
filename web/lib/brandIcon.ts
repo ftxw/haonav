@@ -1,4 +1,4 @@
-import type { BrandIcon } from './models';
+import type { BrandIcon, IconStrategy } from './models';
 import { paletteColor } from './ui';
 
 export function hostOf(url: string): string {
@@ -55,6 +55,42 @@ function emojiBlock(char: string, size = 64): string {
 export function linkLetterIcon(title: string, url: string): string {
   const host = hostOf(url);
   return svgToDataUri(letterBlock(firstChar(title), paletteColor(host), '#fff'));
+}
+
+/* ─────────── 站外搜索引擎图标（前台搜索框 / 后台引擎列表共用同一套规则） ─────────── */
+
+/** 第三方站点图标服务（方案 B：浏览器直连；自带一年 `Cache-Control` + CORS `*`） */
+export const XINAC_ICON_API = 'https://api.xinac.net/icon/?url=';
+
+/**
+ * 引擎图标抓取地址。搜索引擎存的是**模板 URL**（如 `https://www.google.com/search?q=`），
+ * 直接拿去抓 favicon 会带上整条查询串，故先取 `origin`（站点根）再抓。
+ */
+export function engineIconUrl(url: string): string {
+  const v = String(url || '').trim();
+  if (!v) return '';
+  try {
+    return XINAC_ICON_API + encodeURIComponent(new URL(v).origin);
+  } catch {
+    return XINAC_ICON_API + encodeURIComponent(v);
+  }
+}
+
+/**
+ * 引擎图标取值 —— 与链接卡片（LinkCard）完全同一套规则，前后台共用：
+ *  - `letter`：本地字母色块（零请求）；
+ *  - `fetched`：自定义 `icon`（http(s)）优先 → 按 origin 自动抓取 → 字母回退；
+ *  - `failed`（当前图标加载失败）→ 立刻回退字母块，避免破图。
+ */
+export function engineIconSrc(
+  eng: { name: string; url: string; icon?: string },
+  strategy: IconStrategy,
+  failed = false,
+): string {
+  const letter = linkLetterIcon(eng.name, eng.url);
+  if (strategy !== 'fetched' || failed) return letter;
+  const custom = eng.icon && /^https?:\/\//i.test(eng.icon) ? eng.icon : '';
+  return custom || engineIconUrl(eng.url) || letter;
 }
 
 /** 品牌图标 → favicon：letter/emoji 本地生成，image 直接用 URL */

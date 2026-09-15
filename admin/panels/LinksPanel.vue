@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import AdminIcon from '../components/AdminIcon.vue';
+import CardHead from '../components/CardHead.vue';
 import Modal from '../components/Modal.vue';
+import PageHead from '../components/PageHead.vue';
 import { between, appendOrder, orderForIndex } from '../lib/order';
 import { newId, hostOf, maxOrderOf } from '../lib/util';
 import { linkLetterIcon } from '../../web/lib/brandIcon';
@@ -11,16 +14,15 @@ import {
   BTN_SECONDARY,
   CARD,
   INPUT,
+  INPUT_BASE,
   LINK_BTN,
   LINK_DANGER,
+  NAV_ACTIVE,
+  NAV_IDLE,
+  NAV_ITEM,
   PAGE,
-  PAGE_HEAD,
-  PAGE_HEAD_MAIN,
-  PAGE_TITLE,
   ROW,
-  SECTION_LABEL,
   TABLE,
-  TABLE_WRAP,
   TD,
   TH,
   THEAD,
@@ -30,14 +32,67 @@ import type { Category, LinkItem } from '../../shared/types';
 /* ───────── 筛选 ───────── */
 const fCat = ref<string>('all'); // all | none | <catId>
 const fQuery = ref('');
-const fPinned = ref<'all' | 'pinned' | 'unpinned'>('all');
-const fDesc = ref<'all' | 'with' | 'without'>('all');
 
 const catName = computed<Record<string, string>>(() => {
-  const m: Record<string, string> = { '': '（未分类）' };
+  const m: Record<string, string> = { '': '未分类' };
   for (const c of state.doc?.categories ?? []) m[c.id] = c.name;
   return m;
 });
+
+/**
+ * 左侧「分类目录」数据源：全部 → 各分类（按 order）→ 未分类，各带链接计数。
+ * key 直接复用 fCat 的三态取值（'all' | 'none' | <catId>），点击即切换筛选。
+ */
+const catDir = computed<{ key: string; name: string; count: number }[]>(() => {
+  const d = state.doc;
+  if (!d) return [];
+  const counts = new Map<string, number>();
+  for (const l of d.links) counts.set(l.cat, (counts.get(l.cat) ?? 0) + 1);
+  const list = [{ key: 'all', name: '全部', count: d.links.length }];
+  const cats = d.categories.slice().sort((a, b) => (a.order < b.order ? -1 : a.order > b.order ? 1 : 0));
+  for (const c of cats) list.push({ key: c.id, name: c.name, count: counts.get(c.id) ?? 0 });
+  list.push({ key: 'none', name: '未分类', count: counts.get('') ?? 0 });
+  return list;
+});
+
+/** 目录项类名：复用侧栏导航令牌，选中 = 实心主色块 */
+const dirCls = (active: boolean): string => NAV_ITEM + (active ? NAV_ACTIVE : NAV_IDLE);
+
+/**
+ * 分类目录卡顶部的「＋ 添加分类」：轻量新增（只填名称，图标默认 folder）。
+ * 走与 CategoriesPanel 完全相同的 op 路径 —— commit() 的 diffOps 会自动产出 cat.add，
+ * 所以这里不必手写 op。新增成功后自动切到该分类，方便紧接着往里添加链接。
+ */
+const catAddOpen = ref(false);
+const catNameInput = ref('');
+const catFormError = ref('');
+
+function openAddCat(): void {
+  catNameInput.value = '';
+  catFormError.value = '';
+  catAddOpen.value = true;
+}
+
+function submitAddCat(): void {
+  const name = catNameInput.value.trim();
+  if (!name) {
+    catFormError.value = '请输入分类名称';
+    return;
+  }
+  let created = '';
+  commit((d) => {
+    created = newId();
+    d.categories.push({
+      id: created,
+      name,
+      icon: 'folder',
+      order: appendOrder(maxOrderOf(d.categories.map((c) => c.order))),
+    });
+  });
+  fCat.value = created; // 新建后立即切到该分类，链路更顺
+  catAddOpen.value = false;
+  toast('已添加分类');
+}
 
 /**
  * 列表里的图标，优先级与前台 `web/components/LinkCard.vue` **完全一致**（所见即所得）：
@@ -68,10 +123,6 @@ const rows = computed<(LinkItem & { host: string })[]>(() => {
   const q = fQuery.value.trim().toLowerCase();
   const list = d.links.filter((l) => {
     if (fCat.value === 'none' ? l.cat !== '' : fCat.value !== 'all' && l.cat !== fCat.value) return false;
-    if (fPinned.value === 'pinned' && !l.pinned) return false;
-    if (fPinned.value === 'unpinned' && l.pinned) return false;
-    if (fDesc.value === 'with' && !l.desc) return false;
-    if (fDesc.value === 'without' && l.desc) return false;
     if (q && !(l.title.toLowerCase().includes(q) || l.url.toLowerCase().includes(q))) return false;
     return true;
   });
@@ -306,119 +357,121 @@ const tdCls = TD;
 </script>
 
 <template>
-  <div :class="PAGE">
-    <!-- 页面标题区：微标签 + 大标题 + 右侧主操作 -->
-    <div :class="PAGE_HEAD">
-      <div :class="PAGE_HEAD_MAIN">
-        <span :class="SECTION_LABEL">链接管理</span>
-        <h2 :class="PAGE_TITLE">链接</h2>
-      </div>
-      <div class="ml-auto flex flex-wrap items-center gap-2">
-        <button type="button" :class="BTN_PRIMARY" @click="openAdd">＋ 添加链接</button>
-      </div>
-    </div>
+  <div :class="PAGE + ' lg:flex lg:h-full lg:flex-col'">
+    <!-- 页面标题卡：一级分类 / 二级分类 / 说明全部派生自 lib/panels.ts（与左侧导航同步） -->
+    <PageHead panel="links" class="lg:shrink-0">
+      <input v-model="fQuery" type="search" placeholder="搜标题 / 网址" :class="INPUT_BASE + ' w-56'" />
+    </PageHead>
 
-    <!-- 筛选栏（玻璃卡片） -->
-    <div class="flex flex-wrap items-center gap-2 p-4" :class="CARD">
-      <select v-model="fCat" :class="inputCls + ' w-44'">
-        <option value="all">全部分类</option>
-        <option value="none">（未分类）</option>
-        <option v-for="c in state.doc?.categories ?? []" :key="c.id" :value="c.id">{{ c.name }}</option>
-      </select>
-      <input v-model="fQuery" type="search" placeholder="搜标题 / 网址" :class="inputCls + ' w-52'" />
-      <select v-model="fPinned" :class="inputCls + ' w-32'">
-        <option value="all">置顶：全部</option>
-        <option value="pinned">仅置顶</option>
-        <option value="unpinned">仅未置顶</option>
-      </select>
-      <select v-model="fDesc" :class="inputCls + ' w-36'">
-        <option value="all">描述：全部</option>
-        <option value="with">有描述</option>
-        <option value="without">无描述</option>
-      </select>
-      <span class="ml-auto text-xs text-slate-500">{{ rows.length }} 条</span>
-    </div>
-
-    <!-- 批量操作栏 -->
-    <div
-      v-if="selected.size"
-      class="flex flex-wrap items-center gap-2 px-3 py-2 ring-1 ring-accent/30"
-      :class="CARD"
-    >
-      <span class="text-xs font-medium text-accent">已选 {{ selected.size }} 条</span>
-      <select v-model="batchCat" :class="inputCls + ' w-40 !py-1.5'">
-        <option value="" disabled>移动到分类…</option>
-        <option value="__none__">（未分类）</option>
-        <option v-for="c in state.doc?.categories ?? []" :key="c.id" :value="c.id">{{ c.name }}</option>
-      </select>
-      <button type="button" :class="BTN_PRIMARY" :disabled="!batchCat" @click="applyBatchCat">应用</button>
-      <button type="button" :class="BTN_SECONDARY" @click="batchPin(true)">置顶</button>
-      <button type="button" :class="BTN_SECONDARY" @click="batchPin(false)">取消置顶</button>
-      <button type="button" :class="BTN_DANGER" @click="batchDelete">删除</button>
-      <button type="button" class="ml-auto text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300" @click="clearSel">取消选择</button>
-    </div>
-
-    <!-- 表格 -->
-    <div class="overflow-x-auto" :class="TABLE_WRAP">
-      <table class="min-w-[720px]" :class="TABLE">
-        <thead :class="THEAD">
-          <tr>
-            <th :class="thCls + ' w-10'">
-              <input type="checkbox" :checked="allChecked" @change="toggleAll" aria-label="全选" />
-            </th>
-            <th :class="thCls + ' w-8'"></th>
-            <th :class="thCls + ' w-12'">图标</th>
-            <th :class="thCls">标题</th>
-            <th :class="thCls">网址</th>
-            <th :class="thCls + ' w-32'">分类</th>
-            <th :class="thCls + ' w-16'">置顶</th>
-            <th :class="thCls + ' w-24'">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="r in rows"
-            :key="r.id"
-            :class="[ROW, { 'opacity-50': dragId === r.id, 'ring-2 ring-accent ring-inset': dragOverId === r.id }]"
-            draggable="true"
-            @dragstart="onDragStart(r.id, $event)"
-            @dragover="onDragOver(r.id, $event)"
-            @dragleave="onDragLeave(r.id)"
-            @drop="onDrop(r.id, $event)"
+    <!-- 下方：左 = 分类目录卡；右 = 链接列表卡（lg 起两卡等高，通到页面底部） -->
+    <div class="grid items-start gap-4 lg:min-h-0 lg:flex-1 lg:items-stretch lg:gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]">
+      <!-- 左卡：分类目录（顶部标题行带分割线 + 添加分类按钮，点击目录项即筛选，选中 = 实心主色块） -->
+      <div :class="CARD + ' flex flex-col overflow-hidden'">
+        <CardHead title="分类目录">
+          <button type="button" :class="BTN_SECONDARY + ' shrink-0'" @click="openAddCat"><AdminIcon name="plus" :size="13" />添加分类</button>
+        </CardHead>
+        <div class="space-y-0.5 p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+          <button
+            v-for="c in catDir"
+            :key="c.key"
+            type="button"
+            :class="dirCls(fCat === c.key)"
+            @click="fCat = c.key"
           >
-            <td :class="tdCls"><input type="checkbox" :checked="selected.has(r.id)" @change="toggle(r.id)" :aria-label="'选中 ' + r.title" /></td>
-            <td :class="tdCls + ' cursor-grab text-slate-300 active:cursor-grabbing'" title="拖拽排序">⠿</td>
-            <td :class="tdCls">
-              <img
-                :src="iconSrc(r)"
-                :data-link-id="r.id"
-                alt=""
-                loading="lazy"
-                class="h-5 w-5 rounded object-contain"
-                @error="onIconError($event)"
-              />
-            </td>
-            <td :class="tdCls">
-              <span class="font-medium">{{ r.title }}</span>
-              <span v-if="r.desc" class="block text-xs text-slate-400">{{ r.desc }}</span>
-            </td>
-            <td :class="tdCls + ' max-w-[220px]'"><span class="block truncate text-xs text-slate-500">{{ r.url }}</span></td>
-            <td :class="tdCls + ' text-xs'">{{ catName[r.cat] || r.cat || '（未分类）' }}</td>
-            <td :class="tdCls">
-              <button type="button" :aria-label="r.pinned ? '取消置顶' : '置顶'" @click="commit((d) => { const x = d.links.find((y) => y.id === r.id); if (x) x.pinned = r.pinned ? undefined : true; })">
-                <span :class="r.pinned ? 'text-amber-500' : 'text-slate-300 hover:text-slate-500'">★</span>
-              </button>
-            </td>
-            <td :class="tdCls + ' whitespace-nowrap'">
-              <button type="button" :class="LINK_BTN" @click="openEdit(r)">编辑</button>
-              <button type="button" class="ml-2" :class="LINK_DANGER" @click="removeOne(r)">删除</button>
-            </td>
-          </tr>
-          <tr v-if="!rows.length">
-            <td :class="tdCls + ' text-center text-slate-400'" colspan="8">没有符合筛选条件的链接</td>
-          </tr>
-        </tbody>
-      </table>
+            <span class="flex-1 truncate text-left">{{ c.name }}</span>
+            <span class="shrink-0 text-[11px]" :class="fCat === c.key ? 'text-white/80' : 'text-slate-400'">{{ c.count }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 右卡：链接列表（标题行 + 批量栏 + 表格同处一张卡；表格区独立滚动） -->
+      <div :class="CARD + ' flex flex-col overflow-hidden'">
+        <!-- 标题行：链接列表 + 计数 + 「＋ 添加链接」右对齐 -->
+        <CardHead title="链接列表" :count="rows.length + ' 条'">
+          <button type="button" :class="BTN_PRIMARY + ' shrink-0'" @click="openAdd"><AdminIcon name="plus" :size="13" />添加链接</button>
+        </CardHead>
+
+        <!-- 批量操作（卡内，紧随标题行） -->
+        <div
+          v-if="selected.size"
+          class="flex shrink-0 flex-wrap items-center gap-2 border-b border-accent/20 bg-accent/[0.06] px-4 py-2"
+        >
+          <span class="text-xs font-medium text-accent">已选 {{ selected.size }} 条</span>
+          <select v-model="batchCat" :class="INPUT_BASE + ' w-40 shrink-0'">
+            <option value="" disabled>移动到分类…</option>
+            <option value="__none__">未分类</option>
+            <option v-for="c in state.doc?.categories ?? []" :key="c.id" :value="c.id">{{ c.name }}</option>
+          </select>
+          <button type="button" :class="BTN_PRIMARY" :disabled="!batchCat" @click="applyBatchCat">应用</button>
+          <button type="button" :class="BTN_SECONDARY" @click="batchPin(true)">置顶</button>
+          <button type="button" :class="BTN_SECONDARY" @click="batchPin(false)">取消置顶</button>
+          <button type="button" :class="BTN_DANGER" @click="batchDelete">删除</button>
+          <button type="button" class="ml-auto text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300" @click="clearSel">取消选择</button>
+        </div>
+
+        <!-- 表格（lg 起占满剩余高度、卡内独立滚动） -->
+        <div class="overflow-x-auto lg:min-h-0 lg:flex-1 lg:overflow-auto">
+          <table class="min-w-[720px] text-center" :class="TABLE">
+            <thead :class="THEAD">
+              <tr>
+                <th :class="thCls + ' w-10'">
+                  <input type="checkbox" :checked="allChecked" @change="toggleAll" aria-label="全选" />
+                </th>
+                <th :class="thCls + ' w-8'"></th>
+                <th :class="thCls + ' w-12'">图标</th>
+                <th :class="thCls">标题</th>
+                <th :class="thCls">网址</th>
+                <th :class="thCls + ' w-32'">分类</th>
+                <th :class="thCls + ' w-16'">置顶</th>
+                <th :class="thCls + ' w-24'">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="r in rows"
+                :key="r.id"
+                :class="[ROW, { 'opacity-50': dragId === r.id, 'ring-2 ring-accent ring-inset': dragOverId === r.id }]"
+                draggable="true"
+                @dragstart="onDragStart(r.id, $event)"
+                @dragover="onDragOver(r.id, $event)"
+                @dragleave="onDragLeave(r.id)"
+                @drop="onDrop(r.id, $event)"
+              >
+                <td :class="tdCls"><input type="checkbox" :checked="selected.has(r.id)" @change="toggle(r.id)" :aria-label="'选中 ' + r.title" /></td>
+                <td :class="tdCls + ' cursor-grab text-slate-300 active:cursor-grabbing'" title="拖拽排序">⠿</td>
+                <td :class="tdCls">
+                  <img
+                    :src="iconSrc(r)"
+                    :data-link-id="r.id"
+                    alt=""
+                    loading="lazy"
+                    class="h-5 w-5 rounded object-contain"
+                    @error="onIconError($event)"
+                  />
+                </td>
+                <td :class="tdCls">
+                  <span class="font-medium">{{ r.title }}</span>
+                  <span v-if="r.desc" class="block text-xs text-slate-400">{{ r.desc }}</span>
+                </td>
+                <td :class="tdCls + ' max-w-[220px]'"><span class="block truncate text-xs text-slate-500">{{ r.url }}</span></td>
+                <td :class="tdCls + ' text-xs'">{{ catName[r.cat] || r.cat || '未分类' }}</td>
+                <td :class="tdCls">
+                  <button type="button" :aria-label="r.pinned ? '取消置顶' : '置顶'" @click="commit((d) => { const x = d.links.find((y) => y.id === r.id); if (x) x.pinned = r.pinned ? undefined : true; })">
+                    <span :class="r.pinned ? 'text-amber-500' : 'text-slate-300 hover:text-slate-500'">★</span>
+                  </button>
+                </td>
+                <td :class="tdCls + ' whitespace-nowrap'">
+                  <button type="button" :class="LINK_BTN" @click="openEdit(r)">编辑</button>
+                  <button type="button" class="ml-2" :class="LINK_DANGER" @click="removeOne(r)">删除</button>
+                </td>
+              </tr>
+              <tr v-if="!rows.length">
+                <td :class="tdCls + ' text-center text-slate-400'" colspan="8">没有符合筛选条件的链接</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <Modal v-if="editing" :title="isAdd ? '添加链接' : '编辑链接'" @close="closeForm">
@@ -456,7 +509,7 @@ const tdCls = TD;
           <label class="block flex-1">
             <span class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">分类</span>
             <select v-model="form.cat" :class="inputCls">
-              <option value="">（未分类）</option>
+              <option value="">未分类</option>
               <option v-for="c in state.doc?.categories ?? []" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
           </label>
@@ -468,6 +521,28 @@ const tdCls = TD;
         <div class="flex justify-end gap-2 pt-1">
           <button type="button" :class="BTN_SECONDARY" @click="closeForm">取消</button>
           <button type="button" :class="BTN_PRIMARY" @click="submitForm">保存</button>
+        </div>
+      </div>
+    </Modal>
+
+    <!-- 分类目录卡「＋ 添加分类」用的轻量弹窗（只填名称，图标默认 folder） -->
+    <Modal v-if="catAddOpen" title="添加分类" @close="catAddOpen = false">
+      <div class="space-y-3">
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">分类名称</span>
+          <input
+            v-model="catNameInput"
+            type="text"
+            placeholder="例如：开发工具"
+            :class="inputCls"
+            @keyup.enter="submitAddCat"
+          />
+        </label>
+        <p class="text-xs text-slate-400">图标、排序、合并等完整管理请在「分类」面板操作。</p>
+        <p v-if="catFormError" class="text-xs text-red-500">{{ catFormError }}</p>
+        <div class="flex justify-end gap-2 pt-1">
+          <button type="button" :class="BTN_SECONDARY" @click="catAddOpen = false">取消</button>
+          <button type="button" :class="BTN_PRIMARY" @click="submitAddCat">保存</button>
         </div>
       </div>
     </Modal>

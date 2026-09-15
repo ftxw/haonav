@@ -4,7 +4,7 @@ import { DEFAULT_SETTINGS } from '../../web/lib/settings';
 import { api, ApiError, AuthError } from './adminApi';
 import { diffOps } from './diffOps';
 
-export type PanelId = 'links' | 'categories' | 'search' | 'data' | 'backup' | 'settings';
+export type PanelId = 'links' | 'categories' | 'search' | 'data' | 'check' | 'backup' | 'settings';
 
 export const state = reactive({
   booted: false,

@@ -83,6 +83,10 @@ export interface SnapshotMeta {
   key: string;
   at: number;
   size: number;
+  /** 快照内分类数量（创建时写入，列表直接展示，免回读 KV 快照体） */
+  categories: number;
+  /** 快照内链接数量 */
+  links: number;
 }
 
 export type Op =

@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue';
 import Modal from '../components/Modal.vue';
 import AdminIcon from '../components/AdminIcon.vue';
+import CardHead from '../components/CardHead.vue';
+import PageHead from '../components/PageHead.vue';
 import { between, appendOrder, orderForIndex } from '../lib/order';
 import { newId, maxOrderOf, slugId } from '../lib/util';
 import { commit, state, toast } from '../lib/adminStore';
@@ -13,11 +15,7 @@ import {
   LINK_BTN,
   LINK_DANGER,
   PAGE,
-  PAGE_HEAD,
-  PAGE_HEAD_MAIN,
-  PAGE_TITLE,
   ROW,
-  SECTION_LABEL,
   TABLE,
   TABLE_WRAP,
   TD,
@@ -198,21 +196,20 @@ const inputCls = INPUT;
 
 <template>
   <div :class="PAGE">
-    <!-- 页面标题区：微标签 + 大标题 + 右侧主操作 -->
-    <div :class="PAGE_HEAD">
-      <div :class="PAGE_HEAD_MAIN">
-        <span :class="SECTION_LABEL">分类管理</span>
-        <h2 :class="PAGE_TITLE">分类</h2>
-        <p class="mt-0.5 text-xs text-slate-500">拖拽行可排序；删除分类时其下链接可指定去向，不会丢失。</p>
-      </div>
-      <div class="ml-auto flex flex-wrap items-center gap-2">
-        <button type="button" :class="BTN_SECONDARY" @click="merging = true">合并分类</button>
-        <button type="button" :class="BTN_PRIMARY" @click="openAdd">＋ 新建分类</button>
-      </div>
-    </div>
+    <!-- 页面标题卡：一级分类 / 二级分类 / 说明全部派生自 lib/panels.ts（与左侧导航同步） -->
+    <PageHead panel="categories" />
 
     <div :class="TABLE_WRAP">
-      <table :class="TABLE">
+      <!-- 卡片标题行：分类目录 + 计数 + 「合并分类 / ＋新建分类」右对齐（与「链接列表」同款） -->
+      <CardHead title="分类目录" :count="cats.length + ' 个'">
+        <button type="button" :class="BTN_SECONDARY + ' shrink-0'" @click="merging = true">
+          <AdminIcon name="merge" :size="13" />合并分类
+        </button>
+        <button type="button" :class="BTN_PRIMARY + ' shrink-0'" @click="openAdd">
+          <AdminIcon name="plus" :size="13" />新建分类
+        </button>
+      </CardHead>
+      <table :class="TABLE + ' text-center'">
         <thead :class="THEAD">
           <tr>
             <th class="w-8" :class="TH"></th>
@@ -247,7 +244,7 @@ const inputCls = INPUT;
             </td>
           </tr>
           <tr v-if="!cats.length">
-            <td class="px-3 py-6 text-center text-sm text-slate-400" colspan="5">还没有分类，点右上角新建</td>
+            <td class="px-4 py-6 text-center text-sm text-slate-400" colspan="5">还没有分类，点右上角新建</td>
           </tr>
         </tbody>
       </table>
@@ -294,7 +291,7 @@ const inputCls = INPUT;
           该分类下有 <b>{{ counts[deleting.id] ?? 0 }}</b> 条链接。链接不会被删除，请选择去向：
         </p>
         <select v-model="deleteTarget" :class="inputCls">
-          <option value="__none__">（未分类）</option>
+          <option value="__none__">未分类</option>
           <option v-for="c in cats.filter((x) => x.id !== deleting!.id)" :key="c.id" :value="c.id">{{ c.name }}</option>
         </select>
         <div class="flex justify-end gap-2 pt-1">

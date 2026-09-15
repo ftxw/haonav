@@ -1,38 +1,9 @@
-<script lang="ts">
-import type { PanelId } from '../lib/adminStore';
-
-/**
- * 后台导航分组（单一数据源）。
- * 桌面侧栏与移动端抽屉都渲染本组件，顶栏面包屑也从这里扁平化取名，避免两处维护。
- */
-export const PANEL_GROUPS: { title: string; items: { id: PanelId; label: string; icon: string }[] }[] = [
-  {
-    title: '站点内容',
-    items: [
-      { id: 'links', label: '链接', icon: 'list' },
-      { id: 'categories', label: '分类', icon: 'grid' },
-      { id: 'search', label: '搜索', icon: 'search' },
-    ],
-  },
-  {
-    title: '数据与备份',
-    items: [
-      { id: 'data', label: '数据', icon: 'upload' },
-      { id: 'backup', label: '备份', icon: 'download' },
-    ],
-  },
-  {
-    title: '系统设置',
-    items: [{ id: 'settings', label: '设置', icon: 'gear' }],
-  },
-];
-</script>
-
 <script setup lang="ts">
 import { computed } from 'vue';
 import AdminIcon from './AdminIcon.vue';
-import { NAV_ACTIVE, NAV_IDLE, SECTION_LABEL } from '../lib/adminUi';
-import { logout, state } from '../lib/adminStore';
+import { NAV_ACTIVE, NAV_IDLE, NAV_ITEM, SECTION_LABEL } from '../lib/adminUi';
+import { state, type PanelId } from '../lib/adminStore';
+import { PANEL_GROUPS } from '../lib/panels';
 
 /** 只抛事件，不在这里直接改 state.panel —— 由 App.vue 接住，顺便关闭移动端抽屉 */
 const emit = defineEmits<{ pick: [id: PanelId] }>();
@@ -40,10 +11,8 @@ const emit = defineEmits<{ pick: [id: PanelId] }>();
 const siteName = computed(() => state.doc?.settings.name || 'HaoNav');
 const brandChar = computed(() => Array.from(siteName.value.trim())[0] || 'H');
 
-/** 导航项：选中态走 adminUi 令牌（与前台同语言），组内项写法对齐参考站 */
-const navCls = (active: boolean): string =>
-  'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ' +
-  (active ? NAV_ACTIVE : NAV_IDLE);
+/** 导航项：选中态走 adminUi 令牌（实心主色块）；账户动作已抽到 AdminAccount.vue */
+const navCls = (active: boolean): string => NAV_ITEM + (active ? NAV_ACTIVE : NAV_IDLE);
 </script>
 
 <template>
@@ -79,23 +48,5 @@ const navCls = (active: boolean): string =>
         </div>
       </div>
     </nav>
-
-    <!-- 底部：返回前台 + 退出登录（参考图把登出放在侧栏底部） -->
-    <div class="shrink-0 space-y-1 border-t border-slate-200/70 p-3 dark:border-white/10">
-      <a
-        href="/"
-        target="_blank"
-        rel="noopener noreferrer"
-        :class="navCls(false)"
-        title="打开前台导航页"
-      >
-        <AdminIcon name="external" :size="16" />
-        <span class="flex-1 truncate text-left">返回前台</span>
-      </a>
-      <button type="button" :class="navCls(false)" title="退出登录" @click="logout">
-        <AdminIcon name="logout" :size="16" />
-        <span class="flex-1 truncate text-left">退出登录</span>
-      </button>
-    </div>
   </div>
 </template>

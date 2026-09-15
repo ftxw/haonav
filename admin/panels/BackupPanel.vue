@@ -1,28 +1,25 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import AdminIcon from '../components/AdminIcon.vue';
+import CardHead from '../components/CardHead.vue';
+import PageHead from '../components/PageHead.vue';
 import { api, ApiError } from '../lib/adminApi';
 import { formatBytes, formatTime } from '../lib/util';
 import { mutate, reload, commitCurrent, state, toast } from '../lib/adminStore';
 import {
   BTN_PRIMARY,
-  BTN_PRIMARY_LG,
   BTN_SECONDARY,
-  CARD_BOX,
-  CARD_DESC,
-  CARD_HEAD,
-  CARD_TITLE,
+  CARD,
   INPUT,
   LABEL,
   LINK_BTN,
   LINK_DANGER,
   PAGE,
-  PAGE_HEAD,
-  PAGE_HEAD_MAIN,
-  PAGE_TITLE,
-  ROW_CARD,
-  SECTION_LABEL,
-  TAG_NEUTRAL,
+  TABLE,
+  THEAD,
+  TH,
+  TD,
+  ROW,
 } from '../lib/adminUi';
 import type { SiteSettings, SnapshotMeta } from '../../shared/types';
 
@@ -129,102 +126,117 @@ onMounted(loadSnapshots);
 /* 类名统一走 admin/lib/adminUi.ts（玻璃面 + accent 令牌，与前台同语言） */
 const inputCls = INPUT;
 const labelCls = LABEL;
-const cardCls = CARD_BOX;
-const titleCls = CARD_TITLE;
-const descCls = CARD_DESC;
+const cardCls = CARD + ' flex flex-col overflow-hidden';
 const ghostBtn = BTN_SECONDARY;
+const thCls = TH;
+const tdCls = TD;
 </script>
 
 <template>
-  <div :class="PAGE">
-    <!-- 页面标题区：微标签 + 大标题 + 右侧主操作 -->
-    <div :class="PAGE_HEAD">
-      <div :class="PAGE_HEAD_MAIN">
-        <span :class="SECTION_LABEL">数据备份</span>
-        <h2 :class="PAGE_TITLE">备份</h2>
+  <div :class="PAGE + ' lg:flex lg:h-full lg:flex-col'">
+    <!-- 页面标题卡：一级分类 / 二级分类 / 说明全部派生自 lib/panels.ts（与左侧导航同步） -->
+    <PageHead panel="backup" class="lg:shrink-0" />
+
+    <!-- 上下排列：上 = 自动备份策略（紧凑）；下 = 快照（通底、内部滚动） -->
+    <div class="flex flex-col gap-4 lg:min-h-0 lg:flex-1">
+      <!-- ① 自动备份策略：模式 / 频率 / 保留份数 同一行 -->
+      <div :class="cardCls">
+        <CardHead title="自动备份策略">
+          <button
+            type="button"
+            :class="BTN_PRIMARY + ' shrink-0'"
+            :disabled="!state.dirty || state.saving || saving"
+            @click="saveNow"
+          >
+            {{ state.saving || saving ? '保存中…' : '保存' }}
+          </button>
+        </CardHead>
+        <div class="p-4">
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <label class="block">
+              <span :class="labelCls">模式</span>
+              <select
+                v-if="settings"
+                :value="settings.backup.mode"
+                :class="inputCls"
+                @change="setBackupMode(($event.target as HTMLSelectElement).value)"
+              >
+                <option value="auto">自动</option>
+                <option value="manual">手动</option>
+              </select>
+            </label>
+            <label class="block">
+              <span :class="labelCls">频率</span>
+              <select
+                v-if="settings"
+                :value="settings.backup.frequency"
+                :class="inputCls"
+                @change="setBackupFreq(($event.target as HTMLSelectElement).value)"
+              >
+                <option value="daily">每天</option>
+                <option value="weekly">每周</option>
+              </select>
+            </label>
+            <label class="block">
+              <span :class="labelCls">保留份数（1–30）</span>
+              <input
+                v-if="settings"
+                type="number"
+                min="1"
+                max="30"
+                :value="settings.backup.retention"
+                :class="inputCls"
+                @input="setRetention(Number(($event.target as HTMLInputElement).value))"
+              />
+            </label>
+          </div>
+          <span class="mt-3 block text-xs text-slate-500">{{ state.dirty ? '有未保存的更改' : '所有更改已保存' }}</span>
+        </div>
       </div>
-      <div class="ml-auto flex flex-wrap items-center gap-2">
-        <button type="button" :class="BTN_PRIMARY" :disabled="snapshotBusy" @click="takeSnapshot">
-          <span class="flex items-center gap-1.5">
+
+      <!-- ② 快照：通底（lg 起撑满剩余高度、内部滚动）；标题行右侧 = 刷新 + 存一份快照（主操作） -->
+      <div :class="cardCls + ' lg:min-h-0 lg:flex-1'">
+        <CardHead title="快照" :count="snaps.length + ' 份'">
+          <button type="button" :class="ghostBtn + ' shrink-0'" :disabled="snapsLoading" @click="loadSnapshots">
+            刷新
+          </button>
+          <button type="button" :class="BTN_PRIMARY + ' shrink-0'" :disabled="snapshotBusy" @click="takeSnapshot">
             <AdminIcon name="plus" :size="13" />{{ snapshotBusy ? '保存中…' : '存一份快照' }}
-          </span>
-        </button>
+          </button>
+        </CardHead>
+        <!-- 快照表格：列 = 时间 / 大小 / 分类数 / 链接数 / 操作，与「链接列表」同款表样式 -->
+        <div class="overflow-auto lg:min-h-0 lg:flex-1">
+          <p v-if="snapsError" class="p-4 text-xs text-amber-600 dark:text-amber-400">{{ snapsError }}</p>
+          <table v-else :class="TABLE + ' min-w-[640px] text-center'">
+            <thead :class="THEAD">
+              <tr>
+                <th :class="thCls + ' w-[1%] whitespace-nowrap'">时间</th>
+                <th :class="thCls + ' w-1/3'">大小</th>
+                <th :class="thCls + ' w-1/3'">分类数</th>
+                <th :class="thCls + ' w-1/3'">链接数</th>
+                <th :class="thCls + ' w-[1%] whitespace-nowrap'">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="s in snaps" :key="s.key" :class="ROW">
+                <td :class="tdCls + ' whitespace-nowrap'">{{ formatTime(s.at) }}</td>
+                <td :class="tdCls + ' text-xs text-slate-400'">{{ formatBytes(s.size) }}</td>
+                <td :class="tdCls + ' text-xs text-slate-400'">{{ s.categories ?? '—' }}</td>
+                <td :class="tdCls + ' text-xs text-slate-400'">{{ s.links ?? '—' }}</td>
+                <td :class="tdCls + ' whitespace-nowrap'">
+                  <button type="button" :class="LINK_BTN" @click="restoreSnapshot(s.key)">恢复</button>
+                  <button type="button" class="ml-2" :class="LINK_DANGER" @click="removeSnapshot(s.key)">删除</button>
+                </td>
+              </tr>
+              <tr v-if="!snaps.length">
+                <td :class="tdCls + ' text-center text-slate-400'" colspan="5">
+                  {{ snapsLoading ? '加载中…' : '还没有快照，点上方「存一份快照」。' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-
-    <!-- ① 自动备份策略 -->
-    <div :class="cardCls">
-      <h3 :class="titleCls">自动备份策略</h3>
-      <p :class="descCls">服务端按此策略自动存快照；「手动」模式只在点「存一份快照」时生成。</p>
-      <div class="mt-3 grid gap-3 sm:grid-cols-3">
-        <label class="block">
-          <span :class="labelCls">模式</span>
-          <select
-            v-if="settings"
-            :value="settings.backup.mode"
-            :class="inputCls"
-            @change="setBackupMode(($event.target as HTMLSelectElement).value)"
-          >
-            <option value="auto">自动</option>
-            <option value="manual">手动</option>
-          </select>
-        </label>
-        <label class="block">
-          <span :class="labelCls">频率</span>
-          <select
-            v-if="settings"
-            :value="settings.backup.frequency"
-            :class="inputCls"
-            @change="setBackupFreq(($event.target as HTMLSelectElement).value)"
-          >
-            <option value="daily">每天</option>
-            <option value="weekly">每周</option>
-          </select>
-        </label>
-        <label class="block">
-          <span :class="labelCls">保留份数（1–30）</span>
-          <input
-            v-if="settings"
-            type="number"
-            min="1"
-            max="30"
-            :value="settings.backup.retention"
-            :class="inputCls"
-            @input="setRetention(Number(($event.target as HTMLInputElement).value))"
-          />
-        </label>
-      </div>
-      <div class="mt-3 flex items-center gap-3">
-        <button
-          type="button"
-          :class="BTN_PRIMARY_LG"
-          :disabled="!state.dirty || state.saving || saving"
-          @click="saveNow"
-        >
-          {{ state.saving || saving ? '保存中…' : '保存备份策略' }}
-        </button>
-        <span class="text-xs text-slate-500">{{ state.dirty ? '有未保存的更改' : '所有更改已保存' }}</span>
-      </div>
-    </div>
-
-    <!-- ② 快照 -->
-    <div :class="cardCls">
-      <div :class="CARD_HEAD">
-        <h3 :class="titleCls">快照</h3>
-        <span :class="TAG_NEUTRAL">{{ snaps.length }} 份</span>
-        <button type="button" :class="ghostBtn + ' ml-auto'" :disabled="snapsLoading" @click="loadSnapshots">刷新</button>
-      </div>
-      <p :class="descCls">快照存于 KV，当前保留 {{ settings?.backup.retention ?? 7 }} 份；恢复前服务端会自动把当前状态另存一份。</p>
-      <p v-if="snapsError" class="mt-2 text-xs text-amber-600 dark:text-amber-400">{{ snapsError }}</p>
-      <p v-else-if="!snaps.length && !snapsLoading" class="mt-3 text-xs text-slate-400">还没有快照，点右上角「存一份快照」。</p>
-      <ul v-else-if="snaps.length" class="mt-3 max-h-56 space-y-1 overflow-y-auto">
-        <li v-for="s in snaps" :key="s.key" :class="ROW_CARD">
-          <span class="text-slate-600 dark:text-slate-300">{{ formatTime(s.at) }}</span>
-          <span class="text-slate-400">{{ formatBytes(s.size) }}</span>
-          <button type="button" class="ml-auto" :class="LINK_BTN" @click="restoreSnapshot(s.key)">恢复</button>
-          <button type="button" :class="LINK_DANGER" @click="removeSnapshot(s.key)">删除</button>
-        </li>
-      </ul>
     </div>
   </div>
 </template>

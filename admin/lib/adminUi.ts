@@ -12,11 +12,24 @@
 
 /* ═══════════════════════ 页面骨架 ═══════════════════════ */
 
-/** 面板根容器：统一「标题区 → 工具栏 → 内容卡片」的纵向节奏 */
-export const PAGE = 'space-y-4';
+/**
+ * 画布上独立浮起的「外壳卡片」：左侧导航卡 / 左下账户卡 / 右侧页面标题卡。
+ * 与面板内层 SURFACE 同一语言，只是背景更透、带背景模糊，让画布主色透出来。
+ */
+export const SHELL_CARD =
+  'rounded-2xl border border-slate-200/70 bg-white/80 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.05]';
 
-/** 页面标题区：微标签 + 大标题 + 右侧操作（各面板结构一致，切换不跳） */
-export const PAGE_HEAD = 'flex flex-wrap items-end gap-3';
+/**
+ * 面板根容器：统一「标题卡 → 工具栏 → 内容卡片」的纵向节奏。
+ * 卡片间距与左侧列一致：小屏 12px、lg 起 20px（左侧两卡是 `lg:gap-5`）。
+ */
+export const PAGE = 'space-y-4 lg:space-y-5';
+
+/**
+ * 页面标题卡：微标签 + 大标题 + 说明（由 PageHead 组件消费）+ 右侧操作。
+ * 内边距与其它卡片统一走 `p-4`（16px = 卡片圆角 rounded-2xl 的半径，视觉最平衡）。
+ */
+export const PAGE_HEAD = SHELL_CARD + ' flex flex-wrap items-center gap-3 p-4';
 
 /** 标题区左侧文字块 */
 export const PAGE_HEAD_MAIN = 'min-w-0';
@@ -31,6 +44,9 @@ export const PAGE_TITLE = 'text-xl font-bold tracking-tight text-slate-900 dark:
 export const PAGE_ACTIONS = 'ml-auto flex flex-wrap items-center gap-2';
 
 /* ═══════════════════════ 侧栏导航 ═══════════════════════ */
+
+/** 导航行基础（图标 + 文本 + 圆角）；选中 / 空闲态由调用方拼接 */
+export const NAV_ITEM = 'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ';
 
 /** 导航选中态：实心主色 + 白字（参考图侧栏选中项 = 主色实心圆角块） */
 export const NAV_ACTIVE = 'bg-accent font-medium text-white shadow-sm shadow-accent/30';
@@ -51,14 +67,18 @@ const SURFACE =
 /** 内容卡片 / 工具筛选卡片统一 */
 export const CARD = SURFACE;
 
-/** 内容卡片 + 内边距（面板里最常用的一体写法） */
-export const CARD_BOX = SURFACE + ' p-4';
-
-/** 卡片内边距 */
+/** 卡片内边距（16px）：与卡片圆角 `rounded-2xl`（16px）等值，四周留白最平衡。 */
 export const CARD_PAD = 'p-4';
 
-/** 卡片标题 */
-export const CARD_TITLE = 'text-sm font-bold text-slate-800 dark:text-slate-100';
+/**
+ * 卡片标题行（带底部分割线）—— 所有子卡片统一走 `CardHead.vue` 消费本令牌。
+ * `min-h-14` + `px-4`：与卡片正文的 `p-4` 同列，保证标题与正文左对齐、分割线通栏。
+ */
+export const CARD_HEAD_BAR =
+  'flex min-h-14 shrink-0 flex-wrap items-center gap-2 border-b border-slate-200/70 px-4 dark:border-white/10';
+
+/** 卡片标题（面板内各级卡片的主题字；用户要求「这类标题字都放大」→ 14px → 16px） */
+export const CARD_TITLE = 'text-base font-bold text-slate-800 dark:text-slate-100';
 
 /** 卡片说明文字 */
 export const CARD_DESC = 'mt-0.5 text-xs text-slate-500 dark:text-slate-400';
@@ -72,9 +92,17 @@ export const ROW_CARD =
 
 /* ═══════════════════════ 表单控件 ═══════════════════════ */
 
-/** 文本 / 数字输入：玻璃底 + accent 聚焦 */
-export const INPUT =
-  'w-full rounded-lg border border-slate-300/70 bg-white/70 px-3 py-2 text-sm text-slate-800 outline-none transition-colors placeholder-slate-400 focus:border-accent dark:border-white/15 dark:bg-white/5 dark:text-slate-100';
+/**
+ * 字段外观（**不含宽度**）。需要自定义宽度的场景用本令牌 + `w-*` 拼接，**不要用 INPUT**：
+ * INPUT 自带 `w-full`，两者同属 width 工具类，产物里 `w-full` 排在更后面会把它盖掉
+ * （Tailwind 按产物顺序决胜负，不按 class 书写顺序 —— 实测 `.w-full` 偏移 11814 > `.w-56` 11577）。
+ * 后果：追加的 `w-*` 静默失效、控件撑满整行（历史 bug：筛选栏控件全宽换行/“太长”）。
+ */
+export const INPUT_BASE =
+  'rounded-lg border border-slate-300/70 bg-white/70 px-3 py-2 text-sm text-slate-800 outline-none transition-colors placeholder-slate-400 focus:border-accent dark:border-white/15 dark:bg-white/5 dark:text-slate-100';
+
+/** 文本 / 数字输入：默认撑满容器（表单场景）；需要定宽时改用 INPUT_BASE */
+export const INPUT = 'w-full ' + INPUT_BASE;
 
 /** 下拉框（与 INPUT 同款） */
 export const SELECT = INPUT;
@@ -137,6 +165,6 @@ export const TAG_NEUTRAL = TAG_BASE + ' bg-slate-900/[0.06] text-slate-500 dark:
 export const TABLE_WRAP = SURFACE + ' overflow-hidden';
 export const TABLE = 'w-full border-collapse';
 export const THEAD = 'border-b border-slate-200/80 dark:border-white/10';
-export const TH = 'px-3 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap';
-export const TD = 'px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200';
+export const TH = 'px-4 py-2.5 text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap';
+export const TD = 'px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200';
 export const ROW = 'border-t border-slate-100 transition-colors hover:bg-slate-900/[0.02] dark:border-white/[0.06] dark:hover:bg-white/[0.03]';

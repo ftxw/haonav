@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import AdminAccount from './components/AdminAccount.vue';
 import AdminIcon from './components/AdminIcon.vue';
-import AdminNav, { PANEL_GROUPS } from './components/AdminNav.vue';
+import AdminNav from './components/AdminNav.vue';
 import Modal from './components/Modal.vue';
 import BackupPanel from './panels/BackupPanel.vue';
 import CategoriesPanel from './panels/CategoriesPanel.vue';
+import CheckPanel from './panels/CheckPanel.vue';
 import DataPanel from './panels/DataPanel.vue';
 import LinksPanel from './panels/LinksPanel.vue';
 import SearchPanel from './panels/SearchPanel.vue';
@@ -18,16 +20,13 @@ import {
   state,
   type PanelId,
 } from './lib/adminStore';
+import { SHELL_CARD } from './lib/adminUi';
 
 const password = ref('');
 const loggingIn = ref(false);
 const showDiff = ref(false);
-/** 移动端抽屉开关（lg 以下侧栏隐藏，靠顶栏汉堡打开） */
+/** 移动端抽屉开关（lg 以下左列隐藏，靠右上角汉堡打开） */
 const navOpen = ref(false);
-
-/** 导航分组数据源在 AdminNav.vue，这里扁平化一份用于顶栏面包屑 */
-const ALL_PANELS = PANEL_GROUPS.flatMap((g) => g.items);
-const currentPanel = computed(() => ALL_PANELS.find((p) => p.id === state.panel) ?? ALL_PANELS[0]);
 
 const conflictDiff = computed(() => {
   const c = state.conflict;
@@ -136,63 +135,62 @@ onBeforeUnmount(() => {
     </form>
   </div>
 
-  <!-- ═════════ 主界面：圆角「应用框」内 = 左侧固定导航 + 右侧内容区 ═════════ -->
-  <div v-else class="relative z-10 h-screen p-2.5 sm:p-4 lg:p-5">
-    <!-- 整块白色圆角窗口浮在主色画布上（参考图的关键形），内部分侧栏 / 内容 -->
-    <div
-      class="flex h-full overflow-hidden rounded-[20px] border border-white/60 bg-white/85 shadow-[0_20px_60px_-18px_rgba(15,23,42,0.28)] backdrop-blur-xl lg:rounded-[28px] dark:border-white/10 dark:bg-[#0f172a]/85 dark:shadow-[0_20px_60px_-18px_rgba(0,0,0,0.65)]"
-    >
-      <!-- 桌面侧栏（w-60 ≈ 15rem）：框内左侧浅底，lg 以下隐藏，改为顶栏汉堡打开抽屉 -->
-      <aside
-        class="hidden w-60 shrink-0 flex-col border-r border-slate-200/70 bg-slate-50/70 lg:flex dark:border-white/10 dark:bg-white/[0.02]"
-      >
-        <AdminNav @pick="onPick" />
-      </aside>
+  <!-- ═════════ 主界面：画布上多块独立卡片（左列导航卡 + 账户卡；右列内容） ═════════ -->
+  <div v-else class="relative z-10 h-screen p-3 lg:p-5">
+    <div class="flex h-full gap-3 lg:gap-5">
+      <!-- 左列：导航卡（上）+ 账户卡（下），两块独立卡片；lg 以下隐藏、改抽屉 -->
+      <div class="hidden w-60 shrink-0 flex-col gap-3 lg:flex lg:gap-5">
+        <aside :class="SHELL_CARD + ' flex min-h-0 flex-1 flex-col overflow-hidden'">
+          <AdminNav @pick="onPick" />
+        </aside>
+        <div :class="SHELL_CARD + ' shrink-0 p-2'">
+          <AdminAccount />
+        </div>
+      </div>
 
-      <!-- 右侧：顶栏 + 独立滚动的内容区 -->
-      <div class="flex min-w-0 flex-1 flex-col">
-        <header
-          class="flex h-14 shrink-0 items-center gap-3 border-b border-slate-200/70 px-4 lg:px-6 dark:border-white/10"
-        >
-          <!-- 汉堡：仅 lg 以下出现（窄屏不换行，故顶栏去掉 flex-wrap） -->
+      <!-- 右列：内容（各面板自带独立的「标题卡」） -->
+      <div class="flex min-w-0 flex-1 flex-col gap-3 lg:gap-5">
+        <!-- 汉堡 + 未保存提示：仅 lg 以下出现（display:none 时不占 flex 间距） -->
+        <div class="flex items-center gap-2 lg:hidden">
           <button
             type="button"
-            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-900/[0.06] hover:text-slate-700 lg:hidden dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200/70 bg-white/80 text-slate-600 backdrop-blur-xl transition-colors hover:text-slate-900 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-300"
             aria-label="打开导航"
             :aria-expanded="navOpen"
             @click="navOpen = true"
           >
             <AdminIcon name="menu" :size="18" />
           </button>
-
-          <!-- 面包屑：大标题交给各面板的 PAGE_HEAD，顶栏只做上下文（退出登录在侧栏底部） -->
-          <span
-            class="flex min-w-0 items-center gap-1.5 truncate text-xs font-medium text-slate-500 dark:text-slate-400"
-          >
-            管理后台<span class="text-slate-300 dark:text-slate-600">/</span>{{ currentPanel.label }}
-          </span>
-          <span class="ml-auto hidden text-xs text-slate-400 sm:inline">rev {{ state.doc?.rev ?? '—' }}</span>
           <span
             v-if="state.dirty"
             class="flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs text-amber-600 dark:text-amber-400"
           >
             <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>有未保存改动
           </span>
-        </header>
+        </div>
+
+        <!-- 未保存提示（桌面端；无改动时不渲染，不占间距） -->
+        <span
+          v-if="state.dirty"
+          class="hidden items-center gap-1.5 self-end rounded-full bg-amber-500/10 px-2.5 py-1 text-xs text-amber-600 lg:inline-flex dark:text-amber-400"
+        >
+          <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>有未保存改动
+        </span>
 
         <p
           v-if="state.error"
-          class="mx-4 mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 lg:mx-6 dark:bg-red-950/40 dark:text-red-400"
+          class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-950/40 dark:text-red-400"
         >
           {{ state.error }}
         </p>
 
-        <main class="hn-scroll min-h-0 flex-1 p-4 lg:p-6">
-          <div class="mx-auto w-full max-w-5xl">
+        <main class="hn-scroll min-h-0 flex-1">
+          <div class="h-full w-full">
             <LinksPanel v-if="state.panel === 'links'" />
             <CategoriesPanel v-else-if="state.panel === 'categories'" />
             <SearchPanel v-else-if="state.panel === 'search'" />
             <DataPanel v-else-if="state.panel === 'data'" />
+            <CheckPanel v-else-if="state.panel === 'check'" />
             <BackupPanel v-else-if="state.panel === 'backup'" />
             <SettingsPanel v-else />
           </div>
@@ -200,22 +198,25 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- 移动端抽屉：遮罩 + 左侧滑出面板（内容与桌面侧栏共用同一组件） -->
+    <!-- 移动端抽屉：遮罩 + 滑出（导航卡 + 账户卡，与桌面共用组件） -->
     <div v-if="navOpen" class="fixed inset-0 z-50 lg:hidden">
       <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="navOpen = false"></div>
-      <aside
-        class="absolute inset-y-0 left-0 flex w-64 flex-col border-r border-slate-200/70 bg-white dark:border-white/10 dark:bg-[#0f172a]"
-      >
-        <button
-          type="button"
-          class="absolute right-3 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-900/[0.06] dark:text-slate-300 dark:hover:bg-white/10"
-          aria-label="关闭导航"
-          @click="navOpen = false"
-        >
-          <AdminIcon name="close" :size="18" />
-        </button>
-        <AdminNav @pick="onPick" />
-      </aside>
+      <div class="absolute inset-y-0 left-0 flex w-64 flex-col gap-3 p-3">
+        <aside :class="SHELL_CARD + ' relative flex min-h-0 flex-1 flex-col overflow-hidden'">
+          <button
+            type="button"
+            class="absolute right-3 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-900/[0.06] dark:text-slate-300 dark:hover:bg-white/10"
+            aria-label="关闭导航"
+            @click="navOpen = false"
+          >
+            <AdminIcon name="close" :size="18" />
+          </button>
+          <AdminNav @pick="onPick" />
+        </aside>
+        <div :class="SHELL_CARD + ' shrink-0 p-2'">
+          <AdminAccount />
+        </div>
+      </div>
     </div>
 
     <!-- 409 冲突 -->

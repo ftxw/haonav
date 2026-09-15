@@ -516,7 +516,18 @@ async function saveSnapshot(
   const key = KV.SNAPSHOT_PREFIX + new Date(at).toISOString();
   await store.putText(key, docText);
 
-  const meta: SnapshotMeta = { key, at, size: docText.length };
+  // 解析快照体，写入分类/链接计数，列表展示时不回读 KV 快照体（省免费额度）
+  let categories = 0;
+  let links = 0;
+  try {
+    const parsed = JSON.parse(docText) as { categories?: unknown; links?: unknown };
+    if (Array.isArray(parsed.categories)) categories = parsed.categories.length;
+    if (Array.isArray(parsed.links)) links = parsed.links.length;
+  } catch {
+    /* 解析失败不阻塞保存，计数回退为 0 */
+  }
+
+  const meta: SnapshotMeta = { key, at, size: docText.length, categories, links };
   let index = await readSnapshotIndex(store);
   index.push(meta);
   index.sort((a, b) => b.at - a.at); // 新 → 旧

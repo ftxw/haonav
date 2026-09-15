@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import AppIcon from './AppIcon.vue';
+import { engineIconSrc } from '../lib/brandIcon';
+import type { SearchEngine } from '../lib/models';
 import { clearQuery, engine, flushQuery, runEngineSearch, setEngine, setMode, setQuery, state } from '../stores/nav';
 
 const inputRef = ref<HTMLInputElement | null>(null);
@@ -8,6 +10,18 @@ const openEngine = ref(false);
 
 const engines = computed(() => state.settings.searchEngines ?? []);
 const isLocal = computed(() => state.mode === 'local');
+
+/** 引擎图标策略：与链接卡片共用 settings.iconStrategy（letter 零请求 / fetched 抓站点图标） */
+const strategy = computed(() => state.settings.iconStrategy);
+/** 加载失败的引擎 id → 回退字母块，避免破图 */
+const iconFail = ref<Record<string, boolean>>({});
+
+function iconOf(e: SearchEngine): string {
+  return engineIconSrc(e, strategy.value, !!iconFail.value[e.id]);
+}
+function markIconFail(id: string): void {
+  iconFail.value[id] = true;
+}
 
 const placeholder = computed(() =>
   state.mode === 'web' ? `在 ${engine.value?.name ?? '搜索引擎'} 搜索...` : '搜索书签...',
@@ -24,10 +38,6 @@ function pickEngine(id: string): void {
   setMode('web');
   setEngine(id);
   inputRef.value?.focus();
-}
-
-function engineIcon(e: { icon?: string }): string {
-  return e.icon && e.icon.startsWith('http') ? e.icon : '';
 }
 
 function onSubmit(): void {
@@ -108,12 +118,13 @@ function modeCls(active: boolean): string {
           @click.stop="openEngine = !openEngine"
         >
           <img
-            v-if="engine && engineIcon(engine)"
-            :src="engineIcon(engine)"
+            v-if="engine"
+            :src="iconOf(engine)"
             width="16"
             height="16"
             alt=""
             class="h-4 w-4 rounded-full object-cover"
+            @error="markIconFail(engine.id)"
           />
           <AppIcon v-else name="search" :size="16" />
         </button>
@@ -143,14 +154,13 @@ function modeCls(active: boolean): string {
             @click="pickEngine(e.id)"
           >
             <img
-              v-if="engineIcon(e)"
-              :src="engineIcon(e)"
+              :src="iconOf(e)"
               width="16"
               height="16"
               alt=""
               class="h-4 w-4 shrink-0 rounded-full object-cover"
+              @error="markIconFail(e.id)"
             />
-            <AppIcon v-else name="search" :size="14" />
             <span class="flex-1 truncate">{{ e.name }}</span>
           </button>
         </div>

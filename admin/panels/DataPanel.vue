@@ -1,27 +1,19 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import Modal from '../components/Modal.vue';
 import AdminIcon from '../components/AdminIcon.vue';
+import PageHead from '../components/PageHead.vue';
 import { api } from '../lib/adminApi';
 import { parseBookmarksHtml, type ParsedItem } from '../lib/importParse';
-import { checkLinks, type CheckMode, type CheckResult } from '../lib/checkLinks';
 import { slugId, hostOf, maxOrderOf } from '../lib/util';
 import { commit, reload, state, toast } from '../lib/adminStore';
+import CardHead from '../components/CardHead.vue';
 import {
-  BTN_DANGER,
   BTN_PRIMARY,
   BTN_SECONDARY,
-  CARD_BOX,
-  CARD_DESC,
-  CARD_TITLE,
-  INPUT,
-  LINK_DANGER,
+  CARD,
+  INPUT_BASE,
   PAGE,
-  PAGE_HEAD,
-  PAGE_HEAD_MAIN,
-  PAGE_TITLE,
-  SECTION_LABEL,
-  TAG_DANGER,
   TAG_NEUTRAL,
   TAG_OK,
   TAG_WARN,
@@ -44,7 +36,7 @@ const addedByCat = ref<{ name: string; count: number }[]>([]);
 const fileInput = ref<HTMLInputElement | null>(null);
 
 const catNameOf = (id: string): string =>
-  id === '' ? '（未分类）' : (state.doc?.categories.find((c) => c.id === id)?.name ?? id);
+  id === '' ? '未分类' : (state.doc?.categories.find((c) => c.id === id)?.name ?? id);
 
 const CHUNK = 200;
 
@@ -131,7 +123,7 @@ async function diffItems(items: ParsedItem[]): Promise<void> {
     byCat.set(key, (byCat.get(key) ?? 0) + 1);
   }
   addedByCat.value = [...byCat.entries()]
-    .map(([id, count]) => ({ name: id === '' ? '（未分类）' : catNameOf(id), count }))
+    .map(([id, count]) => ({ name: id === '' ? '未分类' : catNameOf(id), count }))
     .sort((a, b) => b.count - a.count);
 
   phase.value = 'preview';
@@ -213,128 +205,43 @@ function cancelImport(): void {
   conflicts.value = [];
 }
 
-/* ═══════════════════════ ② 快照 / 导出 → 已拆到 BackupPanel ═══════════════════════ */
+/* ═════════ ② 快照 / 导出 → BackupPanel；③ 重复 / 死链检测 → CheckPanel ═════════ */
 
-/* ═══════════════════════ ③ 重复链接检测 ═══════════════════════ */
-
-interface DupGroup {
-  urlKey: string;
-  items: LinkItem[];
-}
-const dupes = ref<DupGroup[]>([]);
-
-const dupesFound = computed(() => dupes.value.reduce((n, g) => n + g.items.length - 1, 0));
-
-function findDupes(): void {
-  const d = state.doc;
-  if (!d) return;
-  const map = new Map<string, LinkItem[]>();
-  for (const l of d.links) {
-    const arr = map.get(l.urlKey) ?? [];
-    arr.push(l);
-    map.set(l.urlKey, arr);
-  }
-  dupes.value = [...map.values()].filter((a) => a.length > 1).map((items) => ({ urlKey: items[0].urlKey, items }));
-}
-
-function removeDupeExtra(group: DupGroup, keepId?: string): void {
-  const keep = keepId ?? group.items[0].id;
-  const ids = new Set(group.items.filter((l) => l.id !== keep).map((l) => l.id));
-  void commit((d) => {
-    d.links = d.links.filter((l) => !ids.has(l.id));
-  });
-  findDupes();
-  toast(`已删除 ${ids.size} 条重复项`);
-}
-
-/* ═══════════════════════ ⑤ 死链检测 ═══════════════════════ */
-
-const deadRunning = ref(false);
-const deadDone = ref(0);
-const deadTotal = ref(0);
-const deadResults = ref<CheckResult[]>([]);
-const deadMode = ref<CheckMode>('server');
-const deadScope = ref<'all' | 'nodesc'>('all');
-
-const deadFailed = computed(() => deadResults.value.filter((r) => !r.ok));
-
-async function runDeadCheck(): Promise<void> {
-  const d = state.doc;
-  if (!d) return;
-  const urls = d.links
-    .filter((l) => (deadScope.value === 'all' ? true : !l.desc))
-    .map((l) => l.url);
-  if (!urls.length) return;
-  deadRunning.value = true;
-  deadDone.value = 0;
-  deadTotal.value = urls.length;
-  deadResults.value = [];
-  try {
-    deadMode.value = await checkLinks(urls, (results) => {
-      deadResults.value = deadResults.value.concat(results);
-      deadDone.value = deadResults.value.length;
-    });
-  } catch (e) {
-    toast(e instanceof Error ? e.message : '检测失败');
-  } finally {
-    deadRunning.value = false;
-  }
-}
-
-function removeDead(): void {
-  const bad = new Set(deadFailed.value.map((r) => r.url));
-  if (!bad.size) return;
-  if (!window.confirm(`删除 ${bad.size} 条检测失败的链接？检测结果不代表永久失效，删除将立即保存。`)) return;
-  void commit((d) => {
-    d.links = d.links.filter((l) => !bad.has(l.url));
-  });
-  deadResults.value = deadResults.value.filter((r) => !bad.has(r.url));
-  toast('已删除失效链接');
-}
-
-/* 类名统一走 admin/lib/adminUi.ts（玻璃面 + accent 令牌，与前台同语言） */
-const inputCls = INPUT;
-const cardCls = CARD_BOX;
-const titleCls = CARD_TITLE;
-const descCls = CARD_DESC;
+/* 类名统一走 admin/lib/adminUi.ts（内容面 + accent 令牌，与其它面板同语言） */
+const cardCls = CARD + ' overflow-hidden';
 </script>
 
 <template>
   <div :class="PAGE">
-    <!-- 页面标题区：微标签 + 大标题 -->
-    <div :class="PAGE_HEAD">
-      <div :class="PAGE_HEAD_MAIN">
-        <span :class="SECTION_LABEL">导入 · 导出 · 检测</span>
-        <h2 :class="PAGE_TITLE">数据</h2>
-      </div>
-    </div>
+    <!-- 页面标题卡：一级分类 / 二级分类 / 说明全部派生自 lib/panels.ts（与左侧导航同步） -->
+    <PageHead panel="data" />
 
     <!-- ① 导入 -->
     <div :class="cardCls">
-      <h3 :class="titleCls">导入书签</h3>
-      <p :class="descCls">支持浏览器导出的 Netscape HTML 书签文件（Web Worker 解析，不卡界面），或本工具导出的 JSON 备份（整体还原）。</p>
-      <div class="mt-3 flex flex-wrap items-center gap-2">
-        <input ref="fileInput" type="file" accept=".html,.htm,.json" class="hidden" @change="onFile" />
-        <button type="button" :class="BTN_PRIMARY" :disabled="phase !== 'idle'" @click="fileInput?.click()">
-          选择文件…
-        </button>
-        <label class="flex items-center gap-1.5 text-xs text-slate-500">
-          无文件夹条目归入
-          <select v-model="noFolderCat" :class="inputCls + ' !py-1 text-xs'">
-            <option value="__none__">（未分类）</option>
-            <option v-for="c in state.doc?.categories ?? []" :key="c.id" :value="c.id">{{ c.name }}</option>
-          </select>
-        </label>
-        <span v-if="phase === 'parsing' || phase === 'diffing' || phase === 'applying'" class="text-xs text-accent">{{ progressText }}</span>
+      <CardHead title="导入书签" />
+      <div class="p-4">
+        <div class="flex flex-wrap items-center gap-2">
+          <input ref="fileInput" type="file" accept=".html,.htm,.json" class="hidden" @change="onFile" />
+          <button type="button" :class="BTN_PRIMARY" :disabled="phase !== 'idle'" @click="fileInput?.click()">
+            选择文件…
+          </button>
+          <label class="flex items-center gap-1.5 text-xs text-slate-500">
+            无文件夹条目归入
+            <select v-model="noFolderCat" :class="INPUT_BASE + ' w-40 shrink-0'">
+              <option value="__none__">未分类</option>
+              <option v-for="c in state.doc?.categories ?? []" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </select>
+          </label>
+          <span v-if="phase === 'parsing' || phase === 'diffing' || phase === 'applying'" class="text-xs text-accent">{{ progressText }}</span>
+        </div>
+        <p v-if="importError" class="mt-2 text-xs text-red-500">{{ importError }}</p>
       </div>
-      <p v-if="importError" class="mt-2 text-xs text-red-500">{{ importError }}</p>
     </div>
 
     <!-- ② 导出 -->
     <div :class="cardCls">
-      <h3 :class="titleCls">导出</h3>
-      <p :class="descCls">下载完整备份（JSON 可一键还原）或标准书签 HTML。</p>
-      <div class="mt-3 flex gap-2">
+      <CardHead title="导出" />
+      <div class="flex flex-wrap gap-2 p-4">
         <a :href="api.exportUrl('json')" :class="BTN_SECONDARY">
           <span class="flex items-center gap-1.5"><AdminIcon name="download" :size="13" /> 导出 JSON</span>
         </a>
@@ -342,65 +249,6 @@ const descCls = CARD_DESC;
           <span class="flex items-center gap-1.5"><AdminIcon name="download" :size="13" /> 导出 HTML 书签</span>
         </a>
       </div>
-    </div>
-
-    <!-- ③ 重复链接 -->
-    <div :class="cardCls">
-      <div class="flex items-center gap-2">
-        <h3 :class="titleCls">重复链接检测</h3>
-        <button type="button" :class="BTN_SECONDARY + ' ml-auto'" @click="findDupes">开始检测</button>
-        <span v-if="dupes.length" class="text-xs text-slate-500">{{ dupes.length }} 组 / {{ dupesFound }} 条冗余</span>
-      </div>
-      <p :class="descCls">同一规范化网址（urlKey）出现多次即为重复。</p>
-      <ul v-if="dupes.length" class="mt-3 max-h-64 space-y-2 overflow-y-auto">
-        <li v-for="g in dupes" :key="g.urlKey" class="rounded-lg bg-slate-900/[0.04] px-3 py-2 text-xs dark:bg-white/[0.06]">
-          <div class="flex items-center gap-2">
-            <span class="font-medium text-slate-600 dark:text-slate-300">{{ hostOf(g.urlKey.startsWith('http') ? g.urlKey : 'https://' + g.urlKey) }}</span>
-            <span class="text-slate-400">{{ g.items.length }} 条</span>
-            <button type="button" class="ml-auto" :class="LINK_DANGER" @click="removeDupeExtra(g)">保留第一条，删除其余</button>
-          </div>
-          <ul class="mt-1 space-y-0.5 pl-3 text-slate-500">
-            <li v-for="l in g.items" :key="l.id" class="flex gap-2">
-              <span class="truncate">{{ l.title }}</span>
-              <span class="ml-auto shrink-0 text-slate-400">{{ catNameOf(l.cat) }}</span>
-              <button type="button" class="shrink-0" :class="LINK_DANGER" @click="removeDupeExtra(g, l.id)">删除此条</button>
-            </li>
-          </ul>
-        </li>
-      </ul>
-    </div>
-
-    <!-- ③ 死链检测 -->
-    <div :class="cardCls">
-      <div class="flex flex-wrap items-center gap-2">
-        <h3 :class="titleCls">死链检测</h3>
-        <select v-model="deadScope" :class="inputCls + ' !py-1 text-xs'">
-          <option value="all">全部链接</option>
-          <option value="nodesc">仅无描述的链接</option>
-        </select>
-        <button type="button" :class="BTN_PRIMARY" :disabled="deadRunning" @click="runDeadCheck">
-          {{ deadRunning ? '检测中…' : '开始检测' }}
-        </button>
-        <span v-if="deadTotal" class="text-xs text-slate-500">{{ deadDone }}/{{ deadTotal }}</span>
-        <span v-if="!deadRunning && deadResults.length" class="text-xs" :class="deadMode === 'server' ? 'text-slate-400' : 'text-amber-500'">
-          {{ deadMode === 'server' ? '' : '（浏览器端探测，仅能发现连接级失败）' }}失效 {{ deadFailed.length }} 条
-        </span>
-        <button
-          v-if="!deadRunning && deadFailed.length"
-          type="button"
-          :class="BTN_DANGER + ' ml-auto'"
-          @click="removeDead"
-        >
-          删除全部失效项
-        </button>
-      </div>
-      <p :class="descCls">每请求最多 20 条、多轮进行；结果只在本会话展示，不会写进文档。</p>
-      <ul v-if="deadFailed.length" class="mt-3 max-h-56 space-y-1 overflow-y-auto">
-        <li v-for="r in deadFailed" :key="r.url" class="flex items-center gap-2 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs">
-          <span class="truncate text-slate-600 dark:text-slate-300">{{ r.url }}</span>
-          <span class="ml-auto shrink-0" :class="TAG_DANGER">{{ r.status ? 'HTTP ' + r.status : '无响应' }}</span>
-        </li>
-      </ul>
     </div>
 
     <!-- 导入预览 -->
