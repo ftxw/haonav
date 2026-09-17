@@ -196,7 +196,7 @@ onBeforeUnmount(() => {
     <!-- 移动端抽屉遮罩 -->
     <div
       v-if="state.drawerOpen"
-      class="glass-veil fixed inset-0 z-40 lg:hidden"
+      class="veil fixed inset-0 z-40 lg:hidden"
       @click="setDrawer(false)"
     />
 

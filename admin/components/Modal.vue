@@ -16,7 +16,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
     <!-- 遮罩：点卡片外**不关闭**（避免编辑到一半误触丢内容），关闭只走 × 按钮或 Esc。
          不加黑色蒙层 —— 黑色会把弹窗的玻璃质感压死，这里只用「磨砂」把背后页面糊掉：
          遮罩层 blur 负责虚化背景，卡片自身的 glass-surface 则把这层虚化当背景透出来。 -->
-    <div class="glass-veil fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div class="veil fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div
         class="glass-surface flex max-h-[86vh] w-full flex-col overflow-hidden rounded-3xl"
         :class="wide ? 'max-w-3xl' : 'max-w-md'"
