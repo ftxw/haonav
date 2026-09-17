@@ -17,6 +17,8 @@ const props = defineProps<{
 const emit = defineEmits<{ context: [payload: { link: IndexedLink; x: number; y: number }] }>();
 
 const failed = ref(false);
+/** 真实图标是否已 load 成功 —— 底层字母图标始终可见，成功后再淡入盖上去（消除加载空白） */
+const loaded = ref(false);
 
 /** 本地字母图标（data URI，零请求） */
 const letterSrc = computed(() => linkLetterIcon(props.link.title, props.link.url));
@@ -51,9 +53,16 @@ const src = computed(() => {
 
 const loading = computed(() => (props.iconStrategy === 'fetched' ? 'lazy' : undefined));
 
+/**
+ * 是否需要额外加载一层真实图标：`letter` 策略、或已失败回退时 `src` 就是字母图标本身，
+ * 再叠一张透明且必然失败/重复的图只是浪费（也省掉一次请求）。
+ */
+const showReal = computed(() => !failed.value && src.value !== letterSrc.value);
+
 /** 链接或图标变化 → 重置失败态，让编辑后的新图标重新尝试加载 */
 watch([() => props.link.url, () => props.link.icon], () => {
   failed.value = false;
+  loaded.value = false;
 });
 
 function onContext(e: MouseEvent): void {
@@ -86,16 +95,28 @@ const jump = computed(() => ({
   <!-- ── 详情档（两行：图标+标题 / 描述行） ── -->
   <a v-if="cardStyle === 'card'" :class="shellCard" :title="link.title" v-bind="jump" @contextmenu="onContext">
     <span class="mb-1.5 flex items-center gap-3">
-      <img
-        :src="src"
-        :loading="loading"
-        decoding="async"
-        width="32"
-        height="32"
-        alt=""
-        class="h-8 w-8 shrink-0 rounded-lg transition-transform duration-300 group-hover:rotate-3 group-hover:scale-110"
-        @error="failed = true"
-      />
+      <!-- 图标位：底层字母图标（data URI，零请求、立即可见）+ 上层真实图标（load 成功才淡入）。
+           这样慢的图标不再留一段空白，取不到的（403 等）就一直保持字母，不再空等。 -->
+      <span
+        class="relative h-8 w-8 shrink-0 transition-transform duration-300 group-hover:rotate-3 group-hover:scale-110"
+      >
+        <img :src="letterSrc" width="32" height="32" alt="" class="absolute inset-0 h-8 w-8 rounded-lg" />
+        <img
+          v-if="showReal"
+          :src="src"
+          :loading="loading"
+          decoding="async"
+          width="32"
+          height="32"
+          alt=""
+          :class="[
+            'absolute inset-0 h-8 w-8 rounded-lg transition-opacity duration-300',
+            loaded ? 'opacity-100' : 'opacity-0',
+          ]"
+          @load="loaded = true"
+          @error="failed = true"
+        />
+      </span>
       <span :class="['min-w-0 flex-1 truncate text-sm font-medium text-slate-800 dark:text-slate-100', TITLE_HOVER]">{{
         link.title
       }}</span>
@@ -114,17 +135,28 @@ const jump = computed(() => ({
     v-bind="jump"
     @contextmenu="onContext"
   >
-    <img
-      :src="src"
-      :loading="loading"
-      decoding="async"
-      alt=""
+    <!-- 图标档同理：字母打底 + 真实图标淡入。圆角与悬停阴影挂容器（同一盒子，阴影跟随圆角） -->
+    <span
       :class="[
-        'h-full w-full object-contain transition-all duration-300 group-hover:shadow-lg group-hover:shadow-accent/20',
+        'relative h-full w-full overflow-hidden transition-all duration-300 group-hover:shadow-lg group-hover:shadow-accent/20',
         ICON_RADIUS,
       ]"
-      @error="failed = true"
-    />
+    >
+      <img :src="letterSrc" alt="" class="absolute inset-0 h-full w-full object-contain" />
+      <img
+        v-if="showReal"
+        :src="src"
+        :loading="loading"
+        decoding="async"
+        alt=""
+        :class="[
+          'absolute inset-0 h-full w-full object-contain transition-opacity duration-300',
+          loaded ? 'opacity-100' : 'opacity-0',
+        ]"
+        @load="loaded = true"
+        @error="failed = true"
+      />
+    </span>
     <span
       class="pointer-events-none absolute left-1/2 top-full z-30 mt-1 max-w-[12rem] -translate-x-1/2 truncate rounded-md bg-slate-900 px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 dark:bg-slate-700"
       >{{ link.title }}</span
