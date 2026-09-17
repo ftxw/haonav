@@ -193,10 +193,10 @@ onBeforeUnmount(() => {
       @close="setDrawer(false)"
     />
 
-    <!-- 移动端抽屉遮罩 -->
+    <!-- 移动端抽屉的点击关闭区（**不是遮罩**：无压暗、无颜色、无模糊，纯点击区域） -->
     <div
       v-if="state.drawerOpen"
-      class="veil fixed inset-0 z-40 lg:hidden"
+      class="fixed inset-0 z-40 lg:hidden"
       @click="setDrawer(false)"
     />
 

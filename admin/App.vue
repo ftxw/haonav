@@ -198,9 +198,9 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- 移动端抽屉：遮罩 + 滑出（导航卡 + 账户卡，与桌面共用组件） -->
+    <!-- 移动端抽屉：透明点击关闭区 + 滑出（导航卡 + 账户卡，与桌面共用组件） -->
     <div v-if="navOpen" class="fixed inset-0 z-50 lg:hidden">
-      <div class="veil absolute inset-0" @click="navOpen = false"></div>
+      <div class="absolute inset-0" @click="navOpen = false"></div>
       <div class="absolute inset-y-0 left-0 flex w-64 flex-col gap-3 p-3">
         <aside :class="SHELL_CARD + ' relative flex min-h-0 flex-1 flex-col overflow-hidden'">
           <button

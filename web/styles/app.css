@@ -44,15 +44,11 @@
   backdrop-filter: blur(var(--glass-blur));
 }
 
-/* ── 浮层遮罩（弹窗 / 移动端抽屉）：一层极淡薄纱，**不带 backdrop-filter** ──
-   两件明确不做的事：
-   ① 不用黑色蒙层 —— 黑底会把上层卡片的玻璃质感压死（卡片采样到的正是那层黑，糊出来是灰黑）；
-   ② 不给遮罩加 blur —— 那是「全屏背景模糊」，整页都会糊。
-   模糊只属于卡片自身（`glass-blur`），作用域就是卡片矩形 —— 这才是「卡片背后的背景模糊」。
-   遮罩因此只提供两样东西：颜色（--veil-bg）与点击区域。 */
-@utility veil {
-  background-color: var(--veil-bg);
-}
+/* ── 浮层背后：**没有遮罩** ──
+   用户明确要求「不要遮罩」，所以弹窗/抽屉背后三件事都不做：
+   不压暗（黑蒙层会把上层卡片的玻璃质感压死）、不提亮、不模糊（给遮罩加 blur 就是全屏模糊）。
+   那些全屏 div 只剩「定位容器 + 点击区域」的作用，**零视觉**，因此不需要任何 utility 类。
+   模糊只属于卡片自身（`glass-blur`），作用域 = 卡片矩形 —— 这才是「卡片背后的背景模糊」。 */
 
 /* Tailwind v4 默认 grid-cols 只到 12，纯图标档需要 14 列 —— 用自定义 utility 补齐 */
 @utility grid-cols-14 {
@@ -68,7 +64,6 @@
     --glass-blur: 16px;
     --glass-saturate: 160%;
     --glass-highlight: rgba(255, 255, 255, 0.9);
-    --veil-bg: rgba(255, 255, 255, 0.3);
   }
   /* 黑夜：对齐参考项目（卡片 bg-white/10 + border-white/20，玻璃阴影 0 8px 32px #00000059） */
   html.dark {
@@ -78,7 +73,6 @@
     --glass-blur: 16px;
     --glass-saturate: 160%;
     --glass-highlight: rgba(255, 255, 255, 0.12);
-    --veil-bg: rgba(255, 255, 255, 0.07);
   }
   html,
   body {
