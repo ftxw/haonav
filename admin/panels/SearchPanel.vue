@@ -6,6 +6,7 @@ import Modal from '../components/Modal.vue';
 import PageHead from '../components/PageHead.vue';
 import { commit, state, toast } from '../lib/adminStore';
 import { newId } from '../lib/util';
+import { dragIdAt, useTouchDrag } from '../lib/useTouchDrag';
 import { engineIconSrc } from '../../web/lib/brandIcon';
 import {
   BTN_PRIMARY,
@@ -28,8 +29,10 @@ const engines = computed(() => settings.value?.searchEngines ?? []);
 
 /* ── 引擎图标：与前台搜索框、链接卡片同一套规则（settings.iconStrategy 决定 letter / 抓取） ── */
 const strategy = computed(() => settings.value?.iconStrategy ?? 'letter');
+/** 图标服务地址（站点设置 iconApi，可换自建/镜像；缺省回退默认） */
+const iconApi = computed(() => settings.value?.iconApi ?? '');
 const iconFail = ref<Record<string, boolean>>({});
-const iconOf = (e: SearchEngine): string => engineIconSrc(e, strategy.value, !!iconFail.value[e.id]);
+const iconOf = (e: SearchEngine): string => engineIconSrc(e, strategy.value, !!iconFail.value[e.id], iconApi.value);
 const markIconFail = (id: string): void => {
   iconFail.value[id] = true;
 };
@@ -51,7 +54,7 @@ const formError = ref('');
 
 /** 弹窗内的图标预览：与列表同一套取图规则，方便边填边看 */
 const formIconPreview = computed(() =>
-  engineIconSrc({ name: form.value.name || '?', url: form.value.url, icon: form.value.icon }, strategy.value),
+  engineIconSrc({ name: form.value.name || '?', url: form.value.url, icon: form.value.icon }, strategy.value, false, iconApi.value),
 );
 
 function openAdd(): void {
@@ -95,9 +98,11 @@ function setEngineName(i: number, v: string): void {
 function setEngineUrl(i: number, v: string): void {
   patch((s) => (s.searchEngines[i] = { ...s.searchEngines[i], url: v }));
 }
-/* ── 拖拽排序（顺序即前台引擎下拉的顺序；引擎无 order 字段，直接重排数组，复刻链接列表落库语义） ── */
-const dragId = ref<string | null>(null);
-const dragOverId = ref<string | null>(null);
+/* ── 拖拽排序（顺序即前台引擎下拉的顺序；引擎无 order 字段，直接重排数组，复刻链接列表落库语义） ──
+   鼠标：原生 HTML5 DnD；触屏：拖拽柄上的指针手势（见 useTouchDrag），避免与原生滚动打架。 */
+const touch = useTouchDrag({ onDrop: (from, to) => reorderEngines(from, to), resolveId: dragIdAt });
+const dragId = touch.dragId;
+const dragOverId = touch.overId;
 
 function onDragStart(id: string, e: DragEvent): void {
   dragId.value = id;
@@ -168,15 +173,20 @@ const tdCls = TD;
               v-for="(e, i) in engines"
               :key="e.id"
               :class="[ROW, { 'opacity-50': dragId === e.id, 'ring-2 ring-accent ring-inset': dragOverId === e.id }]"
+              :data-drag-id="e.id"
               @dragover="onDragOver(e.id, $event)"
               @dragleave="onDragLeave(e.id)"
               @drop="onDrop(e.id, $event)"
             >
               <td
-                :class="tdCls + ' w-10 cursor-grab select-none text-center text-slate-300 active:cursor-grabbing'"
+                :class="tdCls + ' w-10 touch-none cursor-grab select-none text-center text-slate-300 active:cursor-grabbing'"
                 title="拖拽排序"
                 draggable="true"
                 @dragstart="onDragStart(e.id, $event)"
+                @pointerdown="touch.onTouchDown(e.id, $event)"
+                @pointermove="touch.onTouchMove"
+                @pointerup="touch.onTouchUp"
+                @pointercancel="touch.onTouchCancel"
               >⠿</td>
               <td :class="tdCls">
                 <img

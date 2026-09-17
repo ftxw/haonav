@@ -59,20 +59,37 @@ export function linkLetterIcon(title: string, url: string): string {
 
 /* ─────────── 站外搜索引擎图标（前台搜索框 / 后台引擎列表共用同一套规则） ─────────── */
 
-/** 第三方站点图标服务（方案 B：浏览器直连；自带一年 `Cache-Control` + CORS `*`） */
-export const XINAC_ICON_API = 'https://api.xinac.net/icon/?url=';
+/**
+ * 站点图标服务**兜底**地址（站点设置 `iconApi` 缺省 / 非法时使用）。
+ * 方案 B：浏览器直连，服务自带一年 `Cache-Control` + CORS `*`，零 KV、零边缘函数。
+ * 默认值与 `site.config.json` 的 `iconApi` 保持一致（改站点设置即可换服务）。
+ */
+export const DEFAULT_ICON_API = 'https://api.xinac.net/icon/?url=';
+
+/** 取有效的图标服务基址：只接受 http(s)；空串 / 非法值一律回退默认 */
+export function iconApiBase(api?: string | null): string {
+  const v = String(api ?? '').trim();
+  return /^https?:\/\//i.test(v) ? v : DEFAULT_ICON_API;
+}
+
+/** 链接图标抓取地址 = 图标服务基址 + `encodeURIComponent(完整网址)`；网址为空返回空串 */
+export function linkIconUrl(url: string, api?: string | null): string {
+  const v = String(url || '').trim();
+  return v ? iconApiBase(api) + encodeURIComponent(v) : '';
+}
 
 /**
  * 引擎图标抓取地址。搜索引擎存的是**模板 URL**（如 `https://www.google.com/search?q=`），
  * 直接拿去抓 favicon 会带上整条查询串，故先取 `origin`（站点根）再抓。
  */
-export function engineIconUrl(url: string): string {
+export function engineIconUrl(url: string, api?: string | null): string {
   const v = String(url || '').trim();
   if (!v) return '';
+  const base = iconApiBase(api);
   try {
-    return XINAC_ICON_API + encodeURIComponent(new URL(v).origin);
+    return base + encodeURIComponent(new URL(v).origin);
   } catch {
-    return XINAC_ICON_API + encodeURIComponent(v);
+    return base + encodeURIComponent(v);
   }
 }
 
@@ -81,16 +98,18 @@ export function engineIconUrl(url: string): string {
  *  - `letter`：本地字母色块（零请求）；
  *  - `fetched`：自定义 `icon`（http(s)）优先 → 按 origin 自动抓取 → 字母回退；
  *  - `failed`（当前图标加载失败）→ 立刻回退字母块，避免破图。
+ * `api` 为站点设置里的图标服务地址（缺省 或 非法时回退 `DEFAULT_ICON_API`）。
  */
 export function engineIconSrc(
   eng: { name: string; url: string; icon?: string },
   strategy: IconStrategy,
   failed = false,
+  api?: string | null,
 ): string {
   const letter = linkLetterIcon(eng.name, eng.url);
   if (strategy !== 'fetched' || failed) return letter;
   const custom = eng.icon && /^https?:\/\//i.test(eng.icon) ? eng.icon : '';
-  return custom || engineIconUrl(eng.url) || letter;
+  return custom || engineIconUrl(eng.url, api) || letter;
 }
 
 /** 品牌图标 → favicon：letter/emoji 本地生成，image 直接用 URL */

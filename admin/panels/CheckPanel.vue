@@ -14,6 +14,7 @@ import {
   INPUT_BASE,
   LINK_DANGER,
   PAGE,
+  SPINNER,
   TAG_DANGER,
 } from '../lib/adminUi';
 import type { LinkItem } from '../../shared/types';
@@ -178,13 +179,16 @@ function removeDead(): void {
             <option value="nodesc">仅无描述的链接</option>
           </select>
           <button type="button" :class="BTN_PRIMARY + ' shrink-0'" :disabled="deadRunning" @click="runDeadCheck">
-            <AdminIcon name="activity" :size="13" />{{ deadRunning ? '检测中…' : '开始检测' }}
+            <AdminIcon :name="deadRunning ? 'loader' : 'activity'" :size="13" :class="deadRunning ? SPINNER : ''" />{{ deadRunning ? '检测中…' : '开始检测' }}
           </button>
         </CardHead>
 
         <div class="space-y-2 p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
           <div v-if="deadTotal" class="flex flex-wrap items-center gap-2">
-            <span class="text-xs text-slate-500">进度 {{ deadDone }}/{{ deadTotal }}</span>
+            <span class="inline-flex items-center gap-1.5 text-xs text-slate-500">
+              <AdminIcon v-if="deadRunning" name="loader" :size="13" :class="SPINNER" />
+              进度 {{ deadDone }}/{{ deadTotal }}
+            </span>
             <span
               v-if="!deadRunning && deadResults.length"
               class="text-xs"

@@ -11,7 +11,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { createApp, configFromEnv, type ServerConfig } from '../core';
+import { createApp, configFromEnv, DEV_DEFAULT_PASSWORD, DEV_DEFAULT_SESSION_SECRET, type ServerConfig } from '../core';
 import type { Store } from '../store';
 
 /* ------------------------------------------------------------------ *
@@ -136,10 +136,12 @@ export function createDevMiddleware() {
 
   const config: ServerConfig = {
     ...configFromEnv(process.env, 'dev'),
-    adminPassword: password || 'haonav-dev',
-    sessionSecret: secret || 'dev-insecure-session-secret',
+    adminPassword: password || DEV_DEFAULT_PASSWORD,
+    sessionSecret: secret || DEV_DEFAULT_SESSION_SECRET,
     platform: 'dev',
     secureCookies: false,
+    // dev 刻意关闭鉴权配置强度校验：允许弱默认值便于本地开发（生产适配器会开启）
+    enforceAuthConfig: false,
   };
 
   const app = createApp({ store, config });

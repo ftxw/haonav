@@ -141,6 +141,14 @@ export const BTN_GHOST_DANGER =
 export const LINK_BTN = 'text-xs text-accent hover:underline';
 export const LINK_DANGER = 'text-xs text-red-500 hover:underline';
 
+/* ═══════════════════════ 加载态 ═══════════════════════ */
+
+/**
+ * 旋转加载图标类：配合 `<AdminIcon name="loader" :class="SPINNER" />` 使用。
+ * 只给图标加旋转，文案沿用按钮 / 文本节点自带的 inline-flex 布局。
+ */
+export const SPINNER = 'animate-spin';
+
 /* ═══════════════════════ 语义标签 ═══════════════════════ */
 
 const TAG_BASE = 'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium';

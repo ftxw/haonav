@@ -53,6 +53,12 @@ export interface ServerConfig {
   cronSecret?: string;
   /** 是否给 cookie 加 Secure（dev 下 http 无法存 Secure cookie，故 dev 关掉） */
   secureCookies?: boolean;
+  /**
+   * 是否强制校验鉴权配置强度（管理员密码 / 会话签名密钥）。
+   * 生产适配器（edgeone / cloudflare）**必须开启**；dev 适配器关闭（允许弱默认值便于本地开发）。
+   * 未显式设置时按 `platform !== 'dev'` 推导 —— 即生产默认 fail-closed。
+   */
+  enforceAuthConfig?: boolean;
   /** 测试注入 */
   fetchImpl?: typeof fetch;
   /** 登录失败固定延迟（ms），默认 500 */
@@ -138,10 +144,86 @@ function isSecure(config: ServerConfig): boolean {
 }
 
 /* ------------------------------------------------------------------ *
+ * 鉴权配置强度校验（fail-closed）
+ *
+ * ⛔ 背景：`configFromEnv` 读不到 env 时 adminPassword = undefined，
+ *    `/api/login` 会退化成 `constantTimeEqual('', '')` → **空密码直接登录成功**。
+ *    生产部署一旦漏配 HAONAV_ADMIN_PASSWORD / HAONAV_SESSION_SECRET，站点即被接管。
+ *    这里把 fail-open 关掉：配置缺失或过弱时**拒绝鉴权并给出可读错误**，绝不静默回退空值。
+ * ------------------------------------------------------------------ */
+
+/** dev 适配器使用的弱默认密码（**仅供本地开发**，生产必须覆盖）。导出以便 dev 适配器复用同一来源。 */
+export const DEV_DEFAULT_PASSWORD = 'haonav-dev';
+/** dev 适配器使用的弱默认会话密钥（**仅供本地开发**）。 */
+export const DEV_DEFAULT_SESSION_SECRET = 'dev-insecure-session-secret';
+/** 会话签名密钥最小长度（字符）。故意与 `openssl rand -hex 32` 的 64 字符留出余量。 */
+export const MIN_SESSION_SECRET_LENGTH = 32;
+
+/**
+ * 鉴权配置强度校验（纯函数，平台无关）。判定标准：
+ *  1. `adminPassword` 与 `passwordHash` 至少有一个已配置（两者都空 = 未配置）
+ *  2. `sessionSecret` 必须存在且长度 ≥ 32
+ *  3. `sessionSecret` 不得等于 dev 默认值
+ *  4.（附加）`adminPassword` 不得等于 dev 默认值（同为「开发哨兵值泄漏到生产」的同类风险）
+ */
+export function validateAuthConfig(config: ServerConfig): { ok: boolean; error?: string } {
+  const hasPassword =
+    typeof config.adminPassword === 'string' && config.adminPassword.length > 0;
+  const hasHash =
+    typeof config.passwordHash === 'string' &&
+    config.passwordHash.length > 0 &&
+    typeof config.pepper === 'string' &&
+    config.pepper.length > 0;
+  if (!hasPassword && !hasHash) {
+    return {
+      ok: false,
+      error:
+        '未配置管理员密码：需设置 HAONAV_ADMIN_PASSWORD，或同时设置 HAONAV_PASSWORD_HASH + HAONAV_PEPPER。',
+    };
+  }
+  const secret = config.sessionSecret;
+  if (typeof secret !== 'string' || secret.length === 0) {
+    return { ok: false, error: '未配置会话签名密钥 HAONAV_SESSION_SECRET。' };
+  }
+  if (secret === DEV_DEFAULT_SESSION_SECRET) {
+    // 放在长度校验之前：dev 默认值本身也 <32 字符，报「仍是开发默认值」比「过短」更可操作
+    return { ok: false, error: '会话签名密钥仍是开发默认值，禁止用于生产。' };
+  }
+  if (secret.length < MIN_SESSION_SECRET_LENGTH) {
+    return {
+      ok: false,
+      error: `会话签名密钥过短（${secret.length} 字符，至少需 ${MIN_SESSION_SECRET_LENGTH} 字符）。请用 \`openssl rand -hex 32\` 生成。`,
+    };
+  }
+  if (hasPassword && config.adminPassword === DEV_DEFAULT_PASSWORD) {
+    return { ok: false, error: '管理员密码仍是开发默认值（haonav-dev），禁止用于生产。' };
+  }
+  return { ok: true };
+}
+
+/** 生产（或显式开启 enforceAuthConfig）时返回校验结果；dev 直接放行。 */
+function authConfigGuard(config: ServerConfig): { ok: boolean; error?: string } {
+  const enforce = config.enforceAuthConfig ?? config.platform !== 'dev';
+  return enforce ? validateAuthConfig(config) : { ok: true };
+}
+
+/* ------------------------------------------------------------------ *
  * 会话
  * ------------------------------------------------------------------ */
 
 async function requireSession(c: Context, config: ServerConfig): Promise<Response | null> {
+  // 配置缺失/过弱 → fail-closed：一律拒绝（不能让弱配置下签发的会话被信任）
+  const guard = authConfigGuard(config);
+  if (!guard.ok) {
+    console.error('[HaoNav] 拒绝鉴权：生产鉴权配置不安全 →', guard.error);
+    return jsonResponse(
+      {
+        error: '服务端鉴权未正确配置，已拒绝请求。请联系站长检查部署环境变量。',
+        detail: guard.error,
+      },
+      503,
+    );
+  }
   const token = getSessionToken(c.req.header('cookie'));
   if (!token) return jsonResponse({ error: '未登录' }, 401);
   const payload = await verifySession(token, config.sessionSecret);
@@ -698,6 +780,18 @@ export function createApp(deps: AppDeps): Hono {
   /* ── POST /api/login ── */
   app.post('/api/login', async (c) => {
     if (!isSameOrigin(c)) return jsonResponse({ error: '拒绝跨站请求' }, 403);
+    // 先做配置强度校验：配置缺失/过弱时直接 503（fail-closed），绝不让空密码命中常量时间比较
+    const guard = authConfigGuard(config);
+    if (!guard.ok) {
+      console.error('[HaoNav] 拒绝登录：生产鉴权配置不安全 →', guard.error);
+      return jsonResponse(
+        {
+          error: '服务端鉴权未正确配置，已拒绝登录。请检查 HAONAV_ADMIN_PASSWORD 与 HAONAV_SESSION_SECRET。',
+          detail: guard.error,
+        },
+        503,
+      );
+    }
     const ip = getClientIp(c);
     if (!limiter.check(ip)) {
       return jsonResponse({ error: '尝试过于频繁，请稍后再试' }, 429);
@@ -1157,6 +1251,8 @@ export function configFromEnv(env: any, platform: string): ServerConfig {
     platform,
     cronSecret: e.HAONAV_CRON_SECRET,
     secureCookies: platform === 'dev' ? false : true,
+    // 生产默认开启鉴权配置强度校验；dev 关闭（允许 'haonav-dev' 等弱默认值便于本地开发）
+    enforceAuthConfig: platform !== 'dev',
   };
 }
 

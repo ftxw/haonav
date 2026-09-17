@@ -6,6 +6,7 @@ import CardHead from '../components/CardHead.vue';
 import PageHead from '../components/PageHead.vue';
 import { between, appendOrder, orderForIndex } from '../lib/order';
 import { newId, maxOrderOf, slugId } from '../lib/util';
+import { dragIdAt, useTouchDrag } from '../lib/useTouchDrag';
 import { commit, state, toast } from '../lib/adminStore';
 import {
   BTN_DANGER,
@@ -103,15 +104,14 @@ function submitForm(): void {
   closeForm();
 }
 
-/* ───────── 拖拽排序 ───────── */
-const dragId = ref<string | null>(null);
-const dragOverId = ref<string | null>(null);
+/* ───────── 拖拽排序 ─────────
+   鼠标：原生 HTML5 DnD；触屏：拖拽柄上的指针手势（见 useTouchDrag），避免与原生滚动打架。
+   两种落点共用 `moveCat`，落库语义完全一致（仍只写被移动那一条，插不进时整体重排）。 */
+const touch = useTouchDrag({ onDrop: (from, to) => moveCat(from, to), resolveId: dragIdAt });
+const dragId = touch.dragId;
+const dragOverId = touch.overId;
 
-function onDrop(targetId: string, e: DragEvent): void {
-  e.preventDefault();
-  const id = dragId.value;
-  dragId.value = null;
-  dragOverId.value = null;
+function moveCat(id: string, targetId: string): void {
   if (!id || id === targetId) return;
 
   const list = cats.value.slice();
@@ -141,6 +141,15 @@ function onDrop(targetId: string, e: DragEvent): void {
       all.forEach((x, i) => (x.order = orderForIndex(i)));
     }
   });
+}
+
+function onDrop(targetId: string, e: DragEvent): void {
+  e.preventDefault();
+  const id = dragId.value;
+  dragId.value = null;
+  dragOverId.value = null;
+  if (!id) return;
+  moveCat(id, targetId);
 }
 
 /* ───────── 删除（链接不丢，移到指定分类） ───────── */
@@ -224,13 +233,21 @@ const inputCls = INPUT;
             v-for="c in cats"
             :key="c.id"
             :class="[ROW, { 'opacity-50': dragId === c.id, 'ring-2 ring-accent ring-inset': dragOverId === c.id }]"
+            :data-drag-id="c.id"
             draggable="true"
             @dragstart="dragId = c.id"
             @dragover.prevent="dragOverId = c.id"
             @dragleave="dragOverId === c.id && (dragOverId = null)"
             @drop="onDrop(c.id, $event)"
           >
-            <td class="cursor-grab px-3 py-2 text-slate-300 active:cursor-grabbing">⠿</td>
+            <td
+              class="touch-none cursor-grab px-3 py-2 text-slate-300 active:cursor-grabbing"
+              title="拖拽排序"
+              @pointerdown="touch.onTouchDown(c.id, $event)"
+              @pointermove="touch.onTouchMove"
+              @pointerup="touch.onTouchUp"
+              @pointercancel="touch.onTouchCancel"
+            >⠿</td>
             <td :class="TD">
               <span class="flex h-6 w-6 items-center justify-center rounded-md text-slate-500 dark:text-slate-300"
                 ><AdminIcon :name="c.icon" :size="16" /></span

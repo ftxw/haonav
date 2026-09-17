@@ -1,5 +1,5 @@
 /**
- * UI 收敛模块：三档卡片网格、字母图标色板、跨组件复用的类名组合。
+ * UI 收敛模块：两档卡片网格（card / icon）、字母图标色板、跨组件复用的类名组合。
  * 网格类名必须是完整字面量 —— 绝不能 `grid-cols-${n}` 拼接（Tailwind 静态扫描会 purge）。
  * 视觉基准：v1-legacy（git show v1-legacy:App.tsx）。
  */

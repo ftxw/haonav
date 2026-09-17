@@ -6,7 +6,8 @@ import Modal from '../components/Modal.vue';
 import PageHead from '../components/PageHead.vue';
 import { between, appendOrder, orderForIndex } from '../lib/order';
 import { newId, hostOf, maxOrderOf } from '../lib/util';
-import { linkLetterIcon } from '../../web/lib/brandIcon';
+import { dragIdAt, useTouchDrag } from '../lib/useTouchDrag';
+import { linkIconUrl, linkLetterIcon } from '../../web/lib/brandIcon';
 import { commit, state, toast } from '../lib/adminStore';
 import {
   BTN_DANGER,
@@ -97,13 +98,14 @@ function submitAddCat(): void {
 /**
  * 列表里的图标，优先级与前台 `web/components/LinkCard.vue` **完全一致**（所见即所得）：
  *  - `letter` 策略语义是「零请求」→ 只用本地字母图标，刻意忽略自定义 URL；
- *  - `fetched`：自定义 http(s) 图标 → 直连 api.xinac.net 自动抓取 → 字母兜底。
+ *  - `fetched`：自定义 http(s) 图标 → 直连站点设置的图标服务自动抓取 → 字母兜底。
+ * 图标服务地址取 `settings.iconApi`（可换成自建/镜像），缺省回退默认。
  */
 function iconSrc(l: LinkItem): string {
   const letter = linkLetterIcon(l.title, l.url);
   if (state.doc?.settings?.iconStrategy !== 'fetched') return letter;
   const custom = l.icon && /^https?:\/\//i.test(l.icon) ? l.icon : '';
-  const auto = l.url ? 'https://api.xinac.net/icon/?url=' + encodeURIComponent(l.url) : '';
+  const auto = linkIconUrl(l.url, state.doc?.settings?.iconApi);
   return custom || auto || letter;
 }
 
@@ -193,9 +195,14 @@ const batchDelete = (): void => {
   clearSel();
 };
 
-/* ───────── 拖拽排序（只写被拖动那一条；插不进时该分类整体重排） ───────── */
-const dragId = ref<string | null>(null);
-const dragOverId = ref<string | null>(null);
+/* ───────── 拖拽排序（只写被拖动那一条；插不进时该分类整体重排） ─────────
+   鼠标：原生 HTML5 DnD（整行 draggable，行为不变）。
+   触屏：HTML5 DnD 在触屏上不触发 dragstart、按住拖动会变成滚动页面（拖不准）→ 走 useTouchDrag
+         的指针手势，且**只在拖拽柄上生效**（柄带 `touch-none`，从柄起手不滚动），避免与原生滚动打架。 */
+const touch = useTouchDrag({ onDrop: (from, to) => moveLink(from, to), resolveId: dragIdAt });
+/** 与鼠标拖拽共用同一组状态：高亮 / 落点判定 / 视觉完全不变 */
+const dragId = touch.dragId;
+const dragOverId = touch.overId;
 
 function onDragStart(id: string, e: DragEvent): void {
   dragId.value = id;
@@ -431,6 +438,7 @@ const tdCls = TD;
                 v-for="r in rows"
                 :key="r.id"
                 :class="[ROW, { 'opacity-50': dragId === r.id, 'ring-2 ring-accent ring-inset': dragOverId === r.id }]"
+                :data-drag-id="r.id"
                 draggable="true"
                 @dragstart="onDragStart(r.id, $event)"
                 @dragover="onDragOver(r.id, $event)"
@@ -438,7 +446,14 @@ const tdCls = TD;
                 @drop="onDrop(r.id, $event)"
               >
                 <td :class="tdCls"><input type="checkbox" :checked="selected.has(r.id)" @change="toggle(r.id)" :aria-label="'选中 ' + r.title" /></td>
-                <td :class="tdCls + ' cursor-grab text-slate-300 active:cursor-grabbing'" title="拖拽排序">⠿</td>
+                <td
+                  :class="tdCls + ' touch-none cursor-grab text-slate-300 active:cursor-grabbing'"
+                  title="拖拽排序"
+                  @pointerdown="touch.onTouchDown(r.id, $event)"
+                  @pointermove="touch.onTouchMove"
+                  @pointerup="touch.onTouchUp"
+                  @pointercancel="touch.onTouchCancel"
+                >⠿</td>
                 <td :class="tdCls">
                   <img
                     :src="iconSrc(r)"

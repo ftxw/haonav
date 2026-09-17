@@ -18,7 +18,7 @@
  *      · 其余 `/api/*`（属配置错误）→ 返回 500 的中文 JSON，写明「变量名填 HAONAV_KV」。
  */
 
-import { createApp, configFromEnv } from '../core';
+import { createApp, configFromEnv, validateAuthConfig } from '../core';
 import { createEdgeOneKVStore } from '../store';
 
 /**
@@ -100,7 +100,16 @@ async function handle(request: Request, env: any, ctx?: any): Promise<Response> 
   }
 
   const store = createEdgeOneKVStore(ns);
-  const app = createApp({ store, config: configFromEnv(env, 'edgeone') });
+  const config = configFromEnv(env, 'edgeone');
+  // 生产鉴权配置自查（fail-closed）：配置缺失/过弱时**大声报错**，便于部署后在日志里一眼定位漏配的环境变量。
+  // 真正的拒绝逻辑在 core.ts（/api/login 与 requireSession 会返回 503），此处仅补日志，避免遮蔽 /api/data 等公开只读路由。
+  const authCheck = validateAuthConfig(config);
+  if (!authCheck.ok) {
+    console.error(
+      `[edgeone] ⛔ 鉴权配置不安全，已拒绝所有需要鉴权的请求（/api/login 将返回 503）：${authCheck.error} 请在控制台补齐 HAONAV_ADMIN_PASSWORD / HAONAV_SESSION_SECRET 后重新部署。`,
+    );
+  }
+  const app = createApp({ store, config });
   return app.fetch(request, env, ctx);
 }
 

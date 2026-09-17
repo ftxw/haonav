@@ -67,6 +67,12 @@ export async function passwordDigest(password: string, pepper: string): Promise<
  * 同时支持两种 Secret：
  *  - 配了 HAONAV_PASSWORD_HASH + HAONAV_PEPPER → 用 HMAC 比较
  *  - 否则用 HAONAV_ADMIN_PASSWORD 常量时间比较（文档推荐后者）
+ *
+ * ⛔ fail-closed 铁律：**未配置任何密码时一律返回 false**。
+ *    历史漏洞：adminPassword 漏配（undefined）时会退化成
+ *    `verifyPassword(input, cfg.adminPassword ?? '')` → `constantTimeEqual('', '')`
+ *    === true → 攻击者提交 `{"password":""}` 即空密码登录成功（fail-open）。
+ *    这里显式截断空/未配置密码；生产侧的强度校验见 core.ts `validateAuthConfig`。
  */
 export async function verifyPasswordAgainstConfig(
   input: string,
@@ -76,7 +82,9 @@ export async function verifyPasswordAgainstConfig(
     const digest = await passwordDigest(input ?? '', cfg.pepper);
     return constantTimeEqual(digest, cfg.passwordHash);
   }
-  return verifyPassword(input, cfg.adminPassword ?? '');
+  // 未配置密码（undefined / 空串）→ 一律拒绝，绝不与空输入做常量时间比较
+  if (typeof cfg.adminPassword !== 'string' || cfg.adminPassword.length === 0) return false;
+  return verifyPassword(input, cfg.adminPassword);
 }
 
 /* ------------------------------------------------------------------ *

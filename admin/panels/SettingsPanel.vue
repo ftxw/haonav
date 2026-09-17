@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import CardHead from '../components/CardHead.vue';
 import PageHead from '../components/PageHead.vue';
@@ -13,7 +13,9 @@ import {
   INPUT_BASE,
   LABEL,
   PAGE,
+  SPINNER,
 } from '../lib/adminUi';
+import { DEFAULT_SETTINGS } from '../../web/lib/settings';
 import type { SearchEngine, SiteSettings } from '../../shared/types';
 
 const settings = computed<SiteSettings | null>(() => state.doc?.settings ?? null);
@@ -34,6 +36,34 @@ const setThemeDefault = (v: string): void => patch((s) => (s.themeDefault = v as
 const setCardStyle = (v: string): void => patch((s) => (s.cardStyle = v as SiteSettings['cardStyle']));
 const setOpenInNewTab = (v: boolean): void => patch((s) => (s.openInNewTab = v));
 const setIconStrategy = (v: string): void => patch((s) => (s.iconStrategy = v as SiteSettings['iconStrategy']));
+
+/**
+ * 站点图标服务地址（`iconApi`）：抓取站点图标时拼上 `encodeURIComponent(完整网址)`。
+ * 只接受 http(s)；清空则回退出厂默认（`site.config.json`）。
+ * 用本地 ref 承接输入（避免每敲一个字符就把半截 URL 写进草稿），失焦 / 回车时才校验并落盘。
+ */
+const iconApiInput = ref('');
+watch(
+  () => settings.value?.iconApi ?? DEFAULT_SETTINGS.iconApi,
+  (v) => (iconApiInput.value = v),
+  { immediate: true },
+);
+
+function commitIconApi(): void {
+  const v = iconApiInput.value.trim();
+  if (!v) {
+    // 清空 → 回退出厂默认
+    iconApiInput.value = DEFAULT_SETTINGS.iconApi;
+    patch((s) => (s.iconApi = DEFAULT_SETTINGS.iconApi));
+    return;
+  }
+  if (!/^https?:\/\//i.test(v)) {
+    // 只接受 http(s)：非法值丢弃，恢复成当前已保存值
+    iconApiInput.value = settings.value?.iconApi ?? DEFAULT_SETTINGS.iconApi;
+    return;
+  }
+  patch((s) => (s.iconApi = v));
+}
 /* ── 备份策略 → 已拆到 BackupPanel ── */
 
 
@@ -86,6 +116,7 @@ const miniBtn = BTN_SECONDARY;
         :disabled="!state.dirty || state.saving || saving"
         @click="saveNow"
       >
+        <AdminIcon v-if="state.saving || saving" name="loader" :size="14" :class="SPINNER" />
         {{ state.saving || saving ? '保存中…' : '保存设置' }}
       </button>
     </PageHead>
@@ -153,8 +184,20 @@ const miniBtn = BTN_SECONDARY;
           <span :class="labelCls">链接卡片图标来源</span>
           <select :value="settings.iconStrategy" :class="inputCls" @change="setIconStrategy(($event.target as HTMLSelectElement).value)">
             <option value="letter">字母色块（零请求，推荐）</option>
-            <option value="fetched">抓取站点图标（直连 api.xinac.net）</option>
+            <option value="fetched">抓取站点图标（直连图标服务）</option>
           </select>
+        </label>
+        <label class="block">
+          <span :class="labelCls">图标服务地址（抓取站点图标时使用）</span>
+          <input
+            v-model="iconApiInput"
+            type="text"
+            placeholder="https://api.xinac.net/icon/?url="
+            :class="inputCls"
+            @change="commitIconApi"
+            @keyup.enter="commitIconApi"
+          />
+          <span class="mt-1 block text-xs text-slate-400">仅支持 http(s)；留空或非法则回退出厂默认</span>
         </label>
       </div>
     </div>

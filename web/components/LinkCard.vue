@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import type { CardStyle, IconStrategy } from '../lib/models';
-import { linkLetterIcon } from '../lib/brandIcon';
+import { linkIconUrl, linkLetterIcon } from '../lib/brandIcon';
 import { CARD_FRAME, CARD_MIN_H, ICON_RADIUS, TITLE_HOVER } from '../lib/ui';
 import type { IndexedLink } from '../stores/nav';
 
@@ -10,6 +10,8 @@ const props = defineProps<{
   cardStyle: CardStyle;
   iconStrategy: IconStrategy;
   openInNewTab: boolean;
+  /** 站点设置的图标服务地址（`settings.iconApi`）；缺省时回退出厂默认 */
+  iconApi?: string;
 }>();
 
 const emit = defineEmits<{ context: [payload: { link: IndexedLink; x: number; y: number }] }>();
@@ -26,16 +28,13 @@ const custom = computed(() => {
 });
 
 /**
- * 自动抓取：直连第三方图标服务 api.xinac.net（方案 B）。
+ * 自动抓取：直连站点设置的图标服务（默认 api.xinac.net，方案 B）。
  * Makers 边缘函数禁止写 CDN 缓存（caches.default 抛 forbidden cdn cache），
  * 代理既拿不到缓存、又徒增边缘计算，故改浏览器直连。
- * xinac 自带 `Cache-Control: public, max-age=604800` + CORS `*`，浏览器缓存 7 天。
+ * 默认服务自带 `Cache-Control: public, max-age=604800` + CORS `*`，浏览器缓存 7 天。
  * 加载失败由下方 @error 切到字母图标兜底。
  */
-const XINAC_ICON_API = 'https://api.xinac.net/icon/?url=';
-const auto = computed(() =>
-  props.link.url ? XINAC_ICON_API + encodeURIComponent(props.link.url) : '',
-);
+const auto = computed(() => linkIconUrl(props.link.url, props.iconApi));
 
 /**
  * 图标取值优先级（对齐 `workers.js`：`(!icon || !icon.startsWith('http')) ? imgApi + url : icon`）：

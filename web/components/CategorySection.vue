@@ -12,6 +12,8 @@ const props = defineProps<{
   iconStrategy: IconStrategy;
   openInNewTab: boolean;
   gridClass: string;
+  /** 站点设置的图标服务地址（`settings.iconApi`） */
+  iconApi?: string;
 }>();
 
 const emit = defineEmits<{ context: [payload: { link: IndexedLink; x: number; y: number }] }>();
@@ -35,6 +37,7 @@ const emit = defineEmits<{ context: [payload: { link: IndexedLink; x: number; y:
         :card-style="cardStyle"
         :icon-strategy="iconStrategy"
         :open-in-new-tab="openInNewTab"
+        :icon-api="iconApi"
         @context="emit('context', $event)"
       />
     </div>

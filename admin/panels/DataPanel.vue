@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import Modal from '../components/Modal.vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import PageHead from '../components/PageHead.vue';
@@ -14,6 +14,7 @@ import {
   CARD,
   INPUT_BASE,
   PAGE,
+  SPINNER,
   TAG_NEUTRAL,
   TAG_OK,
   TAG_WARN,
@@ -39,6 +40,23 @@ const catNameOf = (id: string): string =>
   id === '' ? '未分类' : (state.doc?.categories.find((c) => c.id === id)?.name ?? id);
 
 const CHUNK = 200;
+
+/** 导入流程是否处于异步阶段（解析 / 比对 / 写入）—— 用于显示加载态 */
+const importing = computed(
+  () => phase.value === 'parsing' || phase.value === 'diffing' || phase.value === 'applying',
+);
+
+/**
+ * 导出按钮的点击反馈：`<a download>` 的下载由浏览器接管、没有「完成」事件，
+ * 故点击后显示约 1.2s 的旋转图标，让「已开始导出」这一动作有视觉反馈。
+ */
+const exporting = ref<'json' | 'html' | null>(null);
+let exportTimer: ReturnType<typeof setTimeout> | undefined;
+function onExport(kind: 'json' | 'html'): void {
+  exporting.value = kind;
+  if (exportTimer) clearTimeout(exportTimer);
+  exportTimer = setTimeout(() => (exporting.value = null), 1200);
+}
 
 async function onFile(e: Event): Promise<void> {
   const input = e.target as HTMLInputElement;
@@ -232,7 +250,9 @@ const cardCls = CARD + ' overflow-hidden';
               <option v-for="c in state.doc?.categories ?? []" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
           </label>
-          <span v-if="phase === 'parsing' || phase === 'diffing' || phase === 'applying'" class="text-xs text-accent">{{ progressText }}</span>
+          <span v-if="importing" class="inline-flex items-center gap-1.5 text-xs text-accent">
+            <AdminIcon name="loader" :size="13" :class="SPINNER" />{{ progressText }}
+          </span>
         </div>
         <p v-if="importError" class="mt-2 text-xs text-red-500">{{ importError }}</p>
       </div>
@@ -242,11 +262,17 @@ const cardCls = CARD + ' overflow-hidden';
     <div :class="cardCls">
       <CardHead title="导出" />
       <div class="flex flex-wrap gap-2 p-4">
-        <a :href="api.exportUrl('json')" :class="BTN_SECONDARY">
-          <span class="flex items-center gap-1.5"><AdminIcon name="download" :size="13" /> 导出 JSON</span>
+        <a :href="api.exportUrl('json')" :class="BTN_SECONDARY" @click="onExport('json')">
+          <span class="flex items-center gap-1.5">
+            <AdminIcon :name="exporting === 'json' ? 'loader' : 'download'" :size="13" :class="exporting === 'json' ? SPINNER : ''" />
+            {{ exporting === 'json' ? '导出中…' : '导出 JSON' }}
+          </span>
         </a>
-        <a :href="api.exportUrl('html')" :class="BTN_SECONDARY">
-          <span class="flex items-center gap-1.5"><AdminIcon name="download" :size="13" /> 导出 HTML 书签</span>
+        <a :href="api.exportUrl('html')" :class="BTN_SECONDARY" @click="onExport('html')">
+          <span class="flex items-center gap-1.5">
+            <AdminIcon :name="exporting === 'html' ? 'loader' : 'download'" :size="13" :class="exporting === 'html' ? SPINNER : ''" />
+            {{ exporting === 'html' ? '导出中…' : '导出 HTML 书签' }}
+          </span>
         </a>
       </div>
     </div>
@@ -289,6 +315,7 @@ const cardCls = CARD + ' overflow-hidden';
         <div class="flex justify-end gap-2 pt-1">
           <button type="button" :class="BTN_SECONDARY" :disabled="phase === 'applying'" @click="cancelImport">取消</button>
           <button type="button" :class="BTN_PRIMARY" :disabled="phase === 'applying' || (!added.length && (conflictChoice !== 'new' || !conflicts.length))" @click="confirmImport">
+            <AdminIcon v-if="phase === 'applying'" name="loader" :size="13" :class="SPINNER" />
             {{ phase === 'applying' ? '导入中…' : `确认导入（新增 ${added.length} 条）` }}
           </button>
         </div>

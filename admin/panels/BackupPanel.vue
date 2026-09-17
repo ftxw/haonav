@@ -15,6 +15,7 @@ import {
   LINK_BTN,
   LINK_DANGER,
   PAGE,
+  SPINNER,
   TABLE,
   THEAD,
   TH,
@@ -148,6 +149,7 @@ const tdCls = TD;
             :disabled="!state.dirty || state.saving || saving"
             @click="saveNow"
           >
+            <AdminIcon v-if="state.saving || saving" name="loader" :size="13" :class="SPINNER" />
             {{ state.saving || saving ? '保存中…' : '保存' }}
           </button>
         </CardHead>
@@ -198,10 +200,11 @@ const tdCls = TD;
       <div :class="cardCls + ' lg:min-h-0 lg:flex-1'">
         <CardHead title="快照" :count="snaps.length + ' 份'">
           <button type="button" :class="ghostBtn + ' shrink-0'" :disabled="snapsLoading" @click="loadSnapshots">
-            刷新
+            <AdminIcon v-if="snapsLoading" name="loader" :size="13" :class="SPINNER" />
+            {{ snapsLoading ? '加载中…' : '刷新' }}
           </button>
           <button type="button" :class="BTN_PRIMARY + ' shrink-0'" :disabled="snapshotBusy" @click="takeSnapshot">
-            <AdminIcon name="plus" :size="13" />{{ snapshotBusy ? '保存中…' : '存一份快照' }}
+            <AdminIcon :name="snapshotBusy ? 'loader' : 'plus'" :size="13" :class="snapshotBusy ? SPINNER : ''" />{{ snapshotBusy ? '保存中…' : '存一份快照' }}
           </button>
         </CardHead>
         <!-- 快照表格：列 = 时间 / 大小 / 分类数 / 链接数 / 操作，与「链接列表」同款表样式 -->
@@ -230,7 +233,10 @@ const tdCls = TD;
               </tr>
               <tr v-if="!snaps.length">
                 <td :class="tdCls + ' text-center text-slate-400'" colspan="5">
-                  {{ snapsLoading ? '加载中…' : '还没有快照，点上方「存一份快照」。' }}
+                  <span v-if="snapsLoading" class="inline-flex items-center gap-1.5">
+                    <AdminIcon name="loader" :size="13" :class="SPINNER" />加载中…
+                  </span>
+                  <span v-else>还没有快照，点上方「存一份快照」。</span>
                 </td>
               </tr>
             </tbody>

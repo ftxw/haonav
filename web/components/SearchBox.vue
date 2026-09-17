@@ -17,7 +17,7 @@ const strategy = computed(() => state.settings.iconStrategy);
 const iconFail = ref<Record<string, boolean>>({});
 
 function iconOf(e: SearchEngine): string {
-  return engineIconSrc(e, strategy.value, !!iconFail.value[e.id]);
+  return engineIconSrc(e, strategy.value, !!iconFail.value[e.id], state.settings.iconApi);
 }
 function markIconFail(id: string): void {
   iconFail.value[id] = true;

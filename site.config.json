@@ -11,6 +11,7 @@
     { "id": "google", "name": "Google", "url": "https://www.google.com/search?q=" }
   ],
   "iconStrategy": "fetched",
+  "iconApi": "https://api.xinac.net/icon/?url=",
   "footerLinks": [],
   "backup": { "mode": "auto", "frequency": "daily", "retention": 7 }
 }

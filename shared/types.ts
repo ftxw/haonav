@@ -64,6 +64,11 @@ export interface SiteSettings {
   searchEngines: SearchEngine[];
   /** 链接卡片图标来源 */
   iconStrategy: IconStrategy;
+  /**
+   * 站点图标服务地址（抓图时拼 `encodeURIComponent(完整网址)`）。
+   * 默认值见 `site.config.json`；须为 http(s) 开头，留空/非法时回退出厂默认。
+   */
+  iconApi: string;
   footerLinks: { label: string; url: string }[];
   /** retention 1-30 */
   backup: { mode: BackupMode; frequency: BackupFrequency; retention: number };

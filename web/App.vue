@@ -222,6 +222,7 @@ onBeforeUnmount(() => {
             :card-style="state.cardStyle"
             :icon-strategy="state.settings.iconStrategy"
             :open-in-new-tab="state.settings.openInNewTab"
+            :icon-api="state.settings.iconApi"
             :grid-class="gridClass"
             @context="onContext"
           />
@@ -233,6 +234,7 @@ onBeforeUnmount(() => {
             :card-style="state.cardStyle"
             :icon-strategy="state.settings.iconStrategy"
             :open-in-new-tab="state.settings.openInNewTab"
+            :icon-api="state.settings.iconApi"
             :grid-class="gridClass"
             @context="onContext"
           />
