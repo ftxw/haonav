@@ -51,14 +51,14 @@ function itemClass(active: boolean, opts?: { tall?: boolean }): string {
       <img
         v-if="brandImage"
         :src="brandImage"
-        width="32"
-        height="32"
+        width="40"
+        height="40"
         alt=""
-        class="h-8 w-8 shrink-0 rounded-lg ring-1 ring-white/30 transition-transform duration-300 group-hover:rotate-3 group-hover:scale-110 dark:ring-white/15"
+        class="h-10 w-10 shrink-0 rounded-lg ring-1 ring-white/30 transition-transform duration-300 group-hover:rotate-3 group-hover:scale-110 dark:ring-white/15"
       />
       <div
         v-else
-        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-600 text-base font-bold text-white shadow-lg shadow-emerald-500/40 ring-1 ring-white/25 transition-transform duration-300 group-hover:rotate-3 group-hover:scale-110"
+        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-600 text-lg font-bold text-white shadow-lg shadow-emerald-500/40 ring-1 ring-white/25 transition-transform duration-300 group-hover:rotate-3 group-hover:scale-110"
       >
         {{ brandChar }}
       </div>

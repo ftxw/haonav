@@ -200,8 +200,11 @@ onBeforeUnmount(() => {
       @click="setDrawer(false)"
     />
 
-    <!-- 右列：顶部搜索卡 + 下方内容卡（纵向间距与左列画布同档：12px / lg 20px） -->
-    <div class="relative z-10 flex min-w-0 flex-col gap-3 overflow-hidden lg:gap-5">
+    <!-- 右列：顶部搜索卡 + 下方内容区（纵向间距与左列画布同档：12px / lg 20px）
+         ⚠️ 这里**不能加 overflow-hidden**：卡片宽度 = 列宽，阴影只能向外扩散，
+         加了就会把搜索卡与链接卡左右两侧的阴影整条裁掉。滚动交给 main 的 .hn-scroll
+         （overflow-y: auto 自身即建立 BFC，纵向溢出由它裁，横向内容也不会横向溢出）。 -->
+    <div class="relative z-10 flex min-w-0 flex-col gap-3 lg:gap-5">
       <TopBar />
 
       <!-- 读失败降级提示：不弹窗、不阻断浏览 -->

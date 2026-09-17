@@ -61,8 +61,9 @@ function onContext(e: MouseEvent): void {
   emit('context', { link: props.link, x: e.clientX, y: e.clientY });
 }
 
-/** 卡片档外壳：玻璃面 + 最小高度 + 内边距 + 跳转属性；group 让两档都有悬停主色标题 */
-const shellCard = computed(() => ['hn-card', 'group', CARD_FRAME, 'flex flex-col p-2.5', CARD_MIN_H]);
+/** 卡片档外壳：玻璃面 + 最小高度 + 内边距 + 跳转属性；group 让两档都有悬停主色标题
+    内边距 14px（p-3.5）：卡片最小高度 88px 固定，加内边距不会撑高，只是让内容更松 */
+const shellCard = computed(() => ['hn-card', 'group', CARD_FRAME, 'flex flex-col p-3.5', CARD_MIN_H]);
 /** 纯图标档外壳：静止态无卡片（仅图标）；尺寸与卡片档高度一致（88px）。
     外壳只负责整体上浮 + 定位；圆角与阴影都在 img 上（同一盒子），
     阴影自动跟随圆角 —— 改圆角时阴影一起变，不会两层不一致 */

@@ -47,18 +47,14 @@ export function paletteColor(seed: string): string {
 /* ── 复用类名组合（亮色 = 参考站「logo 卡片」样式；深色 = 参考站「玻璃卡」样式） ── */
 
 /**
- * 卡片外壳（明暗两套配方）：
- * - 亮色：参考项目顶部 logo 卡片（bg-white/50 + border-slate-200/50，
- *   hover:bg-white hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5）
- * - 深色：参考站内容玻璃卡（bg-white/[0.06] + border-white/15 + backdrop-blur，
- *   hover:bg-white/[0.12] hover:border-white/25）—— logo 卡片在深色下是透明的，
- *   直接照抄会导致内容卡片不可见、悬停变死黑
- * 背景模糊一律挂 `glass-blur`（值 = --glass-blur），与后台卡片、顶栏、弹窗同档；
- * 这里禁止再写 backdrop-blur-*，否则前后台又会各自跑偏。
+ * 链接卡片外壳 —— 材质**统一走 glass-surface**（与左卡 / 搜索卡 / 弹窗同款），
+ * 不再手写 bg / border：手写配方会和 `--glass-*` 令牌各走一套，改主题或调玻璃质感时
+ * 只对一半生效（历史上就是这么跑偏的）。圆角 16px（rounded-2xl）与站内其他卡片一致。
+ * 静止态：glass-surface 提供底色 / 边框 / 阴影 / 模糊（明暗两套在 :root / html.dark）。
+ * 悬停态：上浮 + 边框转主色 + 阴影带主色光晕 + 背景提亮一档（明暗量级一致）。
  */
 export const CARD_FRAME =
-  'group cursor-pointer rounded-xl border-[0.5px] glass-blur bg-white/50 border-white/80 ' +
-  'dark:bg-white/[0.06] dark:border-white/15 ' +
+  'group cursor-pointer rounded-2xl glass-surface ' +
   'transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg ' +
   // 悬停：明暗两套阴影量级一致（都是 shadow-lg），边框统一变绿与背景光晕呼应
   'hover:bg-white/80 hover:border-accent/50 hover:shadow-accent/20 ' +
@@ -76,17 +72,18 @@ export const GLASS = 'glass-surface';
 /** 区块小标签：全大写、宽字距、低对比（「分类目录」「置顶 / 常用」等 kicker） */
 export const SECTION_LABEL = 'text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500';
 
-/** 侧栏项选中态：完全复制链接卡片「静止态」外观（圆角/0.5px边框/磨砂/白底50%/白边），
-    仅不悬浮；发光小圆点（绿）作选中指示。深色 = bg-white/[0.06]+border-white/15，与卡片一致 */
+/** 侧栏项选中态：材质与链接卡片静止态同为 glass-surface（改 --glass-* 即两边同步），
+    仅圆角小一档 —— 导航项只有 36px 高，16px 圆角会显得过圆；也不悬浮。
+    发光小圆点（绿）作选中指示。 */
 export const PILL_ACTIVE =
-  'rounded-xl border-[0.5px] glass-blur bg-white/50 border-white/80 font-medium text-slate-700 ' +
-  'transition-all duration-300 dark:border-white/15 dark:bg-white/[0.06] dark:text-slate-100';
+  'rounded-xl glass-surface font-medium text-slate-700 ' +
+  'transition-all duration-300 dark:text-slate-100';
 
 /** 侧栏项空闲态：默认完全透明（无背景、无边框、无模糊），仅文字可见；悬停 = 链接卡片「悬停态」
-    （白底80%+backdrop-blur/accent绿边/shadow-lg+绿光晕/轻微上浮，深色 bg-white/[0.12]） */
+    （glass-surface 材质 + accent 绿边 / shadow-lg 绿光晕 / 轻微上浮，深色背景提亮一档） */
 export const PILL_IDLE =
   'rounded-xl border-[0.5px] border-transparent text-slate-600 dark:text-slate-400 transition-all duration-300 ' +
-  'hover:bg-white/80 hover:glass-blur dark:hover:bg-white/[0.12] ' +
+  'hover:glass-surface dark:hover:bg-white/[0.12] ' +
   'hover:border-accent/50 dark:hover:border-accent/50 ' +
   'hover:shadow-lg hover:shadow-accent/20 dark:hover:shadow-lg dark:hover:shadow-accent/20 ' +
   'hover:-translate-y-0.5';
@@ -115,7 +112,8 @@ export const CARD_TITLE = 'text-base font-bold text-slate-800 dark:text-slate-10
  * 一条悬空的分割线，所以这里去掉高度与分割线，只留「图标 + 标题 + 计数」一行
  * 和与下方网格的间距（mb-3，与站内 12px 间距同档）。
  */
-export const SECTION_HEAD_BAR = 'mb-3 flex flex-wrap items-center gap-2.5';
+export const SECTION_HEAD_BAR =
+  'mb-3 flex flex-wrap items-center gap-2.5 border-b border-slate-200/70 pb-2.5 dark:border-white/10';
 
 /** 卡片内边距（16px = rounded-2xl 的半径，四周留白最平衡），与后台 CARD_PAD 一致 */
 export const CARD_PAD = 'p-4';
