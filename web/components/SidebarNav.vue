@@ -44,7 +44,7 @@ function itemClass(active: boolean, opts?: { tall?: boolean }): string {
 <template>
   <!-- 左列只有一张卡：品牌区（卡片标题行规格）+ 目录 + 页脚外链 -->
   <aside :class="SHELL_CARD + ' sidebar flex h-full w-64 flex-col overflow-hidden'">
-    <!-- 品牌区：emerald→teal 渐变 logo（hover 缩放，与目录项同一节奏）+ 站名（与参考项目标题同色）
+    <!-- 品牌区：emerald→teal 渐变 logo（hover 缩放微旋转，与目录项同一节奏）+ 站名（与参考项目标题同色）
          高度走 HEAD_ROW（min-h 68px）—— 与右侧搜索卡实际高度一致，两卡分割线才对齐 -->
     <div
       :class="HEAD_ROW + ' group border-b border-slate-200/70 px-4 dark:border-white/10'"

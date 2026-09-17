@@ -205,11 +205,13 @@ onBeforeUnmount(() => {
          加了就会把搜索卡与链接卡左右两侧的阴影整条裁掉。
          但 main 的 .hn-scroll（overflow-y: auto）同样会横向裁剪 —— 按 CSS 规范，
          overflow-y: auto 配 overflow-x: visible 时 overflow-x 会被计算成 auto。
-         所以这里用「右列 px-2.5 → main -mx-2.5 px-2.5」的负边距法：
-         右列内缩 10px，main 用负边距把自己的 border box 撑回右列原宽（不溢出、无横向滚动条），
-         再用自身 px-2.5 把内容推回 10px —— 卡片左边缘仍与 TopBar 对齐，
-         而 main 的 padding box 左右各多出 10px 空间容纳阴影（shadow-lg 侧向扩散 ≈4.5px，够用）。 -->
-    <div class="relative z-10 flex min-w-0 flex-col gap-3 px-2.5 lg:gap-5">
+         所以这里用「右列加 16px 横向内边距 → main 用等量负外边距 + 等量内边距」的负边距法：
+         右列内缩 16px，main 用负边距把自己的 border box 撑回右列原宽（不溢出、无横向滚动条），
+         再用自身同量内边距把内容推回 16px —— 卡片左边缘仍与 TopBar 对齐，
+         而 main 的 padding box 左右各多出 16px 空间容纳阴影。
+         ⚠️ 16px 是按**静止态**玻璃阴影（blur 32px、无负 spread → 四周各扩散 16px）算的，
+            不是按悬停态那档更紧的阴影 —— 静止态才是大头，别按后者留白，否则最外圈照样被切。 -->
+    <div class="relative z-10 flex min-w-0 flex-col gap-3 px-4 lg:gap-5">
       <TopBar />
 
       <!-- 读失败降级提示：不弹窗、不阻断浏览 -->
@@ -222,11 +224,11 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- 内容区：一张卡一个区块（顶部时高亮回到「全部链接」，下滚后由联动接管） -->
-      <!-- pb-4：给 hover 的 shadow-lg（y-offset 10px + 扩散 ≈4.5px）留底部空间，
+      <!-- 底部 24px：玻璃阴影向下 = y-offset 8px + blur 32px 的一半 16px = 24px，
            否则滚到底时最后一行的下缘会被裁 -->
       <main
         ref="contentRef"
-        class="hn-scroll -mx-2.5 min-h-0 flex-1 px-2.5 pb-4"
+        class="hn-scroll -mx-4 min-h-0 flex-1 px-4 pb-6"
         @scroll.passive="onContentScroll"
       >
         <div class="space-y-3 lg:space-y-5">

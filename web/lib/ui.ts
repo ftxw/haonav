@@ -47,16 +47,16 @@ export function paletteColor(seed: string): string {
 /* ── 复用类名组合（亮色 = 参考站「logo 卡片」样式；深色 = 参考站「玻璃卡」样式） ── */
 
 /**
- * 悬停过渡（单一来源）：**非对称** —— 移开 150ms（跟手，恢复不拖泥带水），
- * 悬停 200ms（稍慢，位移/阴影起来更柔和）。
- * 之前的写法是「进出两态同一个 300ms」，正是「鼠标移开后有明显延时」的根因。
-   ⚠️ 注释里**不要**写出旧过渡的类名原样字符串 —— Tailwind v4 的扫描器不区分注释与代码，
-      注释里出现的候选类名一样会被生成进产物（已实测踩到：类名早删了，产物里还在）。
+ * 悬停过渡（单一来源）：**对称 300ms** —— 进入与移开同速。
+ * 移开后的「慢慢恢复」是刻意保留的手感（目录卡与链接卡都要），不要改成快速回落。
+   ⚠️ 注释里**不要**写出任何类名原样字符串（过渡 / 间距 / 颜色都一样）—— Tailwind v4 的
+      扫描器不区分注释与代码，注释里出现的候选类名一样会被生成进产物（已实测踩到两次：
+      类名在源码里删干净了，产物里还在；撤销方案时又被注释里的旧类名重新生成出来）。
  */
-export const HOVER_TRANSITION = 'transition-all duration-150 hover:duration-200';
+export const HOVER_TRANSITION = 'transition-all duration-300';
 
-/** 图标悬停缩放（链接卡图标与侧栏目录项共用，两边必须一致；无旋转 —— 旋转的「转回来」也是延时感来源） */
-export const ICON_HOVER = 'transition-transform duration-150 hover:duration-200 group-hover:scale-110';
+/** 图标悬停（链接卡图标 / 侧栏目录项 / 品牌 logo 三处共用，必须一致）：缩放 + 微旋转 */
+export const ICON_HOVER = 'transition-transform duration-300 group-hover:rotate-3 group-hover:scale-110';
 
 /** 左右两卡头部等高（68px = 右侧搜索卡实际高度：p-4 上下各 16px + 搜索框 h-9 36px）。
     两卡都从 app-shell 顶部起算，所以头部等高 → 左卡分割线与右卡底边对齐。
