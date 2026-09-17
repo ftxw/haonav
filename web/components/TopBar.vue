@@ -59,7 +59,7 @@ const THEME_BTN =
 <template>
   <header
     :class="[
-      'relative z-30 flex h-16 shrink-0 items-center gap-3 border-b px-4 shadow-sm backdrop-blur-xl lg:px-8',
+      'relative z-30 flex h-16 shrink-0 items-center gap-3 border-b px-4 shadow-sm lg:px-8',
       GLASS,
     ]"
   >

@@ -102,7 +102,7 @@ function modeCls(active: boolean): string {
         type="text"
         autocomplete="off"
         spellcheck="false"
-        class="w-full h-9 rounded-full border border-slate-200/60 bg-white/60 pl-10 pr-12 text-sm text-slate-700 outline-none backdrop-blur placeholder-slate-400 transition-colors dark:border-white/10 dark:bg-white/10 dark:text-slate-100 dark:placeholder-slate-500 focus:border-accent/50 focus:bg-white focus:ring-2 focus:ring-accent/50 dark:focus:bg-white/10"
+        class="w-full h-9 rounded-full border border-slate-200/60 bg-white/60 pl-10 pr-12 text-sm text-slate-700 outline-none glass-blur placeholder-slate-400 transition-colors dark:border-white/10 dark:bg-white/10 dark:text-slate-100 dark:placeholder-slate-500 focus:border-accent/50 focus:bg-white focus:ring-2 focus:ring-accent/50 dark:focus:bg-white/10"
         @input="setQuery(($event.target as HTMLInputElement).value)"
       />
 

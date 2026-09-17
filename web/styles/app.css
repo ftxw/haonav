@@ -29,7 +29,27 @@
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow), inset 0 1px var(--glass-highlight);
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+/* ── 卡片 / 面板的「背景模糊」唯一入口 ──
+   值直接取 --glass-blur，因此全站（前台卡片、后台卡片与外壳卡、顶栏、搜索框、弹窗玻璃面）
+   只有「一个」模糊数：整体调档只改 :root / html.dark 里的 --glass-blur 一处。
+   ⚠️ 挂了本类就不要再写 backdrop-blur-* —— 两者都输出 backdrop-filter，按产物顺序决胜负，
+   输的那个静默失效（这在 Tailwind 里不报错，只能查产物）。
+   ⚠️ 也**不要手写 `-webkit-backdrop-filter`**：构建链会把「同一属性的前缀版 + 标准版」判成重复，
+   只保留写在后面的那条 —— 而手写时前缀版通常在后面，结果就是标准属性被丢掉、
+   产物里只剩 `-webkit-`（实测：`glass-surface` 曾因此长期只输出 `-webkit-`）。
+   只写标准属性即可，构建会**自动补出两条**（实测产物含 `-webkit-backdrop-filter` + `backdrop-filter`）。 */
+@utility glass-blur {
+  backdrop-filter: blur(var(--glass-blur));
+}
+
+/* ── 浮层遮罩（弹窗 / 移动端抽屉）：**不用黑色蒙层** ──
+   黑色蒙层会把上层卡片的玻璃质感压死 —— 卡片自己的 backdrop-filter 采样到的正是那层黑，
+   于是"模糊"出来一团灰黑。这里改成只用磨砂把背后页面糊掉，颜色由 --veil-bg 给一层极淡薄纱。 */
+@utility glass-veil {
+  background-color: var(--veil-bg);
+  backdrop-filter: blur(var(--veil-blur));
 }
 
 /* Tailwind v4 默认 grid-cols 只到 12，纯图标档需要 14 列 —— 用自定义 utility 补齐 */
@@ -46,6 +66,8 @@
     --glass-blur: 16px;
     --glass-saturate: 160%;
     --glass-highlight: rgba(255, 255, 255, 0.9);
+    --veil-bg: rgba(255, 255, 255, 0.3);
+    --veil-blur: 12px;
   }
   /* 黑夜：对齐参考项目（卡片 bg-white/10 + border-white/20，玻璃阴影 0 8px 32px #00000059） */
   html.dark {
@@ -55,6 +77,8 @@
     --glass-blur: 16px;
     --glass-saturate: 160%;
     --glass-highlight: rgba(255, 255, 255, 0.12);
+    --veil-bg: rgba(255, 255, 255, 0.07);
+    --veil-blur: 12px;
   }
   html,
   body {

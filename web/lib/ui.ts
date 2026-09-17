@@ -53,9 +53,11 @@ export function paletteColor(seed: string): string {
  * - 深色：参考站内容玻璃卡（bg-white/[0.06] + border-white/15 + backdrop-blur，
  *   hover:bg-white/[0.12] hover:border-white/25）—— logo 卡片在深色下是透明的，
  *   直接照抄会导致内容卡片不可见、悬停变死黑
+ * 背景模糊一律挂 `glass-blur`（值 = --glass-blur），与后台卡片、顶栏、弹窗同档；
+ * 这里禁止再写 backdrop-blur-*，否则前后台又会各自跑偏。
  */
 export const CARD_FRAME =
-  'group cursor-pointer rounded-xl border-[0.5px] backdrop-blur-md bg-white/50 border-white/80 ' +
+  'group cursor-pointer rounded-xl border-[0.5px] glass-blur bg-white/50 border-white/80 ' +
   'dark:bg-white/[0.06] dark:border-white/15 ' +
   'transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg ' +
   // 悬停：明暗两套阴影量级一致（都是 shadow-lg），边框统一变绿与背景光晕呼应
@@ -77,14 +79,14 @@ export const SECTION_LABEL = 'text-[11px] font-semibold uppercase tracking-[0.18
 /** 侧栏项选中态：完全复制链接卡片「静止态」外观（圆角/0.5px边框/磨砂/白底50%/白边），
     仅不悬浮；发光小圆点（绿）作选中指示。深色 = bg-white/[0.06]+border-white/15，与卡片一致 */
 export const PILL_ACTIVE =
-  'rounded-xl border-[0.5px] backdrop-blur-md bg-white/50 border-white/80 font-medium text-slate-700 ' +
+  'rounded-xl border-[0.5px] glass-blur bg-white/50 border-white/80 font-medium text-slate-700 ' +
   'transition-all duration-300 dark:border-white/15 dark:bg-white/[0.06] dark:text-slate-100';
 
 /** 侧栏项空闲态：默认完全透明（无背景、无边框、无模糊），仅文字可见；悬停 = 链接卡片「悬停态」
     （白底80%+backdrop-blur/accent绿边/shadow-lg+绿光晕/轻微上浮，深色 bg-white/[0.12]） */
 export const PILL_IDLE =
   'rounded-xl border-[0.5px] border-transparent text-slate-600 dark:text-slate-400 transition-all duration-300 ' +
-  'hover:bg-white/80 hover:backdrop-blur-md dark:hover:bg-white/[0.12] ' +
+  'hover:bg-white/80 hover:glass-blur dark:hover:bg-white/[0.12] ' +
   'hover:border-accent/50 dark:hover:border-accent/50 ' +
   'hover:shadow-lg hover:shadow-accent/20 dark:hover:shadow-lg dark:hover:shadow-accent/20 ' +
   'hover:-translate-y-0.5';

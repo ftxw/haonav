@@ -17,7 +17,7 @@
  * 与面板内层 SURFACE 同一语言，只是背景更透、带背景模糊，让画布主色透出来。
  */
 export const SHELL_CARD =
-  'rounded-2xl border border-slate-200/70 bg-white/80 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.05]';
+  'rounded-2xl border border-slate-200/70 bg-white/70 shadow-sm glass-blur dark:border-white/10 dark:bg-white/[0.05]';
 
 /**
  * 面板根容器：统一「标题卡 → 工具栏 → 内容卡片」的纵向节奏。
@@ -62,7 +62,7 @@ export const NAV_IDLE =
  * 外壳（App.vue 的圆角应用框）已提供玻璃底，内层面用实底更清爽、层级更清楚。
  */
 const SURFACE =
-  'rounded-2xl border border-slate-200/80 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/[0.04]';
+  'rounded-2xl border border-slate-200/80 bg-white/70 shadow-sm glass-blur dark:border-white/10 dark:bg-white/[0.05]';
 
 /** 内容卡片 / 工具筛选卡片统一 */
 export const CARD = SURFACE;

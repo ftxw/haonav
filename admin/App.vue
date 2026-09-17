@@ -105,7 +105,7 @@ onBeforeUnmount(() => {
 
   <div v-else-if="!state.authed" class="relative z-10 flex min-h-screen items-center justify-center p-6">
     <form
-      class="w-full max-w-sm rounded-[24px] border border-white/60 bg-white/85 p-8 shadow-[0_20px_60px_-18px_rgba(15,23,42,0.3)] backdrop-blur-xl dark:border-white/10 dark:bg-[#0f172a]/85"
+      class="w-full max-w-sm rounded-[24px] border border-white/60 bg-white/85 p-8 shadow-[0_20px_60px_-18px_rgba(15,23,42,0.3)] glass-blur dark:border-white/10 dark:bg-[#0f172a]/85"
       @submit.prevent="doLogin"
     >
       <div class="flex items-center gap-3">
@@ -154,7 +154,7 @@ onBeforeUnmount(() => {
         <div class="flex items-center gap-2 lg:hidden">
           <button
             type="button"
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200/70 bg-white/80 text-slate-600 backdrop-blur-xl transition-colors hover:text-slate-900 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-300"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200/70 bg-white/80 text-slate-600 glass-blur transition-colors hover:text-slate-900 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-300"
             aria-label="打开导航"
             :aria-expanded="navOpen"
             @click="navOpen = true"
@@ -200,7 +200,7 @@ onBeforeUnmount(() => {
 
     <!-- 移动端抽屉：遮罩 + 滑出（导航卡 + 账户卡，与桌面共用组件） -->
     <div v-if="navOpen" class="fixed inset-0 z-50 lg:hidden">
-      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="navOpen = false"></div>
+      <div class="glass-veil absolute inset-0" @click="navOpen = false"></div>
       <div class="absolute inset-y-0 left-0 flex w-64 flex-col gap-3 p-3">
         <aside :class="SHELL_CARD + ' relative flex min-h-0 flex-1 flex-col overflow-hidden'">
           <button

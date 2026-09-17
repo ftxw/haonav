@@ -36,7 +36,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
 <template>
   <Teleport to="body">
     <div
-      class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      class="glass-veil fixed inset-0 z-[100] flex items-center justify-center p-4"
       @click.self="emit('close')"
     >
       <div class="animate-zoom-in glass-surface flex w-full max-w-xs flex-col items-center gap-4 rounded-3xl p-6">
