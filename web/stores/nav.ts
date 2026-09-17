@@ -4,6 +4,7 @@ import { DEFAULT_SETTINGS, mergeSettings } from '../lib/settings';
 import { UNCATEGORIZED, buildSections, type IndexedLink, type Section } from '../lib/sections';
 import * as cache from '../lib/cache';
 import { applyAccent, applyTheme, applyTitle, onSystemThemeChange } from '../lib/theme';
+import { ensureIconApiPreconnect } from '../lib/preconnect';
 import { fetchDoc } from '../lib/api';
 import { SEARCH_DEBOUNCE_MS, debounce } from '../lib/search';
 
@@ -59,6 +60,8 @@ function ingest(doc: Doc, stale: boolean): void {
   applyAccent(settings.accent);
   applyTheme(state.theme);
   applyTitle(settings.name);
+  // 构建期只按 site.config.json 注入过 preconnect；iconApi 被 KV 覆盖时补上真正的图标服务 origin
+  ensureIconApiPreconnect(settings.iconApi);
 
   // 分组逻辑抽成纯函数（web/lib/sections.ts），有单测覆盖
   const built = buildSections(doc.categories ?? [], doc.links ?? []);

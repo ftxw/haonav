@@ -7,6 +7,11 @@
     <meta name="theme-color" content="%SITE_ACCENT%" />
     <title>%SITE_NAME%</title>
     <link rel="icon" href="%SITE_ICON%" />
+    <!-- 图标服务直连：提前完成 DNS + TCP + TLS，省掉首个图标的一整个握手往返。
+         ⚠️ 不加 crossorigin —— 图标是 <img> 发起的 no-cors 请求，带 crossorigin 的
+            preconnect 建的是 CORS 模式连接，img 不会复用，等于白建一条。
+         注：iconApi 运行时可被 KV settings 覆盖，web/lib/preconnect.ts 会补一条。 -->
+    <link rel="preconnect" href="%ICON_API_ORIGIN%" />
     <script>
       /* 二次访问零闪烁：首帧前用 localStorage 缓存覆盖 title / favicon / --accent / 暗色 */
       (function () {

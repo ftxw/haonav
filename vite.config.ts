@@ -34,12 +34,23 @@ function resolveFavicon(icon: Loose | undefined, name: string, accent: string): 
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
-/** 构建期把 site.config.json 注入 HTML 的 %SITE_NAME% / %SITE_ICON% / %SITE_ACCENT% */
+/** 图标服务 origin：用于 <link rel="preconnect"> 提前做 DNS + TLS 握手。解析不出就给空串（绝不产出 undefined/null） */
+function resolveOrigin(raw: unknown): string {
+  if (typeof raw !== 'string' || !raw.trim()) return '';
+  try {
+    return new URL(raw.trim()).origin;
+  } catch {
+    return '';
+  }
+}
+
+/** 构建期把 site.config.json 注入 HTML 的 %SITE_NAME% / %SITE_ICON% / %SITE_ACCENT% / %ICON_API_ORIGIN% */
 function siteConfigPlugin(): Plugin {
   const cfg = readSiteConfig();
   const name = String(cfg.name || 'HaoNav');
   const accent = String(cfg.accent || '#3b82f6');
   const icon = resolveFavicon(cfg.icon, name, accent);
+  const iconApiOrigin = resolveOrigin(cfg.iconApi);
   return {
     name: 'haonav-site-config',
     // order: 'pre' —— 必须在 vite:build-html 生成内联 <style>/<script> 的 html-proxy 之前完成替换，
@@ -47,10 +58,15 @@ function siteConfigPlugin(): Plugin {
     transformIndexHtml: {
       order: 'pre',
       handler(html: string) {
-        return html
+        const out = html
           .replaceAll('%SITE_NAME%', escapeXml(name))
           .replaceAll('%SITE_ACCENT%', accent)
           .replaceAll('%SITE_ICON%', icon);
+        // 有 origin 就填进 preconnect；没有就把整行 <link> 删掉 —— 空的 href="" 会退化成
+        // 与本站自己握手，纯属浪费，且不如不留。
+        return iconApiOrigin
+          ? out.replaceAll('%ICON_API_ORIGIN%', iconApiOrigin)
+          : out.replace(/[ \t]*<link\b[^>]*%ICON_API_ORIGIN%[^>]*\/?>/g, '');
       },
     },
   };
