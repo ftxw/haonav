@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import type { CardStyle, IconStrategy } from '../lib/models';
 import { linkIconUrl, linkLetterIcon } from '../lib/brandIcon';
-import { CARD_FRAME, CARD_MIN_H, ICON_RADIUS, TITLE_HOVER } from '../lib/ui';
+import { CARD_FRAME, CARD_MIN_H, HOVER_TRANSITION, ICON_HOVER, ICON_RADIUS, TITLE_HOVER } from '../lib/ui';
 import type { IndexedLink } from '../stores/nav';
 
 const props = defineProps<{
@@ -17,8 +17,6 @@ const props = defineProps<{
 const emit = defineEmits<{ context: [payload: { link: IndexedLink; x: number; y: number }] }>();
 
 const failed = ref(false);
-/** 真实图标是否已 load 成功 —— 底层字母图标始终可见，成功后再淡入盖上去（消除加载空白） */
-const loaded = ref(false);
 
 /** 本地字母图标（data URI，零请求） */
 const letterSrc = computed(() => linkLetterIcon(props.link.title, props.link.url));
@@ -53,16 +51,9 @@ const src = computed(() => {
 
 const loading = computed(() => (props.iconStrategy === 'fetched' ? 'lazy' : undefined));
 
-/**
- * 是否需要额外加载一层真实图标：`letter` 策略、或已失败回退时 `src` 就是字母图标本身，
- * 再叠一张透明且必然失败/重复的图只是浪费（也省掉一次请求）。
- */
-const showReal = computed(() => !failed.value && src.value !== letterSrc.value);
-
 /** 链接或图标变化 → 重置失败态，让编辑后的新图标重新尝试加载 */
 watch([() => props.link.url, () => props.link.icon], () => {
   failed.value = false;
-  loaded.value = false;
 });
 
 function onContext(e: MouseEvent): void {
@@ -81,7 +72,7 @@ const shellIcon = computed(() => [
   'cursor-pointer',
   'h-[88px] w-[88px] justify-self-center',
   'relative flex items-center justify-center',
-  'transition-all duration-300',
+  HOVER_TRANSITION,
   'hover:-translate-y-0.5',
 ]);
 const jump = computed(() => ({
@@ -95,25 +86,17 @@ const jump = computed(() => ({
   <!-- ── 详情档（两行：图标+标题 / 描述行） ── -->
   <a v-if="cardStyle === 'card'" :class="shellCard" :title="link.title" v-bind="jump" @contextmenu="onContext">
     <span class="mb-1.5 flex items-center gap-3">
-      <!-- 图标位：底层字母图标（data URI，零请求、立即可见）+ 上层真实图标（load 成功才淡入）。
-           这样慢的图标不再留一段空白，取不到的（403 等）就一直保持字母，不再空等。 -->
-      <span
-        class="relative h-8 w-8 shrink-0 transition-transform duration-300 group-hover:rotate-3 group-hover:scale-110"
-      >
-        <img :src="letterSrc" width="32" height="32" alt="" class="absolute inset-0 h-8 w-8 rounded-lg" />
+      <!-- 图标位：**单层** —— 先取真实图标；取不到（403 / 网络错误）由 @error 把 src 切成字母图标。
+           不做「字母打底 + 真实图标淡入盖上去」：真实图标若是透明底 PNG 会透出底下的字母方块。 -->
+      <span :class="['relative h-8 w-8 shrink-0', ICON_HOVER]">
         <img
-          v-if="showReal"
           :src="src"
           :loading="loading"
           decoding="async"
           width="32"
           height="32"
           alt=""
-          :class="[
-            'absolute inset-0 h-8 w-8 rounded-lg transition-opacity duration-300',
-            loaded ? 'opacity-100' : 'opacity-0',
-          ]"
-          @load="loaded = true"
+          class="absolute inset-0 h-8 w-8 rounded-lg"
           @error="failed = true"
         />
       </span>
@@ -135,25 +118,21 @@ const jump = computed(() => ({
     v-bind="jump"
     @contextmenu="onContext"
   >
-    <!-- 图标档同理：字母打底 + 真实图标淡入。圆角与悬停阴影挂容器（同一盒子，阴影跟随圆角） -->
+    <!-- 图标档同理：单层真实图标，失败才切字母。圆角与悬停阴影挂容器（同一盒子，阴影跟随圆角） -->
     <span
       :class="[
-        'relative h-full w-full overflow-hidden transition-all duration-300 group-hover:shadow-lg group-hover:shadow-accent/20',
+        'relative h-full w-full overflow-hidden',
+        HOVER_TRANSITION,
+        'group-hover:shadow-lg group-hover:shadow-accent/20',
         ICON_RADIUS,
       ]"
     >
-      <img :src="letterSrc" alt="" class="absolute inset-0 h-full w-full object-contain" />
       <img
-        v-if="showReal"
         :src="src"
         :loading="loading"
         decoding="async"
         alt=""
-        :class="[
-          'absolute inset-0 h-full w-full object-contain transition-opacity duration-300',
-          loaded ? 'opacity-100' : 'opacity-0',
-        ]"
-        @load="loaded = true"
+        class="absolute inset-0 h-full w-full object-contain"
         @error="failed = true"
       />
     </span>

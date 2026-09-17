@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import AppIcon from './AppIcon.vue';
 import { firstChar } from '../lib/brandIcon';
 import type { Category, FooterLink, SiteSettings } from '../lib/models';
-import { CHIP, PILL_ACTIVE, PILL_IDLE, SECTION_LABEL, SHELL_CARD } from '../lib/ui';
+import { CHIP, HEAD_ROW, ICON_HOVER, PILL_ACTIVE, PILL_IDLE, SECTION_LABEL, SHELL_CARD } from '../lib/ui';
 import { ALL } from '../stores/nav';
 
 const props = defineProps<{
@@ -28,7 +28,7 @@ const footers = computed<FooterLink[]>(() => props.settings.footerLinks ?? []);
 
 /** 列表项图标的悬停缩放（选中态为实心主色底，不参与 hover 效果） */
 function iconHoverCls(active: boolean): string {
-  return active ? '' : 'group-hover:scale-110 transition-transform duration-300';
+  return active ? '' : ICON_HOVER;
 }
 
 /** 选中态实心主色（对齐参考站分类 chip）；空闲态 hover 对齐参考站 logo 卡片 */
@@ -44,21 +44,25 @@ function itemClass(active: boolean, opts?: { tall?: boolean }): string {
 <template>
   <!-- 左列只有一张卡：品牌区（卡片标题行规格）+ 目录 + 页脚外链 -->
   <aside :class="SHELL_CARD + ' sidebar flex h-full w-64 flex-col overflow-hidden'">
-    <!-- 品牌区：emerald→teal 渐变 logo（hover 缩放微旋转）+ 站名（与参考项目标题同色） -->
+    <!-- 品牌区：emerald→teal 渐变 logo（hover 缩放，与目录项同一节奏）+ 站名（与参考项目标题同色）
+         高度走 HEAD_ROW（min-h 68px）—— 与右侧搜索卡实际高度一致，两卡分割线才对齐 -->
     <div
-      class="group flex min-h-14 shrink-0 items-center gap-3 border-b border-slate-200/70 px-4 dark:border-white/10"
+      :class="HEAD_ROW + ' group border-b border-slate-200/70 px-4 dark:border-white/10'"
     >
       <img
         v-if="brandImage"
         :src="brandImage"
-        width="40"
-        height="40"
+        width="32"
+        height="32"
         alt=""
-        class="h-10 w-10 shrink-0 rounded-lg ring-1 ring-white/30 transition-transform duration-300 group-hover:rotate-3 group-hover:scale-110 dark:ring-white/15"
+        :class="['h-8 w-8 shrink-0 rounded-lg ring-1 ring-white/30 dark:ring-white/15', ICON_HOVER]"
       />
       <div
         v-else
-        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-600 text-lg font-bold text-white shadow-lg shadow-emerald-500/40 ring-1 ring-white/25 transition-transform duration-300 group-hover:rotate-3 group-hover:scale-110"
+        :class="[
+          'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-600 text-base font-bold text-white shadow-lg shadow-emerald-500/40 ring-1 ring-white/25',
+          ICON_HOVER,
+        ]"
       >
         {{ brandChar }}
       </div>

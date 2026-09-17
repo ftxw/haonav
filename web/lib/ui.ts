@@ -47,6 +47,25 @@ export function paletteColor(seed: string): string {
 /* ── 复用类名组合（亮色 = 参考站「logo 卡片」样式；深色 = 参考站「玻璃卡」样式） ── */
 
 /**
+ * 悬停过渡（单一来源）：**非对称** —— 移开 150ms（跟手，恢复不拖泥带水），
+ * 悬停 200ms（稍慢，位移/阴影起来更柔和）。
+ * 之前的写法是「进出两态同一个 300ms」，正是「鼠标移开后有明显延时」的根因。
+   ⚠️ 注释里**不要**写出旧过渡的类名原样字符串 —— Tailwind v4 的扫描器不区分注释与代码，
+      注释里出现的候选类名一样会被生成进产物（已实测踩到：类名早删了，产物里还在）。
+ */
+export const HOVER_TRANSITION = 'transition-all duration-150 hover:duration-200';
+
+/** 图标悬停缩放（链接卡图标与侧栏目录项共用，两边必须一致；无旋转 —— 旋转的「转回来」也是延时感来源） */
+export const ICON_HOVER = 'transition-transform duration-150 hover:duration-200 group-hover:scale-110';
+
+/** 左右两卡头部等高（68px = 右侧搜索卡实际高度：p-4 上下各 16px + 搜索框 h-9 36px）。
+    两卡都从 app-shell 顶部起算，所以头部等高 → 左卡分割线与右卡底边对齐。
+    ⚠️ 用 min-h 不用固定 h：TopBar 是 flex-wrap，窄屏换行时不能被压扁。 */
+export const HEAD_H = 'min-h-[68px]';
+/** 左卡品牌行（= 头部高度 + 与右卡相同的横向节奏） */
+export const HEAD_ROW = 'flex ' + HEAD_H + ' shrink-0 items-center gap-3';
+
+/**
  * 链接卡片外壳 —— 材质**统一走 glass-surface**（与左卡 / 搜索卡 / 弹窗同款），
  * 不再手写 bg / border：手写配方会和 `--glass-*` 令牌各走一套，改主题或调玻璃质感时
  * 只对一半生效（历史上就是这么跑偏的）。圆角 16px（rounded-2xl）与站内其他卡片一致。
@@ -55,7 +74,8 @@ export function paletteColor(seed: string): string {
  */
 export const CARD_FRAME =
   'group cursor-pointer rounded-2xl glass-surface ' +
-  'transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg ' +
+  HOVER_TRANSITION +
+  ' hover:-translate-y-0.5 hover:shadow-lg ' +
   // 悬停：明暗两套阴影量级一致（都是 shadow-lg），边框统一变绿与背景光晕呼应
   'hover:bg-white/80 hover:border-accent/50 hover:shadow-accent/20 ' +
   'dark:hover:bg-white/[0.12] dark:hover:border-accent/50 dark:hover:shadow-accent/20';
@@ -77,12 +97,15 @@ export const SECTION_LABEL = 'text-[11px] font-semibold uppercase tracking-[0.18
     发光小圆点（绿）作选中指示。 */
 export const PILL_ACTIVE =
   'rounded-xl glass-surface font-medium text-slate-700 ' +
-  'transition-all duration-300 dark:text-slate-100';
+  HOVER_TRANSITION +
+  ' dark:text-slate-100';
 
 /** 侧栏项空闲态：默认完全透明（无背景、无边框、无模糊），仅文字可见；悬停 = 链接卡片「悬停态」
     （glass-surface 材质 + accent 绿边 / shadow-lg 绿光晕 / 轻微上浮，深色背景提亮一档） */
 export const PILL_IDLE =
-  'rounded-xl border-[0.5px] border-transparent text-slate-600 dark:text-slate-400 transition-all duration-300 ' +
+  'rounded-xl border-[0.5px] border-transparent text-slate-600 dark:text-slate-400 ' +
+  HOVER_TRANSITION +
+  ' ' +
   'hover:glass-surface dark:hover:bg-white/[0.12] ' +
   'hover:border-accent/50 dark:hover:border-accent/50 ' +
   'hover:shadow-lg hover:shadow-accent/20 dark:hover:shadow-lg dark:hover:shadow-accent/20 ' +

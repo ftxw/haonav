@@ -202,9 +202,14 @@ onBeforeUnmount(() => {
 
     <!-- 右列：顶部搜索卡 + 下方内容区（纵向间距与左列画布同档：12px / lg 20px）
          ⚠️ 这里**不能加 overflow-hidden**：卡片宽度 = 列宽，阴影只能向外扩散，
-         加了就会把搜索卡与链接卡左右两侧的阴影整条裁掉。滚动交给 main 的 .hn-scroll
-         （overflow-y: auto 自身即建立 BFC，纵向溢出由它裁，横向内容也不会横向溢出）。 -->
-    <div class="relative z-10 flex min-w-0 flex-col gap-3 lg:gap-5">
+         加了就会把搜索卡与链接卡左右两侧的阴影整条裁掉。
+         但 main 的 .hn-scroll（overflow-y: auto）同样会横向裁剪 —— 按 CSS 规范，
+         overflow-y: auto 配 overflow-x: visible 时 overflow-x 会被计算成 auto。
+         所以这里用「右列 px-2.5 → main -mx-2.5 px-2.5」的负边距法：
+         右列内缩 10px，main 用负边距把自己的 border box 撑回右列原宽（不溢出、无横向滚动条），
+         再用自身 px-2.5 把内容推回 10px —— 卡片左边缘仍与 TopBar 对齐，
+         而 main 的 padding box 左右各多出 10px 空间容纳阴影（shadow-lg 侧向扩散 ≈4.5px，够用）。 -->
+    <div class="relative z-10 flex min-w-0 flex-col gap-3 px-2.5 lg:gap-5">
       <TopBar />
 
       <!-- 读失败降级提示：不弹窗、不阻断浏览 -->
@@ -217,7 +222,13 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- 内容区：一张卡一个区块（顶部时高亮回到「全部链接」，下滚后由联动接管） -->
-    <main ref="contentRef" class="hn-scroll min-h-0 flex-1" @scroll.passive="onContentScroll">
+      <!-- pb-4：给 hover 的 shadow-lg（y-offset 10px + 扩散 ≈4.5px）留底部空间，
+           否则滚到底时最后一行的下缘会被裁 -->
+      <main
+        ref="contentRef"
+        class="hn-scroll -mx-2.5 min-h-0 flex-1 px-2.5 pb-4"
+        @scroll.passive="onContentScroll"
+      >
         <div class="space-y-3 lg:space-y-5">
           <!-- 全局置顶区：两个视图都显示，内容都是跨分类的全部置顶链接 -->
           <PinnedSection

@@ -2,7 +2,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import AppIcon from './AppIcon.vue';
 import SearchBox from './SearchBox.vue';
-import { GLASS } from '../lib/ui';
+import { GLASS, HEAD_H } from '../lib/ui';
 import { setCardStyle, setDrawer, setTheme, state } from '../stores/nav';
 
 /** 视图切换（桌面分段控件 / 手机单图标互换） */
@@ -59,7 +59,9 @@ const THEME_BTN =
 <template>
   <!-- 右侧顶部卡：搜索 + 视图/主题切换收进一张卡（替代原来的通栏横条）。
        ⚠️ 不能加 overflow-hidden —— 卡内的搜索面板 / 引擎下拉是 absolute 溢出的，会被裁掉。 -->
-  <header :class="GLASS + ' relative z-30 flex shrink-0 flex-wrap items-center gap-3 rounded-2xl p-4'">
+  <header
+    :class="GLASS + ' relative z-30 flex shrink-0 flex-wrap items-center gap-3 rounded-2xl p-4 ' + HEAD_H"
+  >
     <!-- 左：移动端目录开关 -->
     <button
       type="button"
