@@ -41,34 +41,38 @@
     <div id="app">
       <!-- 骨架：HTML + CSS 直出，首帧即可见（有 localStorage 缓存时几乎看不到）。Vue 挂载时会被替换 -->
       <div class="app-shell" style="pointer-events: none" aria-hidden="true">
-        <aside class="sidebar glass-surface flex h-full flex-col">
-          <div class="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200/40 px-5 dark:border-white/10">
+        <!-- 左：目录卡 -->
+        <aside class="sidebar glass-surface flex h-full flex-col overflow-hidden rounded-2xl">
+          <div class="flex min-h-14 shrink-0 items-center gap-3 border-b border-slate-200/70 px-4 dark:border-white/10">
             <div class="h-8 w-8 rounded-lg bg-slate-900/[0.06] dark:bg-white/[0.08]"></div>
             <div class="h-4 w-24 rounded bg-slate-900/[0.06] dark:bg-white/[0.08]"></div>
           </div>
-          <div class="space-y-2 p-3">
+          <div class="space-y-2 p-4">
             <div class="h-9 rounded-xl bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
             <div class="h-9 rounded-xl bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
             <div class="h-9 rounded-xl bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
             <div class="h-9 rounded-xl bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
           </div>
         </aside>
-        <div class="flex min-w-0 flex-col overflow-hidden">
-          <div class="glass-surface h-16 shrink-0"></div>
-          <div class="flex-1 p-4 lg:p-8">
+        <!-- 右：搜索卡 + 内容卡（与真实布局同构：卡片 + 12px/20px 间距） -->
+        <div class="flex min-w-0 flex-col gap-3 overflow-hidden lg:gap-5">
+          <div class="glass-surface flex h-[68px] shrink-0 items-center rounded-2xl px-4">
+            <div class="h-9 flex-1 rounded-full bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
+          </div>
+          <div class="glass-surface flex-1 rounded-2xl p-4">
             <div class="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
-              <div class="h-[88px] glass-surface rounded-2xl"></div>
-              <div class="h-[88px] glass-surface rounded-2xl"></div>
-              <div class="h-[88px] glass-surface rounded-2xl"></div>
-              <div class="h-[88px] glass-surface rounded-2xl"></div>
-              <div class="h-[88px] glass-surface rounded-2xl"></div>
-              <div class="h-[88px] glass-surface rounded-2xl"></div>
-              <div class="h-[88px] glass-surface rounded-2xl"></div>
-              <div class="h-[88px] glass-surface rounded-2xl"></div>
-              <div class="h-[88px] glass-surface rounded-2xl"></div>
-              <div class="h-[88px] glass-surface rounded-2xl"></div>
-              <div class="h-[88px] glass-surface rounded-2xl"></div>
-              <div class="h-[88px] glass-surface rounded-2xl"></div>
+              <div class="h-[88px] rounded-xl bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
+              <div class="h-[88px] rounded-xl bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
+              <div class="h-[88px] rounded-xl bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
+              <div class="h-[88px] rounded-xl bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
+              <div class="h-[88px] rounded-xl bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
+              <div class="h-[88px] rounded-xl bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
+              <div class="h-[88px] rounded-xl bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
+              <div class="h-[88px] rounded-xl bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
+              <div class="h-[88px] rounded-xl bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
+              <div class="h-[88px] rounded-xl bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
+              <div class="h-[88px] rounded-xl bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
+              <div class="h-[88px] rounded-xl bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
             </div>
           </div>
         </div>

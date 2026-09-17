@@ -277,10 +277,21 @@ watch(
   },
 );
 
+/**
+ * 新增弹窗的默认分类：左卡「分类目录」正停在某个具体分类上（fCat 既不是 all 也不是 none）
+ * 时默认选它 —— 筛选到哪就加到哪，省掉一次下拉切换；其余情况（all / none / 该分类已被删）
+ * 仍回退到第一个分类。
+ */
+function defaultCat(): string {
+  const cats = state.doc?.categories ?? [];
+  if (fCat.value !== 'all' && fCat.value !== 'none' && cats.some((c) => c.id === fCat.value)) return fCat.value;
+  return cats[0]?.id ?? '';
+}
+
 function openAdd(): void {
   isAdd.value = true;
   // categories 可能为 undefined（旧/残破文档），可选链要一路护住到下标访问
-  form.value = { title: '', url: '', desc: '', icon: '', cat: state.doc?.categories?.[0]?.id ?? '', pinned: false };
+  form.value = { title: '', url: '', desc: '', icon: '', cat: defaultCat(), pinned: false };
   formError.value = '';
   iconPreviewFailed.value = false;
   editing.value = {} as LinkItem;

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import AppIcon from './AppIcon.vue';
+import CardHead from './CardHead.vue';
 import LinkCard from './LinkCard.vue';
-import { SECTION_LABEL } from '../lib/ui';
+import { CARD_PAD, SHELL_CARD } from '../lib/ui';
 import type { CardStyle, IconStrategy } from '../lib/models';
 import type { IndexedLink } from '../stores/nav';
 
@@ -19,24 +19,23 @@ const emit = defineEmits<{ context: [payload: { link: IndexedLink; x: number; y:
 </script>
 
 <template>
-  <!-- 玻璃语言：与分类区完全一致的表头（图标 + 大标题 + 计数小标签 + 分隔线） -->
-  <section>
-    <div class="mb-4 flex items-center gap-2.5 border-b border-slate-100 pb-3 dark:border-white/10">
-      <AppIcon name="pin" :size="22" class="text-slate-400 dark:text-slate-500" />
-      <h2 class="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100">置顶链接</h2>
-      <span :class="SECTION_LABEL">{{ links.length }}</span>
-    </div>
-    <div class="grid gap-3" :class="gridClass">
-      <LinkCard
-        v-for="l in links"
-        :key="l.id"
-        :link="l"
-        :card-style="cardStyle"
-        :icon-strategy="iconStrategy"
-        :open-in-new-tab="openInNewTab"
-        :icon-api="iconApi"
-        @context="emit('context', $event)"
-      />
+  <!-- 置顶区也是一张内容卡：标题行（图标 + 标题 + 计数，带分割线）+ 卡片正文。
+       与后台卡片同语言（rounded-2xl + glass-surface + 16px 内边距）。 -->
+  <section :class="SHELL_CARD">
+    <CardHead title="置顶链接" icon="pin" :count="links.length" />
+    <div :class="CARD_PAD">
+      <div class="grid gap-3" :class="gridClass">
+        <LinkCard
+          v-for="l in links"
+          :key="l.id"
+          :link="l"
+          :card-style="cardStyle"
+          :icon-strategy="iconStrategy"
+          :open-in-new-tab="openInNewTab"
+          :icon-api="iconApi"
+          @context="emit('context', $event)"
+        />
+      </div>
     </div>
   </section>
 </template>

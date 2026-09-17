@@ -91,6 +91,27 @@ export const PILL_IDLE =
   'hover:shadow-lg hover:shadow-accent/20 dark:hover:shadow-lg dark:hover:shadow-accent/20 ' +
   'hover:-translate-y-0.5';
 
+/* ── 卡片外壳令牌（与后台 admin/lib/adminUi.ts 同一套视觉语言）──
+   后台的 SHELL_CARD 是「rounded-2xl + 细边框 + 半透白底 + shadow-sm + glass-blur」；
+   前台对应的材质入口是 glass-surface（同一套 --glass-* 令牌：底色 / 边框 / 阴影 / 模糊），
+   所以这里只需补圆角即可，两者渲染结果同档。
+   ⚠️ 令牌**不能**直接 import 后台那份：admin/lib/adminUi.ts 只被后台的 @source 扫到，
+   前台产物里不会生成那些类名（Tailwind 对扫不到的类名不报错）。同理，这里也禁止写
+   backdrop-blur-*，模糊一律走 glass-surface / glass-blur（值 = --glass-blur）。 */
+
+/** 独立浮起的外壳卡（左列目录卡 / 右侧搜索卡 / 各内容卡） */
+export const SHELL_CARD = 'rounded-2xl glass-surface';
+
+/** 卡片标题行（带底部分割线）：与后台 CARD_HEAD_BAR 同规格（min-h-14 + px-4） */
+export const CARD_HEAD_BAR =
+  'flex min-h-14 shrink-0 flex-wrap items-center gap-2.5 border-b border-slate-200/70 px-4 dark:border-white/10';
+
+/** 卡片标题（与后台 CARD_TITLE 同规格：16px 粗体） */
+export const CARD_TITLE = 'text-base font-bold text-slate-800 dark:text-slate-100';
+
+/** 卡片内边距（16px = rounded-2xl 的半径，四周留白最平衡），与后台 CARD_PAD 一致 */
+export const CARD_PAD = 'p-4';
+
 /** 等宽小标签（计数 / 技术标签） */
 export const CHIP =
   'inline-flex items-center rounded-md bg-slate-900/[0.06] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-slate-500 dark:bg-white/[0.08] dark:text-slate-400';

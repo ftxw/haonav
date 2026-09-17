@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import AppIcon from './AppIcon.vue';
 import { firstChar } from '../lib/brandIcon';
 import type { Category, FooterLink, SiteSettings } from '../lib/models';
-import { CHIP, PILL_ACTIVE, PILL_IDLE, SECTION_LABEL } from '../lib/ui';
+import { CHIP, PILL_ACTIVE, PILL_IDLE, SECTION_LABEL, SHELL_CARD } from '../lib/ui';
 import { ALL } from '../stores/nav';
 
 const props = defineProps<{
@@ -34,7 +34,7 @@ function iconHoverCls(active: boolean): string {
 /** 选中态实心主色（对齐参考站分类 chip）；空闲态 hover 对齐参考站 logo 卡片 */
 function itemClass(active: boolean, opts?: { tall?: boolean }): string {
   return (
-    'flex w-full items-center gap-3 px-4 ' +
+    'flex w-full items-center gap-3 px-3 ' +
     (opts?.tall ? 'py-3.5 ' : 'py-3 ') +
     (active ? PILL_ACTIVE : PILL_IDLE)
   );
@@ -42,9 +42,12 @@ function itemClass(active: boolean, opts?: { tall?: boolean }): string {
 </script>
 
 <template>
-  <aside class="sidebar glass-surface flex h-full w-64 flex-col">
+  <!-- 左列只有一张卡：品牌区（卡片标题行规格）+ 目录 + 页脚外链 -->
+  <aside :class="SHELL_CARD + ' sidebar flex h-full w-64 flex-col overflow-hidden'">
     <!-- 品牌区：emerald→teal 渐变 logo（hover 缩放微旋转）+ 站名（与参考项目标题同色） -->
-    <div class="group flex h-16 shrink-0 items-center gap-3 border-b border-slate-200/40 px-6 dark:border-white/10">
+    <div
+      class="group flex min-h-14 shrink-0 items-center gap-3 border-b border-slate-200/70 px-4 dark:border-white/10"
+    >
       <img
         v-if="brandImage"
         :src="brandImage"
@@ -70,8 +73,8 @@ function itemClass(active: boolean, opts?: { tall?: boolean }): string {
       </button>
     </div>
 
-    <!-- 目录 -->
-    <nav class="hn-scroll no-scrollbar flex-1 space-y-1 overflow-y-auto p-3">
+    <!-- 目录（卡内边距 16px，与其它卡片一致；列表项内缩 12px，与后台导航项同规格） -->
+    <nav class="hn-scroll no-scrollbar flex-1 space-y-1 overflow-y-auto p-4">
       <button
         type="button"
         :class="itemClass(activeCat === ALL, { tall: true })"
@@ -82,7 +85,7 @@ function itemClass(active: boolean, opts?: { tall?: boolean }): string {
         <span :class="CHIP">{{ totalCount }}</span>
       </button>
 
-      <p class="px-4 pb-1 pt-3" :class="SECTION_LABEL">分类目录</p>
+      <p class="px-3 pb-1 pt-3" :class="SECTION_LABEL">分类目录</p>
 
       <button
         v-for="c in categories"
@@ -104,7 +107,7 @@ function itemClass(active: boolean, opts?: { tall?: boolean }): string {
     </nav>
 
     <!-- 页脚外链（来自 settings.footerLinks，零硬编码） -->
-    <div v-if="footers.length" class="shrink-0 border-t border-slate-200/40 p-3 dark:border-white/10">
+    <div v-if="footers.length" class="shrink-0 border-t border-slate-200/70 p-4 dark:border-white/10">
       <a
         v-for="f in footers"
         :key="f.url"

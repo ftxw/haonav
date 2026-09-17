@@ -57,12 +57,9 @@ const THEME_BTN =
 </script>
 
 <template>
-  <header
-    :class="[
-      'relative z-30 flex h-16 shrink-0 items-center gap-3 border-b px-4 shadow-sm lg:px-8',
-      GLASS,
-    ]"
-  >
+  <!-- 右侧顶部卡：搜索 + 视图/主题切换收进一张卡（替代原来的通栏横条）。
+       ⚠️ 不能加 overflow-hidden —— 卡内的搜索面板 / 引擎下拉是 absolute 溢出的，会被裁掉。 -->
+  <header :class="GLASS + ' relative z-30 flex shrink-0 flex-wrap items-center gap-3 rounded-2xl p-4'">
     <!-- 左：移动端目录开关 -->
     <button
       type="button"
@@ -143,7 +140,7 @@ const THEME_BTN =
     <div
       v-if="searchOpen"
       data-mobile-search-root
-      class="glass-surface absolute inset-x-0 top-full z-40 border-b px-4 py-3 md:hidden"
+      class="glass-surface absolute inset-x-0 top-full z-40 mt-2 rounded-2xl px-4 py-3 md:hidden"
     >
       <SearchBox />
     </div>

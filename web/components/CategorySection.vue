@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import AppIcon from './AppIcon.vue';
+import CardHead from './CardHead.vue';
 import LinkCard from './LinkCard.vue';
-import { SECTION_LABEL } from '../lib/ui';
+import { CARD_PAD, SHELL_CARD } from '../lib/ui';
 import type { CardStyle, IconStrategy } from '../lib/models';
 import type { IndexedLink, Section } from '../stores/nav';
 
@@ -21,26 +20,26 @@ const emit = defineEmits<{ context: [payload: { link: IndexedLink; x: number; y:
 </script>
 
 <template>
-  <section :id="'cat-' + section.cat.id" class="cat-section" :data-cat="section.cat.id">
-    <!-- 玻璃语言：分类图标 + 大标题 + 微标签计数 + 细分隔线（不再吸顶）；icon 型用与「全部链接」同风格的线性图标 -->
-    <div class="mb-4 flex items-center gap-2.5 border-b border-slate-100 pb-3 dark:border-white/10">
-      <AppIcon :name="section.cat.icon" :size="22" class="text-slate-400 dark:text-slate-500" />
-      <h2 class="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100">{{ section.cat.name }}</h2>
-      <span :class="SECTION_LABEL">{{ section.links.length }}</span>
-    </div>
+  <!-- 每个分类一张内容卡：标题行（分类图标 + 标题 + 计数，带分割线）+ 卡片正文。
+       `.cat-section` / `data-cat` 保留在最外层 —— 滚动联动高亮的 IntersectionObserver
+       正是按这两个钩子取元素的，卡片外壳必须包在它们**里面**。 -->
+  <section :id="'cat-' + section.cat.id" class="cat-section" :data-cat="section.cat.id" :class="SHELL_CARD">
+    <CardHead :title="section.cat.name" :icon="section.cat.icon" :count="section.links.length" />
 
-    <div v-if="section.links.length" class="grid gap-3" :class="gridClass">
-      <LinkCard
-        v-for="l in section.links"
-        :key="l.id"
-        :link="l"
-        :card-style="cardStyle"
-        :icon-strategy="iconStrategy"
-        :open-in-new-tab="openInNewTab"
-        :icon-api="iconApi"
-        @context="emit('context', $event)"
-      />
+    <div :class="CARD_PAD">
+      <div v-if="section.links.length" class="grid gap-3" :class="gridClass">
+        <LinkCard
+          v-for="l in section.links"
+          :key="l.id"
+          :link="l"
+          :card-style="cardStyle"
+          :icon-strategy="iconStrategy"
+          :open-in-new-tab="openInNewTab"
+          :icon-api="iconApi"
+          @context="emit('context', $event)"
+        />
+      </div>
+      <p v-else class="py-8 text-center text-sm italic text-slate-400">暂无链接</p>
     </div>
-    <p v-else class="py-8 text-center text-sm italic text-slate-400">暂无链接</p>
   </section>
 </template>

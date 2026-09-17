@@ -8,7 +8,7 @@ import ShareModal from './components/ShareModal.vue';
 import SidebarNav from './components/SidebarNav.vue';
 import Toast from './components/Toast.vue';
 import TopBar from './components/TopBar.vue';
-import { GRID } from './lib/ui';
+import { GRID, SHELL_CARD } from './lib/ui';
 import {
   ALL,
   bootstrap,
@@ -200,21 +200,22 @@ onBeforeUnmount(() => {
       @click="setDrawer(false)"
     />
 
-    <div class="relative z-10 flex min-w-0 flex-col overflow-hidden">
+    <!-- 右列：顶部搜索卡 + 下方内容卡（纵向间距与左列画布同档：12px / lg 20px） -->
+    <div class="relative z-10 flex min-w-0 flex-col gap-3 overflow-hidden lg:gap-5">
       <TopBar />
 
       <!-- 读失败降级提示：不弹窗、不阻断浏览 -->
       <div
         v-if="state.stale"
-        class="flex shrink-0 items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-700 lg:px-8 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300"
+        class="flex shrink-0 items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300"
       >
         <AppIcon name="alert" :size="14" />
         <span>数据可能不是最新</span>
       </div>
 
-      <!-- 内容区：顶部时高亮回到「全部链接」，下滚后由联动接管 -->
-    <main ref="contentRef" class="hn-scroll min-h-0 flex-1 p-4 lg:p-8" @scroll.passive="onContentScroll">
-        <div class="space-y-8">
+      <!-- 内容区：一张卡一个区块（顶部时高亮回到「全部链接」，下滚后由联动接管） -->
+    <main ref="contentRef" class="hn-scroll min-h-0 flex-1" @scroll.passive="onContentScroll">
+        <div class="space-y-3 lg:space-y-5">
           <!-- 全局置顶区：两个视图都显示，内容都是跨分类的全部置顶链接 -->
           <PinnedSection
             v-if="pinnedList.length"
@@ -239,10 +240,10 @@ onBeforeUnmount(() => {
             @context="onContext"
           />
 
-          <!-- 空态 -->
+          <!-- 空态（与区块同款内容卡） -->
           <div
             v-if="!hasData && !state.appliedQuery"
-            class="glass-surface flex flex-col items-center justify-center gap-2 rounded-2xl py-20 text-center"
+            :class="SHELL_CARD + ' flex flex-col items-center justify-center gap-2 py-20 text-center'"
           >
             <AppIcon name="grid" :size="28" class="text-slate-300 dark:text-slate-600" />
             <p class="text-sm text-slate-400">{{ state.stale ? '数据加载失败' : '还没有内容' }}</p>
@@ -250,7 +251,11 @@ onBeforeUnmount(() => {
               {{ state.stale ? '请检查网络后刷新重试' : '打开 /admin 导入浏览器书签或手动添加' }}
             </p>
           </div>
-          <div v-else-if="noResults" class="flex flex-col items-center justify-center gap-2 py-20 text-center">
+          <!-- 搜索无结果（同上，卡化保持语言一致） -->
+          <div
+            v-else-if="noResults"
+            :class="SHELL_CARD + ' flex flex-col items-center justify-center gap-2 py-20 text-center'"
+          >
             <AppIcon name="search" :size="26" class="text-slate-300 dark:text-slate-600" />
             <p class="text-sm text-slate-400">没有匹配的链接</p>
           </div>
