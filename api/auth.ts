@@ -50,7 +50,13 @@ export function verifyPassword(input: string, expected: string): boolean {
   return constantTimeEqual(input ?? '', expected ?? '');
 }
 
-/** HMAC-SHA256(pepper, password) → hex。与 scripts/gen-secrets.mjs 保持一致。 */
+/**
+ * HMAC-SHA256 → hex，用于可选的哈希密码模式（`HAONAV_PASSWORD_HASH` + `HAONAV_PEPPER`）。
+ *
+ * 算法固定：key = pepper（utf8）、message = password（utf8）、输出小写 hex。
+ * 手工生成（无需额外脚本）：
+ *   node -e "const c=require('crypto');console.log(c.createHmac('sha256','<你的 pepper>').update('<你的密码>','utf8').digest('hex'))"
+ */
 export async function passwordDigest(password: string, pepper: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     'raw',

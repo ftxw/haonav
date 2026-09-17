@@ -22,8 +22,6 @@
     "admin/**/*",
     "shared/**/*",
     "api/**/*",
-    "migrate/**/*",
-    "scripts/**/*",
     "tests/**/*",
     "vite.config.ts"
   ]
