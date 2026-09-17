@@ -109,6 +109,14 @@ export const CARD_HEAD_BAR =
 /** 卡片标题（与后台 CARD_TITLE 同规格：16px 粗体） */
 export const CARD_TITLE = 'text-base font-bold text-slate-800 dark:text-slate-100';
 
+/**
+ * 区块标题行（**没有卡片外壳**时用）—— 链接列表已改为「每个链接自己一张卡」，
+ * 外层不再有整体大卡，标题行若沿用卡片规格（min-h-14 + border-b + px-4）就会变成
+ * 一条悬空的分割线，所以这里去掉高度与分割线，只留「图标 + 标题 + 计数」一行
+ * 和与下方网格的间距（mb-3，与站内 12px 间距同档）。
+ */
+export const SECTION_HEAD_BAR = 'mb-3 flex flex-wrap items-center gap-2.5';
+
 /** 卡片内边距（16px = rounded-2xl 的半径，四周留白最平衡），与后台 CARD_PAD 一致 */
 export const CARD_PAD = 'p-4';
 

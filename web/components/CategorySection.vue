@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import CardHead from './CardHead.vue';
 import LinkCard from './LinkCard.vue';
-import { CARD_PAD, SHELL_CARD } from '../lib/ui';
 import type { CardStyle, IconStrategy } from '../lib/models';
 import type { IndexedLink, Section } from '../stores/nav';
 
@@ -20,26 +19,25 @@ const emit = defineEmits<{ context: [payload: { link: IndexedLink; x: number; y:
 </script>
 
 <template>
-  <!-- 每个分类一张内容卡：标题行（分类图标 + 标题 + 计数，带分割线）+ 卡片正文。
-       `.cat-section` / `data-cat` 保留在最外层 —— 滚动联动高亮的 IntersectionObserver
-       正是按这两个钩子取元素的，卡片外壳必须包在它们**里面**。 -->
-  <section :id="'cat-' + section.cat.id" class="cat-section" :data-cat="section.cat.id" :class="SHELL_CARD">
+  <!-- 每个分类一个区块，**没有整体大卡**：链接列表里每张链接卡自己就是卡片（CARD_FRAME），
+       外层只留标题行 + 网格，避免「一张大卡套一堆小卡」的双重背景。
+       `.cat-section` / `data-cat` 仍在此元素上 —— 滚动联动高亮的 IntersectionObserver
+       正是按这两个钩子取元素的，别挪到内层去。 -->
+  <section :id="'cat-' + section.cat.id" class="cat-section" :data-cat="section.cat.id">
     <CardHead :title="section.cat.name" :icon="section.cat.icon" :count="section.links.length" />
 
-    <div :class="CARD_PAD">
-      <div v-if="section.links.length" class="grid gap-3" :class="gridClass">
-        <LinkCard
-          v-for="l in section.links"
-          :key="l.id"
-          :link="l"
-          :card-style="cardStyle"
-          :icon-strategy="iconStrategy"
-          :open-in-new-tab="openInNewTab"
-          :icon-api="iconApi"
-          @context="emit('context', $event)"
-        />
-      </div>
-      <p v-else class="py-8 text-center text-sm italic text-slate-400">暂无链接</p>
+    <div v-if="section.links.length" class="grid gap-3" :class="gridClass">
+      <LinkCard
+        v-for="l in section.links"
+        :key="l.id"
+        :link="l"
+        :card-style="cardStyle"
+        :icon-strategy="iconStrategy"
+        :open-in-new-tab="openInNewTab"
+        :icon-api="iconApi"
+        @context="emit('context', $event)"
+      />
     </div>
+    <p v-else class="py-8 text-center text-sm italic text-slate-400">暂无链接</p>
   </section>
 </template>

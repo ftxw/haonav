@@ -54,12 +54,15 @@
             <div class="h-9 rounded-xl bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
           </div>
         </aside>
-        <!-- 右：搜索卡 + 内容卡（与真实布局同构：卡片 + 12px/20px 间距） -->
+        <!-- 右：搜索卡 + 内容区（**无整体大卡** —— 与真实布局同构：每张链接卡自己是卡片） -->
         <div class="flex min-w-0 flex-col gap-3 overflow-hidden lg:gap-5">
           <div class="glass-surface flex h-[68px] shrink-0 items-center rounded-2xl px-4">
             <div class="h-9 flex-1 rounded-full bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
           </div>
-          <div class="glass-surface flex-1 rounded-2xl p-4">
+          <div class="flex-1">
+            <div class="mb-3 flex items-center gap-2.5">
+              <div class="h-4 w-20 rounded bg-slate-900/[0.06] dark:bg-white/[0.08]"></div>
+            </div>
             <div class="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
               <div class="h-[88px] rounded-xl bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
               <div class="h-[88px] rounded-xl bg-slate-900/[0.05] dark:bg-white/[0.06]"></div>
